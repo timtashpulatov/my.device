@@ -318,7 +318,7 @@ register UBYTE nibble;
 void DebugHex32 (BPTR log, ULONG l) {
 
 	DebugHex16 (l >> 16);
-	DebugHex16 (l && 0xffff);
+	DebugHex16 (l);
 
 	FPutC (log, 0x20);
 	Flush (log);
@@ -392,11 +392,9 @@ __saveds struct MyBase * OpenLib (__reg ("a6") MyBase_t *my) {
 
 	if (my->log) {
         Seek (my->log, 0, OFFSET_END);
-		FPuts (my->log, "\n- OpenLib");
+       	Debug (my->log, "\n- OpenLib");		
     }
 	
-
-
 	my->my_LibNode.lib_OpenCnt ++;
 
 	my->my_LibNode.lib_Flags &= ~LIBF_DELEXP;
@@ -425,7 +423,7 @@ __saveds APTR CloseLib (__reg ("a6") MyBase_t *my)
 	my->my_LibNode.lib_OpenCnt --;
 
 	if (my->log) {
-		FPuts (MyBase->log, "\n- CloseLib");
+		Debug (my->log, "\n- CloseLib");
 		Close (my->log);
 		my->log = NULL;
 	}
