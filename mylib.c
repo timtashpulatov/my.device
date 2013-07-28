@@ -23,8 +23,8 @@ char MyLibID   [] = "37.01 (25.07.2013)";	//MYLIBNAME MYLIBVER;
 char VERSTRING [] = "\0$VER: my 37.01 (25.07.2013)"; 	// EXLIBNAME EXLIBVER;
 
 
-struct ExecBase *SysBase    = NULL;
-struct DOSBase	*DOSBase 	= NULL;
+struct ExecBase 	*SysBase  		= NULL;
+struct DOSBase		*DOSBase 		= NULL;
 struct UtilityBase	*UtilityBase 	= NULL;
 
 
@@ -280,48 +280,48 @@ static BYTE DevOpen(ULONG unit_num REG("d0"),
    struct DevBase *base REG(BASE_REG))
 */
 
-void Debug (BPTR log, char *s) {
-	FPuts (log, s);
+void Debug (char *s) {
+	FPuts (MyBase->log, s);
 }
 
-void DebugHex (BPTR log, UBYTE b) {
+void DebugHex (UBYTE b) {
 register UBYTE nibble;
 	nibble = b >> 4;
-	FPutC (log, (nibble < 10) ? '0' + nibble : 'A' - 10 + nibble);
+	FPutC (MyBase->log, (nibble < 10) ? '0' + nibble : 'A' - 10 + nibble);
 	nibble = b & 0x0f;
-	FPutC (log, (nibble < 10) ? '0' + nibble : 'A' - 10 + nibble);
-	FPutC (log, 0x20);
-//	Flush (log);
+	FPutC (MyBase->log, (nibble < 10) ? '0' + nibble : 'A' - 10 + nibble);
+	FPutC (MyBase->log, 0x20);
+//	Flush (MyBase->log);
 
 }
 
-void DebugHex16 (BPTR log, UWORD w) {
+void DebugHex16 (UWORD w) {
 register UBYTE nibble;
 	nibble = w >> 12;
-	FPutC (log, (nibble < 10) ? '0' + nibble : 'A' - 10 + nibble);
+	FPutC (MyBase->log, (nibble < 10) ? '0' + nibble : 'A' - 10 + nibble);
 
 	nibble = w >> 8;
-	FPutC (log, (nibble < 10) ? '0' + nibble : 'A' - 10 + nibble);
+	FPutC (MyBase->log, (nibble < 10) ? '0' + nibble : 'A' - 10 + nibble);
 
 	nibble = w >> 4;
-	FPutC (log, (nibble < 10) ? '0' + nibble : 'A' - 10 + nibble);
+	FPutC (MyBase->log, (nibble < 10) ? '0' + nibble : 'A' - 10 + nibble);
 
 	nibble = w & 0x0f;
-	FPutC (log, (nibble < 10) ? '0' + nibble : 'A' - 10 + nibble);
+	FPutC (MyBase->log, (nibble < 10) ? '0' + nibble : 'A' - 10 + nibble);
 
-	FPutC (log, 0x20);
+	FPutC (MyBase->log, 0x20);
 
-	Flush (log);
+	Flush (MyBase->log);
 }
 
 
-void DebugHex32 (BPTR log, ULONG l) {
+void DebugHex32 (ULONG l) {
 
 	DebugHex16 (l >> 16);
 	DebugHex16 (l);
 
-	FPutC (log, 0x20);
-	Flush (log);
+	FPutC (MyBase->log, 0x20);
+	Flush (MyBase->log);
 }
 
 
@@ -345,10 +345,10 @@ __saveds BYTE DevOpen (	__reg ("a6") MyBase_t *my,
 	//	FPuts (my->log, "\n- DevOpen");
 		//VFPrintf (my->log, "\n- DevOpen (unit %d, flags %x)",
 	          //  unit_num, flags
-		Debug (my->log, "\n- DevOpen unit ");
-		DebugHex (my->log, unit_num);
-		Debug (my->log, ", flags ");
-		DebugHex32 (my->log, flags);
+		Debug ("\n- DevOpen unit ");
+		DebugHex (unit_num);
+		Debug (", flags ");
+		DebugHex32 (flags);
         };
 	
 
@@ -392,7 +392,7 @@ __saveds struct MyBase * OpenLib (__reg ("a6") MyBase_t *my) {
 
 	if (my->log) {
         Seek (my->log, 0, OFFSET_END);
-       	Debug (my->log, "\n- OpenLib");		
+       	Debug ("\n- OpenLib");		
     }
 	
 	my->my_LibNode.lib_OpenCnt ++;
@@ -423,7 +423,7 @@ __saveds APTR CloseLib (__reg ("a6") MyBase_t *my)
 	my->my_LibNode.lib_OpenCnt --;
 
 	if (my->log) {
-		Debug (my->log, "\n- CloseLib");
+		Debug ("\n- CloseLib");
 		Close (my->log);
 		my->log = NULL;
 	}
@@ -563,32 +563,32 @@ __saveds void BeginIO ( __reg ("a6") MyBase_t *my,
     iorq->ios2_Req.io_Error = 0;
         
 //    	VFPrintf (my->log, "\n- BeginIO iorq: %x", (ULONG)iorq);
-	Debug (my->log, "\n- BeginIO ");
+	Debug ("\n- BeginIO ");
 //	DebugHex (my->log, iorq->ios2_Req.io_Unit);
-	Debug (my->log, "command ");
-	DebugHex16 (my->log, iorq->ios2_Req.io_Command);
-	Debug (my->log, "flags ");
-	DebugHex16 (my->log, iorq->ios2_Req.io_Flags);
+	Debug ("command ");
+	DebugHex16 (iorq->ios2_Req.io_Command);
+	Debug ("flags ");
+	DebugHex16 (iorq->ios2_Req.io_Flags);
             
         switch (iorq->ios2_Req.io_Command) {
 
             case CMD_WRITE:
-                FPuts (my->log, "\n CMD_WRITE");
+                Debug ("\n CMD_WRITE");
                 complete = CmdWrite (iorq, my);
                 break;
 
             case S2_DEVICEQUERY:
-                FPuts (my->log, "\n S2_DEVICEQUERY");
+                Debug ("\n S2_DEVICEQUERY");
                 complete = CmdS2DeviceQuery ((APTR)iorq, my);
                 break;
 
             case S2_GETSTATIONADDRESS:
-                FPuts (my->log, "\n S2_GETSTATIONADDRESS");
+                Debug (my->log, "\n S2_GETSTATIONADDRESS");
                 complete = CmdGetStationAddress ((APTR)iorq, my);
                 break;
 
             case S2_CONFIGINTERFACE:
-                FPuts (my->log, "\n S2_CONFIGINTERFACE");
+                Debug (my->log, "\n S2_CONFIGINTERFACE");
                 complete = CmdConfigInterface ((APTR) iorq, my);
                 break;
 
