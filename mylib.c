@@ -273,7 +273,6 @@ __saveds struct MyBase * InitLib (__reg ("a6") struct ExecBase  *sysbase,
 
 
 
-
 /*
 static BYTE DevOpen(ULONG unit_num REG("d0"),
    struct IOSana2Req *request REG("a1"),ULONG flags REG("d1"),
@@ -342,7 +341,7 @@ __saveds BYTE DevOpen (	__reg ("a6") MyBase_t *my,
 		my->log = Open ("T:log", MODE_READWRITE);
 
 	if (my->log) {
-	//	FPuts (my->log, "\n- DevOpen");
+	//	Debug (my->log, "\n- DevOpen");
 		//VFPrintf (my->log, "\n- DevOpen (unit %d, flags %x)",
 	          //  unit_num, flags
 		Debug ("\n- DevOpen unit ");
@@ -364,7 +363,7 @@ __saveds BYTE DevOpen (	__reg ("a6") MyBase_t *my,
 	
     	tx_function = (APTR)GetTagData (S2_CopyFromBuff, NULL, tag_list);
 	if (tx_function == NULL)
-		VFPrintf (my->log, "\n tx_function EMPTY");
+		Debug ("\n tx_function EMPTY");
 
 	
 	
@@ -558,7 +557,6 @@ __saveds void BeginIO ( __reg ("a6") MyBase_t *my,
 {
     BOOL complete;
     
-//	if (my->log) {
         
     iorq->ios2_Req.io_Error = 0;
         
@@ -568,7 +566,7 @@ __saveds void BeginIO ( __reg ("a6") MyBase_t *my,
 	Debug ("command ");
 	DebugHex16 (iorq->ios2_Req.io_Command);
 	Debug ("flags ");
-	DebugHex16 (iorq->ios2_Req.io_Flags);
+	DebugHex32 (iorq->ios2_Req.io_Flags);
             
         switch (iorq->ios2_Req.io_Command) {
 
@@ -583,72 +581,72 @@ __saveds void BeginIO ( __reg ("a6") MyBase_t *my,
                 break;
 
             case S2_GETSTATIONADDRESS:
-                Debug (my->log, "\n S2_GETSTATIONADDRESS");
+                Debug ("\n S2_GETSTATIONADDRESS");
                 complete = CmdGetStationAddress ((APTR)iorq, my);
                 break;
 
             case S2_CONFIGINTERFACE:
-                Debug (my->log, "\n S2_CONFIGINTERFACE");
+                Debug ("\n S2_CONFIGINTERFACE");
                 complete = CmdConfigInterface ((APTR) iorq, my);
                 break;
 
             case S2_ADDMULTICASTADDRESS:
-                FPuts (my->log, "\n S2_ADDMULTICASTADDRESS n/a");
+                Debug ("\n S2_ADDMULTICASTADDRESS n/a");
                 break;
 
             case S2_DELMULTICASTADDRESS:
-                FPuts (my->log, "\n S2_DELMULTICASTADDRESS n/a");
+                Debug ("\n S2_DELMULTICASTADDRESS n/a");
                 break;
 
             case S2_MULTICAST:
-                FPuts (my->log, "\n S2_MULTICAST");
+                Debug ("\n S2_MULTICAST");
                 complete = CmdWrite ((APTR)iorq, my);
                 break;
                 
             case S2_BROADCAST:
-                FPuts (my->log, "\n S2_BROADCAST");
+                Debug ("\n S2_BROADCAST");
                 complete = CmdBroadcast ((APTR)iorq, my);
                 break;
                 
             case S2_TRACKTYPE:
-                FPuts (my->log, "\n S2_TRACKTYPE n/a");
+                Debug ("\n S2_TRACKTYPE n/a");
                 break;
             case S2_UNTRACKTYPE:
-                FPuts (my->log, "\n S2_UNTRACKTYPE n/a");
+                Debug ("\n S2_UNTRACKTYPE n/a");
                 break;
             case S2_GETTYPESTATS:
-                FPuts (my->log, "\n S2_GETTYPESTATS n/a");
+                Debug ("\n S2_GETTYPESTATS n/a");
                 break;
 
             case S2_GETSPECIALSTATS:
-                FPuts (my->log, "\n S2_GETSPECIALSTATS");
+                Debug ("\n S2_GETSPECIALSTATS");
                 complete = CmdGetSpecialStats ((APTR)iorq, my);
                 break;
 
             case S2_GETGLOBALSTATS:
-                FPuts (my->log, "\n S2_GETGLOBALSTATS");
+                Debug ("\n S2_GETGLOBALSTATS");
                 complete = CmdGetGlobalStats ((APTR)iorq, my);
                 break;
 
             case S2_ONEVENT:
-                FPuts (my->log, "\n S2_ONEVENT n/a");
+                Debug ("\n S2_ONEVENT n/a");
                 break;
             case S2_READORPHAN:
-                FPuts (my->log, "\n S2_READORPHAN n/a");
+                Debug ("\n S2_READORPHAN n/a");
                 break;
 
             case S2_ONLINE:
-                FPuts (my->log, "\n S2_ONLINE");
+                Debug ("\n S2_ONLINE");
                 complete = CmdOnline ((APTR)iorq, my);
                 break;
 
             case S2_OFFLINE:
-                FPuts (my->log, "\n S2_OFFLINE");
+                Debug ("\n S2_OFFLINE");
                 complete = CmdOffline ((APTR)iorq, my);
                 break;                
 
             default:
-                FPuts (my->log, "\n CMD???");
+                Debug ("\n CMD???");
                 break;
         }    
             
@@ -764,7 +762,8 @@ static BOOL CmdWrite (struct IOSana2Req *iorq, MyBase_t *my)
         //iorq->ios2_WireError = 0;
         //complete = TRUE;
 
-        VFPrintf (my->log, "\n CmdWrite %d bytes: \n", iorq->ios2_DataLength);
+        Debug ("\n CmdWrite %d bytes: \n");
+	DebugHex16 (iorq->ios2_DataLength);
 
     // cannot access the data other than via ios2_BufferManagement 
     
@@ -775,7 +774,7 @@ static BOOL CmdWrite (struct IOSana2Req *iorq, MyBase_t *my)
             tx_function (pkt, iorq->ios2_Data, iorq->ios2_DataLength);
             
             for (i = 0; i < iorq->ios2_DataLength; i++)
-                DebugHex (my->log, pkt [i]);
+                DebugHex (pkt [i]);
 	    Flush (my->log);
 
         }
