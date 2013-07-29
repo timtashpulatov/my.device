@@ -830,7 +830,7 @@ static BOOL CmdOnline (struct IOSana2Req *iorq, struct DevBase *my)
 
 
 
-static BOOL CmdOffline (struct IOSana2Req *iorq, struct DevBase *my)
+static BOOL CmdOffline (struct IOSana2Req *iorq, struct MyBase *my)
 {
    /* Put adapter offline */
 
@@ -845,7 +845,7 @@ static BOOL CmdOffline (struct IOSana2Req *iorq, struct DevBase *my)
 
 
 
-static BOOL CmdConfigInterface (struct IOSana2Req *iorq, struct DevBase *my)
+static BOOL CmdConfigInterface (struct IOSana2Req *iorq, struct MyBase *my)
 {
 
    /* Configure adapter */
@@ -868,7 +868,7 @@ static BOOL CmdConfigInterface (struct IOSana2Req *iorq, struct DevBase *my)
 }
 
 
-static BOOL CmdGetSpecialStats(struct IOSana2Req *iorq, struct DevBase *my)
+static BOOL CmdGetSpecialStats(struct IOSana2Req *iorq, struct MyBase *my)
 {
 
    UWORD i, stat_count;

@@ -1,1 +1,2 @@
-vc -vv -nostdlib -lamiga -o my.device mylib.o
+vc -vv -nostdlib -lamiga -o my.device mylib.o unit.o
+
