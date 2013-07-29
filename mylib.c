@@ -296,10 +296,10 @@ register UBYTE nibble;
 
 void DebugHex16 (UWORD w) {
 register UBYTE nibble;
-register BYTE i;
+register UBYTE i;
 
-	for (i = 12; i >= 0; i -= 4) {
-		nibble = w >> i;
+	for (i = 0; i < 4; i ++) {
+		nibble = w >> (12 - i * 4);
 		FPutC (MyBase->log, (nibble < 10) ? '0' + nibble : 'A' - 10 + nibble);
 	}
 
