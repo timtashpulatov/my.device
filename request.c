@@ -781,33 +781,6 @@ UWORD i;
 }
 
 
-
-/****** 3c589.device/S2_OFFLINE ********************************************
-*
-*   NAME
-*	S2_OFFLINE --
-*
-*   FUNCTION
-*
-*   INPUTS
-*	None.
-*
-*   RESULTS
-*	io_Error
-*	ios2_WireError
-*
-*   EXAMPLE
-*
-*   NOTES
-*
-*   BUGS
-*
-*   SEE ALSO
-*
-****************************************************************************
-*
-*/
-
 static BOOL CmdOffline(struct IOSana2Req *request,struct MyBase *base)
 {
    struct DevUnit *unit;
