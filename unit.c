@@ -37,8 +37,7 @@ VOID FlushUnit (struct DevUnit *unit, UBYTE last_queue, BYTE error, struct MyBas
 
 
 
-struct DevUnit *GetUnit (ULONG unit_num, struct MyBase *base)
-{
+struct DevUnit *GetUnit (ULONG unit_num, struct MyBase *base) {
    struct DevUnit *unit;
 
    unit = FindUnit (unit_num, base);

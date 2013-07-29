@@ -1,9 +1,11 @@
 #include <exec/types.h>
 #include <exec/nodes.h>
+#include <exec/devices.h>
 #include <exec/libraries.h>
 #include <exec/initializers.h>
 #include <exec/resident.h>
 #include <exec/interrupts.h>
+#include <exec/memory.h>
 #include <exec/io.h>
 #include <dos/dos.h>
 #include <libraries/dos.h>
@@ -23,6 +25,8 @@
 #define MYLIBNAME "my"
 #define MYLIBVER  " 37.01 (25.07.2013)"
 
+#define UNIT_COUNT 1
+
 char device_name [] = "my.device";	//"my.library";		// MYLIBNAME ".library";
 char MyLibID   [] = "37.01 (25.07.2013)";	//MYLIBNAME MYLIBVER;
 
@@ -39,24 +43,6 @@ LONG LibStart (void) {
 }
 
 
-UBYTE address [ADDRESS_SIZE];  // ?
-UBYTE default_address [ADDRESS_SIZE] = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66};
-UWORD flags;
-
-struct Sana2DeviceQuery sana2_info =
-{
-   0,
-   0,
-   0,
-   0,
-   ADDRESS_SIZE * 8,
-   MTU,
-   10000000,
-   S2WireType_Ethernet
-};
-
-struct Sana2DeviceStats stats;
-ULONG special_stats [STAT_COUNT];
 
 /*
 
@@ -73,7 +59,10 @@ typedef struct {
 } MyBase_t;
 */
 
-__saveds MyBase_t * InitLib (void); // (struct ExecBase *, APTR, MyBase_t *);
+__saveds struct MyBase * InitLib (__reg ("a6") struct ExecBase  *sysbase,
+                                  __reg ("a0") APTR 		seglist,
+                                  __reg ("d0") struct MyBase 	*my);
+
 
 
 //__saveds struct MyBase * OpenLib (APTR);
@@ -82,27 +71,19 @@ __saveds BYTE DevOpen ( __reg ("a6") MyBase_t *my,
                         __reg ("d1") ULONG flags,
                         __reg ("d0") ULONG unit_num
 	);
-
-__saveds APTR CloseLib (APTR);
-__saveds APTR ExpungeLib (APTR);
-ULONG ASM ExtFuncLib (void);
+__saveds BYTE DevOpenNew ( __reg ("a6") MyBase_t *my, __reg ("a1") struct IOSana2Req *iorq, __reg ("d1") ULONG flags, __reg ("d0") ULONG unit_num);
+//__saveds APTR CloseLib (APTR);
+__saveds APTR CloseLib (__reg ("a6") struct MyBase *my);
+//__saveds APTR ExpungeLib (APTR);
+__saveds APTR ExpungeLib (__reg ("a6") struct MyBase *my);
+__saveds APTR DevExpunge (__reg ("a6") struct MyBase *base);
+ULONG ExtFuncLib (void);
 
 __saveds void BeginIO (	__reg ("a6") MyBase_t *my, 
                         __reg ("a1") struct IOSana2Req *iorq);
 
 void AbortIO (struct IORequest *);
 
-static BOOL CmdConfigInterface (struct IOSana2Req *iorq, struct DevBase *my);
-static BOOL CmdS2DeviceQuery (struct IOSana2Req *request, struct DevBase *base);
-static BOOL CmdGetStationAddress (struct IOSana2Req *request, struct DevBase *base);
-static BOOL CmdGetSpecialStats (struct IOSana2Req *request, struct DevBase *base);
-static BOOL CmdGetGlobalStats (struct IOSana2Req *request, struct DevBase *base);
-static BOOL CmdBroadcast (struct IOSana2Req *iorq, struct DevBase *base);
-static BOOL CmdWrite (struct IOSana2Req *iorq, MyBase_t *my);
-static BOOL CmdOnline (struct IOSana2Req *iorq, struct DevBase *my);
-static BOOL CmdOffline (struct IOSana2Req *iorq, struct DevBase *my);
-//void GoOnline (struct DevBase *my);
-//void GoOffline (struct DevBase *my);
 
 /* ----------------------------------------------------------------------------------------
    ! ROMTag and Library inilitalization structure:
@@ -120,10 +101,10 @@ static BOOL CmdOffline (struct IOSana2Req *iorq, struct DevBase *my);
    ! it must not be placed in a different SECTION.
    ---------------------------------------------------------------------------------------- */
 
-extern ULONG InitTab [];
+extern APTR InitTab [];
 extern APTR EndResident; /* below */
 
-__aligned struct Resident ROMTag =     /* do not change */
+/* __aligned */ struct Resident ROMTag =     /* do not change */
 {
 	RTC_MATCHWORD,
 	&ROMTag,
@@ -196,13 +177,30 @@ struct InitTable {                       /* do not change */
  	APTR               InitLibTable;
 } InitTab = {
  	(ULONG)               sizeof(MyBase_t),
- 	(APTR              *) &FuncTab[0],
+ 	(APTR              *) &FuncTab [0],
  	(struct MyDataInit *) &DataTab,
  	(APTR)                InitLib
 };
 
+static const ULONG rx_tags[]=
+{
+   S2_CopyToBuff,
+//   S2_CopyToBuff16
+};
+
+
+static const ULONG tx_tags[]=
+{
+   S2_CopyFromBuff,
+//   S2_CopyFromBuff16,
+//   S2_CopyFromBuff32
+};
+
+
+
 APTR FuncTab [] = {
-	(APTR) DevOpen,	// 	(APTR) OpenLib,
+//	(APTR) DevOpen,	// 	(APTR) OpenLib,
+    (APTR) DevOpenNew, 
  	(APTR) CloseLib,
  	(APTR) ExpungeLib,
 	(APTR) ExtFuncLib,
@@ -214,6 +212,8 @@ APTR FuncTab [] = {
 
  	(APTR) ((LONG)-1)
 };
+
+
 
 
 
@@ -232,8 +232,8 @@ __saveds __stdargs void L_CloseLibs (void);
    ---------------------------------------------------------------------------------------- */
 
 __saveds struct MyBase * InitLib (__reg ("a6") struct ExecBase  *sysbase,
-                                  __reg ("a0") APTR 		seglist,
-                                  __reg ("d0") struct MyBase_t 	*my) 
+                                  __reg ("a0") APTR seglist,
+                                  __reg ("d0") struct MyBase 	*my) 
 {
 
 
@@ -243,9 +243,13 @@ __saveds struct MyBase * InitLib (__reg ("a6") struct ExecBase  *sysbase,
  MyBase->my_SegList = seglist;
 
  MyBase->log = NULL;
+ 
+ NewList ((APTR)(&MyBase->units));
 
  if (L_OpenLibs (MyBase)) 
 	return (MyBase);
+
+
 
  L_CloseLibs ();
 
@@ -253,8 +257,8 @@ __saveds struct MyBase * InitLib (__reg ("a6") struct ExecBase  *sysbase,
    ULONG negsize, possize, fullsize;
    UBYTE *negptr = (UBYTE *) MyBase;
 
-   negsize  = MyBase->my_LibNode.lib_NegSize;
-   possize  = MyBase->my_LibNode.lib_PosSize;
+   negsize  = MyBase->device.dd_Library.lib_NegSize;
+   possize  = MyBase->device.dd_Library.lib_PosSize;
    fullsize = negsize + possize;
    negptr  -= negsize;
 
@@ -346,12 +350,10 @@ __saveds BYTE DevOpen (	__reg ("a6") MyBase_t *my,
 		DebugHex32 (flags);
         };
 	
-
-
-	my->my_LibNode.lib_OpenCnt ++;
-	my->my_LibNode.lib_Flags &= ~LIBF_DELEXP;
+	my->device.dd_Library.lib_OpenCnt ++;
+	my->device.dd_Library.lib_Flags &= ~LIBF_DELEXP;
 	
-	request->ios2_Req.io_Unit = 1;
+	request->ios2_Req.io_Unit = NULL; // FIXME
 	tag_list = request->ios2_BufferManagement;
 	request->ios2_BufferManagement = NULL;
 	
@@ -381,7 +383,7 @@ __saveds BYTE DevOpen (	__reg ("a6") MyBase_t *my,
    ! mechanism.
    ---------------------------------------------------------------------------------------- */
 
-__saveds struct MyBase * OpenLib (__reg ("a6") MyBase_t *my) {
+__saveds struct MyBase * OpenLib (__reg ("a6") struct MyBase *my) {
 
 	if (my->log == NULL)
 		my->log = Open ("T:log", MODE_READWRITE);
@@ -391,13 +393,118 @@ __saveds struct MyBase * OpenLib (__reg ("a6") MyBase_t *my) {
        	Debug ("\n- OpenLib");		
     }
 	
-	my->my_LibNode.lib_OpenCnt ++;
+	my->device.dd_Library.lib_OpenCnt ++;
 
-	my->my_LibNode.lib_Flags &= ~LIBF_DELEXP;
+	my->device.dd_Library.lib_Flags &= ~LIBF_DELEXP;
 	
 	return (my);
 }
 
+
+/*****************************************************************************
+ *
+ * DevOpenNew
+ *
+ *****************************************************************************/
+__saveds BYTE DevOpenNew (__reg ("d0") ULONG unit_num,
+                     __reg ("a1") struct IOSana2Req *request,
+                     __reg ("d1") ULONG flags,
+                     __reg ("a6") struct MyBase *base) {
+   struct DevUnit *unit;
+   BYTE error = 0;
+   struct Opener *opener;
+   struct TagItem *tag_list;
+   UWORD i;
+
+   base->device.dd_Library.lib_OpenCnt ++;
+   base->device.dd_Library.lib_Flags &= ~LIBF_DELEXP;
+
+    // Log
+   	if (base->log == NULL)
+    	base->log = Open ("T:log", MODE_READWRITE);
+
+	if (base->log) {
+	    Seek (base->log, 0, OFFSET_END);
+		Debug ("\n\n- DevOpenNew unit ");
+		DebugHex (unit_num);
+		Debug (", flags ");
+		DebugHex32 (flags);
+        };
+
+
+   request->ios2_Req.io_Unit = NULL;
+   tag_list = request->ios2_BufferManagement;
+   request->ios2_BufferManagement = NULL;
+
+   /* Check request size and unit number */
+
+   if ((request->ios2_Req.io_Message.mn_Length < sizeof(struct IOSana2Req)) ||
+       (unit_num >= UNIT_COUNT))
+      error = IOERR_OPENFAIL;
+
+   /* Get the requested unit */
+
+   if (error == 0) {
+      request->ios2_Req.io_Unit = unit = GetUnit (unit_num, base);
+      if (unit == NULL)
+         error = IOERR_OPENFAIL;
+   }
+
+   /* Handle device sharing */
+
+   if (error == 0) {
+      if ((unit->open_count != 0) && (((unit->flags & UNITF_SHARED) == 0) ||
+         ((flags & SANA2OPF_MINE) !=0)))
+         error = IOERR_UNITBUSY;
+      unit->open_count ++;
+   }
+
+   if(error == 0)
+   {
+      if((flags & SANA2OPF_MINE) == 0)
+         unit->flags |= UNITF_SHARED;
+      else if ((flags & SANA2OPF_PROM) != 0)
+         unit->flags |= UNITF_PROM;
+
+      /* Set up buffer-management structure and get hooks */
+
+      request->ios2_BufferManagement = opener =
+         (APTR)AllocVec (sizeof (struct Opener), MEMF_PUBLIC);
+      if (opener == NULL)
+         error = IOERR_OPENFAIL;
+   }
+
+   if(error==0)
+   {
+      NewList(&opener->read_port.mp_MsgList);
+      opener->read_port.mp_Flags=PA_IGNORE;
+      NewList((APTR)&opener->initial_stats);
+
+      for(i=0;i<2;i++)
+         opener->rx_function=(APTR)GetTagData(rx_tags[i],
+            (ULONG)opener->rx_function,tag_list);
+      for(i=0;i<3;i++)
+         opener->tx_function=(APTR)GetTagData(tx_tags[i],
+            (ULONG)opener->tx_function,tag_list);
+
+      opener->filter_hook=(APTR)GetTagData(S2_PacketFilter,NULL,tag_list);
+      opener->dma_tx_function = NULL; //   (APTR)GetTagData(S2_DMACopyFromBuff32,NULL,tag_list);
+
+      Disable();
+      AddTail((APTR)&unit->openers,(APTR)opener);
+      Enable();
+   }
+
+   /* Back out if anything went wrong */
+
+   if (error != 0)
+      DevClose (request, base);
+
+   /* Return */
+
+   request->ios2_Req.io_Error = error;
+   return error;
+}
 
 
 
@@ -414,9 +521,8 @@ __saveds struct MyBase * OpenLib (__reg ("a6") MyBase_t *my) {
    ! mechanism.
    ---------------------------------------------------------------------------------------- */
 
-__saveds APTR CloseLib (__reg ("a6") MyBase_t *my)
-{
-	my->my_LibNode.lib_OpenCnt --;
+__saveds APTR CloseLib (__reg ("a6") struct MyBase *my) {
+	my->device.dd_Library.lib_OpenCnt --;
 
 	if (my->log) {
 		Debug ("\n- CloseLib");
@@ -424,14 +530,71 @@ __saveds APTR CloseLib (__reg ("a6") MyBase_t *my)
 		my->log = NULL;
 	}
 
-	if (!my->my_LibNode.lib_OpenCnt) {
-		if (my->my_LibNode.lib_Flags & LIBF_DELEXP) {
+	if (!my->device.dd_Library.lib_OpenCnt) {
+		if (my->device.dd_Library.lib_Flags & LIBF_DELEXP) {
 	     		return (ExpungeLib (my));
     		}
   	}
 
  return (NULL);
 }
+
+
+__saveds APTR DevClose (__reg ("a1") struct IOSana2Req *request, __reg ("a6") struct MyBase *base) {
+struct DevUnit *unit;
+APTR seg_list;
+struct Opener *opener;
+
+   /* Free buffer-management resources */
+
+   opener = (APTR)request->ios2_BufferManagement;
+   if(opener != NULL) {
+      Disable();
+      Remove ((APTR)opener);
+      Enable();
+      FreeVec (opener);
+   }
+
+   /* Delete the unit if it's no longer in use */
+
+   unit = (APTR)request->ios2_Req.io_Unit;
+   if (unit != NULL) {
+      if ((-- unit->open_count) == 0) {
+         Remove ((APTR)unit);
+         DeleteUnit (unit, base);
+      }
+   }
+
+   /* Expunge the device if a delayed expunge is pending */
+
+   seg_list = NULL;
+
+   if ((-- base->device.dd_Library.lib_OpenCnt) == 0) {
+      if ((base->device.dd_Library.lib_Flags & LIBF_DELEXP) != 0)
+         seg_list = DevExpunge (base);
+   }
+
+   return seg_list;
+}
+
+
+
+__saveds APTR DevExpunge (__reg ("a6") struct MyBase *base) {
+APTR seg_list;
+
+   if (base->device.dd_Library.lib_OpenCnt == 0) {
+      seg_list = base->my_SegList;
+      Remove ((APTR)base);
+      DeleteDevice (base);
+   }
+   else {
+      base->device.dd_Library.lib_Flags |= LIBF_DELEXP;
+      seg_list = NULL;
+   }
+
+   return seg_list;
+}
+
 
 /* ----------------------------------------------------------------------------------------
    ! ExpungeLib:
@@ -446,12 +609,11 @@ __saveds APTR CloseLib (__reg ("a6") MyBase_t *my)
    ! mechanism - but since expunging can't be done twice, one should avoid it here.
    ---------------------------------------------------------------------------------------- */
 
-__saveds APTR ExpungeLib (__reg ("a6") MyBase_t *my)
-{
+__saveds APTR ExpungeLib (__reg ("a6") struct MyBase *my) {
  MyBase_t *MyBase = my;
  APTR seglist;
 
- if (!MyBase->my_LibNode.lib_OpenCnt)
+ if (!MyBase->device.dd_Library.lib_OpenCnt)
   {
    ULONG negsize, possize, fullsize;
    UBYTE *negptr = (UBYTE *) MyBase;
@@ -462,8 +624,8 @@ __saveds APTR ExpungeLib (__reg ("a6") MyBase_t *my)
 
    L_CloseLibs();
 
-   negsize  = MyBase->my_LibNode.lib_NegSize;
-   possize  = MyBase->my_LibNode.lib_PosSize;
+   negsize  = MyBase->device.dd_Library.lib_NegSize;
+   possize  = MyBase->device.dd_Library.lib_PosSize;
    fullsize = negsize + possize;
    negptr  -= negsize;
 
@@ -473,11 +635,17 @@ __saveds APTR ExpungeLib (__reg ("a6") MyBase_t *my)
    return (seglist);
   }
 
- MyBase->my_LibNode.lib_Flags |= LIBF_DELEXP;
+ MyBase->device.dd_Library.lib_Flags |= LIBF_DELEXP;
 
  return(NULL);
 }
 
+
+/*****************************************************************************
+ *
+ *
+ *
+ *****************************************************************************/
 
 /* ----------------------------------------------------------------------------------------
    ! ExtFunct:
@@ -493,7 +661,7 @@ __saveds APTR ExpungeLib (__reg ("a6") MyBase_t *my)
    ! it, either.
    ---------------------------------------------------------------------------------------- */
 
-ULONG ASM ExtFuncLib (void) {
+ULONG ExtFuncLib (void) {
 	return (NULL);
 }
 
@@ -567,22 +735,21 @@ __saveds void BeginIO ( __reg ("a6") MyBase_t *my,
 
             case CMD_WRITE:
                 Debug ("\n CMD_WRITE");
-                complete = CmdWrite (iorq, my);
                 break;
 
             case S2_DEVICEQUERY:
                 Debug ("\n S2_DEVICEQUERY");
-                complete = CmdS2DeviceQuery ((APTR)iorq, my);
+
                 break;
 
             case S2_GETSTATIONADDRESS:
                 Debug ("\n S2_GETSTATIONADDRESS");
-                complete = CmdGetStationAddress ((APTR)iorq, my);
+
                 break;
 
             case S2_CONFIGINTERFACE:
                 Debug ("\n S2_CONFIGINTERFACE");
-                complete = CmdConfigInterface ((APTR) iorq, my);
+
                 break;
 
             case S2_ADDMULTICASTADDRESS:
@@ -595,12 +762,12 @@ __saveds void BeginIO ( __reg ("a6") MyBase_t *my,
 
             case S2_MULTICAST:
                 Debug ("\n S2_MULTICAST");
-                complete = CmdWrite ((APTR)iorq, my);
+
                 break;
                 
             case S2_BROADCAST:
                 Debug ("\n S2_BROADCAST");
-                complete = CmdBroadcast ((APTR)iorq, my);
+
                 break;
                 
             case S2_TRACKTYPE:
@@ -615,12 +782,12 @@ __saveds void BeginIO ( __reg ("a6") MyBase_t *my,
 
             case S2_GETSPECIALSTATS:
                 Debug ("\n S2_GETSPECIALSTATS");
-                complete = CmdGetSpecialStats ((APTR)iorq, my);
+
                 break;
 
             case S2_GETGLOBALSTATS:
                 Debug ("\n S2_GETGLOBALSTATS");
-                complete = CmdGetGlobalStats ((APTR)iorq, my);
+
                 break;
 
             case S2_ONEVENT:
@@ -632,12 +799,12 @@ __saveds void BeginIO ( __reg ("a6") MyBase_t *my,
 
             case S2_ONLINE:
                 Debug ("\n S2_ONLINE");
-                complete = CmdOnline ((APTR)iorq, my);
+
                 break;
 
             case S2_OFFLINE:
                 Debug ("\n S2_OFFLINE");
-                complete = CmdOffline ((APTR)iorq, my);
+
                 break;                
 
             default:
@@ -648,7 +815,7 @@ __saveds void BeginIO ( __reg ("a6") MyBase_t *my,
 //    }
     	
 //   if (complete && ((iorq->ios2_Req.io_Flags & IOF_QUICK) == 0))
-      ReplyMsg ((APTR)iorq);
+//      ReplyMsg ((APTR)iorq);
     	
     	
 
@@ -659,248 +826,24 @@ void AbortIO (struct IORequest *) {
 
 
 
-static BOOL CmdS2DeviceQuery (
-    struct IOSana2Req *iorq,
-    struct DevBase *base)
-{
+VOID DeleteDevice (struct MyBase *base) {
+UWORD neg_size, pos_size;
 
-   struct Sana2DeviceQuery *info;
-   ULONG size_available, size;
+   /* Close devices */
 
-   /* Copy device info */
+//   CloseDevice ((APTR)&base->timer_request);
 
-   info = iorq->ios2_StatData;
-   size = size_available = info->SizeAvailable;
-   if (size > sizeof (struct Sana2DeviceQuery))
-      size = sizeof (struct Sana2DeviceQuery);
+   /* Close libraries */
 
-   CopyMem (&sana2_info, info, size);
+   if (base->my_UtilityBase != NULL)
+      CloseLibrary ((APTR)base->my_UtilityBase);
 
-   info->SizeAvailable = size_available;
-   info->SizeSupplied = size;
+   /* Free device's memory */
 
-   /* Return */
+   neg_size = base->device.dd_Library.lib_NegSize;
+   pos_size = base->device.dd_Library.lib_PosSize;
+   FreeMem ((UBYTE *)base-neg_size, pos_size + neg_size);
 
-   return TRUE;
+   return;
 }
-
-
-static BOOL CmdGetStationAddress (
-    struct IOSana2Req *iorq,
-    struct DevBase *base)
-{ 
-   /* Copy addresses */
-
-//   CopyMem (address, iorq->ios2_SrcAddr, ADDRESS_SIZE);
-   CopyMem (default_address, iorq->ios2_DstAddr, ADDRESS_SIZE);
-
-   return TRUE;
-}
-
-static BOOL CmdGetGlobalStats (struct IOSana2Req *iorq, struct DevBase *base)
-{
-   CopyMem (stats, iorq->ios2_StatData, sizeof (struct Sana2DeviceStats));
-   return TRUE;
-}
-
-
-static BOOL CmdBroadcast (struct IOSana2Req *iorq, struct DevBase *base)
-{
-   /* Fill in the broadcast address as destination */
-
-   *((ULONG *)iorq->ios2_DstAddr) = 0xffffffff;
-   *((UWORD *)(iorq->ios2_DstAddr + 4)) = 0xffff;
-
-   /* Queue the write as normal */
-
-   return CmdWrite (iorq, base);
-}
-
-
-
-/************************************************************************
- *
- * CmdWrite
- *
- ************************************************************************/ 
-static BOOL CmdWrite (struct IOSana2Req *iorq, MyBase_t *my)
-{
-
-   BYTE error = 0;
-   ULONG wire_error;
-   BOOL complete = FALSE;
-
-	UBYTE pkt [2048];
-
-   /* Check request is valid */
-
-   
-   if((flags & UNITF_ONLINE) == 0)
-   {
-      error = S2ERR_OUTOFSERVICE;
-      wire_error = S2WERR_UNIT_OFFLINE;
-   }
-   else if ((iorq->ios2_Req.io_Command == S2_MULTICAST) &&
-            ((iorq->ios2_DstAddr [0]& 0x1) == 0))
-   {
-      error = S2ERR_BAD_ADDRESS;
-      wire_error = S2WERR_BAD_MULTICAST;
-   }
-
-   /* Queue request for sending */
-
-   if (error == 0) {
-//      PutRequest (request_ports [WRITE_QUEUE], (APTR)iorq, base);
-
-        // > /dev/nul
-        //iorq->ios2_Req.io_Error = 0;
-        //iorq->ios2_WireError = 0;
-        //complete = TRUE;
-
-        Debug ("\n CmdWrite ");	DebugHex16 (iorq->ios2_DataLength); Debug ("bytes: \n");
-
-    // cannot access the data other than via ios2_BufferManagement 
-    
-        { UBYTE i; 
-
-		//p [0] = p [1] = p [2] = p [3] = 0x77;
-
-            tx_function (pkt, iorq->ios2_Data, iorq->ios2_DataLength);
-            
-            for (i = 0; i < iorq->ios2_DataLength; i++)
-                DebugHex (pkt [i]);
-	    Flush (my->log);
-
-        }
-  
-                
-    }
-    
-   else
-   {
-      iorq->ios2_Req.io_Error = error;
-      iorq->ios2_WireError = wire_error;
-      complete = TRUE;
-   }
-
-   /* Return */
-
-   return complete;
-}
-
-static BOOL CmdOnline (struct IOSana2Req *iorq, struct DevBase *my)
-{
-   struct DevUnit *unit;
-   BYTE error = 0;
-   ULONG wire_error;
-   UWORD i;
-
-   /* Check request is valid */
-
-   if ((flags & UNITF_CONFIGURED) == 0)
-   {
-      error = S2ERR_BAD_STATE;
-      wire_error = S2WERR_NOT_CONFIGURED;
-   }
-
-   /* Clear global and special stats and put adapter back online */
-
-   if ((error == 0) && ((flags & UNITF_ONLINE) == 0))
-   {
-      stats.PacketsReceived = 0;
-      stats.PacketsSent = 0;
-      stats.BadData = 0;
-      stats.Overruns = 0;
-      stats.UnknownTypesReceived = 0;
-      stats.Reconfigurations = 0;
-
-      for (i = 0; i < STAT_COUNT; i ++)
-         special_stats [i] = 0;
-
-      GoOnline (my);
-   }
-
-   /* Return */
-
-   iorq->ios2_Req.io_Error = error;
-   iorq->ios2_WireError = wire_error;
-   return TRUE;
-}
-
-
-
-
-static BOOL CmdOffline (struct IOSana2Req *iorq, struct MyBase *my)
-{
-   /* Put adapter offline */
-
-   if((flags & UNITF_ONLINE) != 0)
-      GoOffline (my);
-
-   /* Return */
-
-   return TRUE;
-}
-
-
-
-
-static BOOL CmdConfigInterface (struct IOSana2Req *iorq, struct MyBase *my)
-{
-
-   /* Configure adapter */
-
-
-   if ((flags & UNITF_CONFIGURED) == 0)
-   {
-      CopyMem (iorq->ios2_SrcAddr, address, ADDRESS_SIZE);
-      flags |= UNITF_CONFIGURED;
-   }
-   else
-   {
-      iorq->ios2_Req.io_Error = S2ERR_BAD_STATE;
-      iorq->ios2_WireError = S2WERR_IS_CONFIGURED;
-   }
-
-   /* Return */
-
-   return TRUE;
-}
-
-
-static BOOL CmdGetSpecialStats(struct IOSana2Req *iorq, struct MyBase *my)
-{
-
-   UWORD i, stat_count;
-   struct Sana2SpecialStatHeader *header;
-   struct Sana2SpecialStatRecord *record;
-
-   /* Fill in stats */
-
-   header = iorq->ios2_StatData;
-   record = (APTR)(header + 1);
-
-   stat_count = header->RecordCountMax;
-   if (stat_count > STAT_COUNT)
-      stat_count = STAT_COUNT;
-
-   for (i = 0; i < stat_count; i ++)
-   {
-      record->Type = (S2WireType_Ethernet << 16) + i;
-      record->Count = special_stats [i];
-//      record->String = (TEXT *)&unit->openers.mlh_Tail;
-        record->String = 0;
-      record++;
-   }
-
-   header->RecordCountSupplied = stat_count;
-
-   /* Return */
-
-   return TRUE;
-}
-
-
-
-
 
