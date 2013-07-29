@@ -323,12 +323,18 @@ register UBYTE i;
 
 
 void DebugHex32 (ULONG l) {
+register UBYTE nibble;
+register UBYTE i;
 
-	DebugHex16 (l >> 16);
-	DebugHex16 (l);
+	for (i = 0; i < 8; i ++) {
+		nibble = (w >> (12 - i * 4)) & 0x0f;
+		FPutC (MyBase->log, (nibble < 10) ? '0' + nibble : 'A' - 10 + nibble);
+    }
 
 	FPutC (MyBase->log, 0x20);
-	Flush (MyBase->log);
+	
+	
+//	Flush (MyBase->log);
 }
 
 
@@ -353,7 +359,7 @@ __saveds BYTE DevOpen (	__reg ("a6") MyBase_t *my,
 		//VFPrintf (my->log, "\n- DevOpen (unit %d, flags %x)",
 	          //  unit_num, flags
 	    Seek (my->log, 0, OFFSET_END);
-		Debug ("\n- DevOpen unit ");
+		Debug ("\n\n- DevOpen unit ");
 		DebugHex (unit_num);
 		Debug (", flags ");
 		DebugHex32 (flags);
