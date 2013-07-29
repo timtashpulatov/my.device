@@ -15,7 +15,7 @@
 #include "device.h"
 
 #define TASK_PRIORITY 0
-#define STACK_SIZE 16384    // 8192 // 4096
+#define STACK_SIZE 4096
 //#define MAX_TUPLE_SIZE 0xff
 //#define TUPLE_BUFFER_SIZE (MAX_TUPLE_SIZE+8)
 
