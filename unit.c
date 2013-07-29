@@ -1,6 +1,17 @@
 #include <exec/memory.h>
 #include <exec/execbase.h>
 #include <exec/errors.h>
+#include <exec/io.h>
+#include <exec/interrupts.h>
+#include <exec/semaphores.h>
+#include <dos/dos.h>
+#include <libraries/dos.h>
+
+#include "devices/sana2.h"
+#include "devices/sana2specialstats.h"
+
+
+#include "device.h"
 
 #define TASK_PRIORITY 0
 #define STACK_SIZE 4096
@@ -10,38 +21,38 @@
 
 IMPORT struct ExecBase *AbsExecBase;
 
-static struct AddressRange *FindMulticastRange(struct DevUnit *unit,
-   ULONG lower_bound_left,UWORD lower_bound_right,ULONG upper_bound_left,
-   UWORD upper_bound_right,struct DevBase *base);
-static VOID RxInt(struct DevUnit *unit REG("a1"));
-static VOID CopyPacket(struct DevUnit *unit,struct IOSana2Req *request,
-   UWORD packet_size,UWORD packet_type,BOOL all_read,struct DevBase *base);
-static BOOL AddressFilter(struct DevUnit *unit,UBYTE *address,
-   struct DevBase *base);
-static VOID TxInt(struct DevUnit *unit REG("a1"));
-static VOID TxError(struct DevUnit *unit,struct DevBase *base);
-static VOID ReportEvents(struct DevUnit *unit,ULONG events,
-   struct DevBase *base);
+//static struct AddressRange *FindMulticastRange(struct DevUnit *unit,  ULONG lower_bound_left, UWORD lower_bound_right, ULONG upper_bound_left,   UWORD upper_bound_right, struct DevBase *base);
+static VOID RxInt (__reg("a1") struct DevUnit *unit);
+static VOID CopyPacket(struct DevUnit *unit,struct IOSana2Req *request, UWORD packet_size,UWORD packet_type,BOOL all_read,struct MyBase *base);
+static BOOL AddressFilter (struct DevUnit *unit, UBYTE *address, struct MyBase *base);
+static VOID TxInt(__reg("a1") struct DevUnit *unit);
+static VOID TxError(struct DevUnit *unit, struct MyBase *base);
+static VOID ReportEvents (struct DevUnit *unit, ULONG events, struct MyBase *base);
 static VOID UnitTask();
+VOID DeleteUnit (struct DevUnit *unit, struct MyBase *base);
+struct DevUnit *FindUnit (ULONG unit_num, struct MyBase *base);
+struct DevUnit *CreateUnit (ULONG unit_num, struct MyBase *base);
+struct TypeStats *FindTypeStats (struct DevUnit *unit, struct MinList *list, ULONG packet_type, struct MyBase *base);
+VOID FlushUnit (struct DevUnit *unit, UBYTE last_queue, BYTE error, struct MyBase *base);
 
 
 
-struct DevUnit *GetUnit (ULONG unit_num, struct DevBase *base)
+struct DevUnit *GetUnit (ULONG unit_num, struct MyBase *base)
 {
    struct DevUnit *unit;
 
-   unit = FindUnit(unit_num, base);
+   unit = FindUnit (unit_num, base);
 
    if (unit == NULL) {
       unit = CreateUnit (unit_num, base);
       if (unit != NULL)
-         AddTail ((APTR)&base->units, (APTR)unit);
+         AddTail ((APTR)&(base->units), (APTR)unit);
    }
 
    return unit;
 }
 
-struct DevUnit *FindUnit (ULONG unit_num, struct DevBase *base)
+struct DevUnit *FindUnit (ULONG unit_num, struct MyBase *base)
 {
    struct DevUnit *unit,*tail;
    BOOL found;
@@ -65,7 +76,7 @@ struct DevUnit *FindUnit (ULONG unit_num, struct DevBase *base)
 }
 
 
-struct DevUnit *CreateUnit (ULONG unit_num, struct DevBase *base)
+struct DevUnit *CreateUnit (ULONG unit_num, struct MyBase *base)
 {
    BOOL success = TRUE;
    struct DevUnit *unit;
@@ -75,7 +86,7 @@ struct DevUnit *CreateUnit (ULONG unit_num, struct DevBase *base)
    APTR stack;
 //   struct Interrupt *card_removed_int,*card_inserted_int,*card_status_int;
 
-   unit = AllocMem (sizeof(struct DevUnit),MEMF_CLEAR);
+   unit = (APTR) AllocMem (sizeof (struct DevUnit), MEMF_CLEAR);
    if (unit == NULL)
       success = FALSE;
 
@@ -94,14 +105,13 @@ struct DevUnit *CreateUnit (ULONG unit_num, struct DevBase *base)
 
       for (i = 0; i < REQUEST_QUEUE_COUNT; i ++)
       {
-         unit->request_ports [i] = port = AllocMem (sizeof (struct MsgPort),
+         unit->request_ports [i] = port = (APTR) AllocMem (sizeof (struct MsgPort),
             MEMF_PUBLIC | MEMF_CLEAR);
-         if(port==NULL)
-            success=FALSE;
+         if (port == NULL)
+            success = FALSE;
 
-         if(success)
-         {
-            NewList(&port->mp_MsgList);
+         if (success) {
+            NewList (&port->mp_MsgList);
             port->mp_Flags = PA_IGNORE;
             port->mp_SigTask = &unit->tx_int;
          }
@@ -109,8 +119,8 @@ struct DevUnit *CreateUnit (ULONG unit_num, struct DevBase *base)
 
 //      unit->tuple_buffer=
  //        AllocVec(TUPLE_BUFFER_SIZE,MEMF_ANY);
-      unit->rx_buffer = AllocVec((MAX_PACKET_SIZE+3)&~3,MEMF_PUBLIC);
-      unit->tx_buffer = AllocVec(MAX_PACKET_SIZE,MEMF_PUBLIC);
+      unit->rx_buffer = (APTR) AllocVec ((MAX_PACKET_SIZE + 3) &~ 3, MEMF_PUBLIC);
+      unit->tx_buffer = (APTR) AllocVec (MAX_PACKET_SIZE, MEMF_PUBLIC);
       if(/*(unit->tuple_buffer==NULL)||*/
          (unit->rx_buffer==NULL)||(unit->tx_buffer==NULL))
          success = FALSE;
@@ -138,15 +148,14 @@ struct DevUnit *CreateUnit (ULONG unit_num, struct DevBase *base)
    if(success) {
       /* Create a new task */
 
-      unit->task = task = AllocMem (sizeof(struct Task), MEMF_PUBLIC | MEMF_CLEAR);
+      unit->task = task = (struct Task *) AllocMem (sizeof(struct Task), MEMF_PUBLIC | MEMF_CLEAR);
       if (task == NULL)
          success = FALSE;
    }
 
-   if(success)
-   {
-      stack = AllocMem(STACK_SIZE,MEMF_PUBLIC);
-      if(stack == NULL)
+   if (success) {
+      stack = (APTR) AllocMem (STACK_SIZE, MEMF_PUBLIC);
+      if (stack == NULL)
          success = FALSE;
    }
 
@@ -157,9 +166,9 @@ struct DevUnit *CreateUnit (ULONG unit_num, struct DevBase *base)
       task->tc_Node.ln_Type = NT_TASK;
       task->tc_Node.ln_Pri = TASK_PRIORITY;
       task->tc_Node.ln_Name = (APTR)device_name;
-      task->tc_SPUpper = stack+STACK_SIZE;
+      task->tc_SPUpper = (APTR)((ULONG)stack + STACK_SIZE);
       task->tc_SPLower = stack;
-      task->tc_SPReg = stack+STACK_SIZE;
+      task->tc_SPReg = (APTR)((ULONG)stack + STACK_SIZE);
       NewList (&task->tc_MemEntry);
 
       if (AddTask (task, UnitTask, NULL) == NULL)
@@ -171,29 +180,25 @@ struct DevUnit *CreateUnit (ULONG unit_num, struct DevBase *base)
    if (success)
       task->tc_UserData = unit;
 
-   if(!success)
-   {
+   if (!success) {
       DeleteUnit (unit, base);
-      unit=NULL;
+      unit = NULL;
    }
 
    return unit;
 }
 
 
-VOID DeleteUnit (struct DevUnit *unit,struct DevBase *base) {
-   UBYTE i;
-   struct Task *task;
+VOID DeleteUnit (struct DevUnit *unit, struct MyBase *base) {
+UBYTE i;
+struct Task *task;
 
-   if (unit != NULL)
-   {
+   if (unit != NULL) {
       task = unit->task;
-      if (task != NULL)
-      {
-         if(task->tc_SPLower!=NULL)
-         {
-            RemTask(task);
-            FreeMem(task->tc_SPLower,STACK_SIZE);
+      if (task != NULL) {
+         if (task->tc_SPLower != NULL) {
+            RemTask (task);
+            FreeMem (task->tc_SPLower, STACK_SIZE);
          }
          FreeMem(task,sizeof(struct Task));
       }
@@ -207,10 +212,10 @@ VOID DeleteUnit (struct DevUnit *unit,struct DevBase *base) {
 //      FreeVec(unit->tuple_buffer);
 
 
-      FreeVec(unit->tx_buffer);
-      FreeVec(unit->rx_buffer);
+      FreeVec (unit->tx_buffer);
+      FreeVec (unit->rx_buffer);
 
-      FreeMem(unit,sizeof(struct DevUnit));
+      FreeMem (unit,sizeof(struct DevUnit));
    }
 
    return;
@@ -220,7 +225,7 @@ VOID DeleteUnit (struct DevUnit *unit,struct DevBase *base) {
 
 
 
-VOID GoOnline(struct DevUnit *unit,struct DevBase *base)
+VOID GoOnline(struct DevUnit *unit, struct MyBase *base)
 {
    volatile UBYTE *io_base;
    UWORD transceiver;
@@ -231,7 +236,7 @@ VOID GoOnline(struct DevUnit *unit,struct DevBase *base)
 
    /* Record start time and report Online event */
 
-   GetSysTime (&unit->stats.LastStart);
+  // GetSysTime (&unit->stats.LastStart);
    ReportEvents (unit, S2EVENT_ONLINE, base);
 
    return;
@@ -239,11 +244,11 @@ VOID GoOnline(struct DevUnit *unit,struct DevBase *base)
 
 
 
-VOID GoOffline(struct DevUnit *unit,struct DevBase *base)
+VOID GoOffline (struct DevUnit *unit, struct MyBase *base)
 {
    volatile UBYTE *io_base;
 
-   io_base=unit->io_base;
+   io_base = unit->io_base;
    unit->flags &= ~UNITF_ONLINE;
 
 //   if((unit->flags&UNITF_HAVEADAPTER)!=0)
@@ -272,46 +277,45 @@ VOID GoOffline(struct DevUnit *unit,struct DevBase *base)
 
 
 
-struct TypeStats *FindTypeStats(struct DevUnit *unit,struct MinList *list,
-   ULONG packet_type,struct DevBase *base)
+struct TypeStats *FindTypeStats (struct DevUnit *unit, struct MinList *list,
+   ULONG packet_type, struct MyBase *base)
 {
-   struct TypeStats *stats,*tail;
+   struct TypeStats *stats, *tail;
    BOOL found;
 
-   stats=(APTR)list->mlh_Head;
-   tail=(APTR)&list->mlh_Tail;
-   found=FALSE;
+   stats = (APTR)list->mlh_Head;
+   tail = (APTR)&list->mlh_Tail;
+   found = FALSE;
 
-   while((stats!=tail)&&!found)
+   while ((stats != tail) && !found)
    {
-      if(stats->packet_type==packet_type)
-         found=TRUE;
+      if(stats->packet_type == packet_type)
+         found = TRUE;
       else
-         stats=(APTR)stats->node.mln_Succ;
+         stats = (APTR)stats->node.mln_Succ;
    }
 
-   if(!found)
-      stats=NULL;
+   if (!found)
+      stats = NULL;
 
    return stats;
 }
 
 
-VOID FlushUnit(struct DevUnit *unit,UBYTE last_queue,BYTE error,
-   struct DevBase *base)
+VOID FlushUnit (struct DevUnit *unit, UBYTE last_queue, BYTE error, struct MyBase *base)
 {
    struct IORequest *request;
    UBYTE i;
-   struct Opener *opener,*tail;
+   struct Opener *opener, *tail;
 
    /* Abort queued requests */
 
-   for(i=0;i<=last_queue;i++)
+   for (i = 0; i <= last_queue; i++)
    {
       while((request=(APTR)GetMsg(unit->request_ports[i]))!=NULL)
       {
-         request->io_Error=IOERR_ABORTED;
-         ReplyMsg((APTR)request);
+         request->io_Error = IOERR_ABORTED;
+         ReplyMsg ((APTR)request);
       }
    }
 
@@ -354,11 +358,11 @@ VOID FlushUnit(struct DevUnit *unit,UBYTE last_queue,BYTE error,
 
 
 
-static VOID RxInt(struct DevUnit *unit REG("a1"))
+static VOID RxInt (__reg("a1") struct DevUnit *unit)
 {
    volatile UBYTE *io_base;
    UWORD rx_status,packet_size;
-   struct DevBase *base;
+   struct MyBase *base;
    BOOL is_orphan,accepted;
    ULONG packet_type,*p,*end;
    UBYTE *buffer;
@@ -371,18 +375,21 @@ static VOID RxInt(struct DevUnit *unit REG("a1"))
    buffer=unit->rx_buffer;
    end=(ULONG *)(buffer+HEADER_SIZE);
 
-   while(((rx_status=LEWordIn(io_base+EL3REG_RXSTATUS))
-      &EL3REG_RXSTATUSF_INCOMPLETE)==0)
+   while(
+//   ((rx_status=LEWordIn(io_base+EL3REG_RXSTATUS))
+ //     &EL3REG_RXSTATUSF_INCOMPLETE)==0
+      1
+      )
    {
-      if((rx_status&EL3REG_RXSTATUSF_ERROR)==0)
+      if((rx_status /* & EL3REG_RXSTATUSF_ERROR */)==0)
       {
          /* Read packet header */
 
-         is_orphan=TRUE;
-         packet_size=rx_status&EL3REG_RXSTATUS_SIZEMASK;
-         p=(ULONG *)buffer;
+         is_orphan = TRUE;
+         packet_size = rx_status /*& EL3REG_RXSTATUS_SIZEMASK */;
+         p = (ULONG *)buffer;
          while(p<end)
-            *p++=LongIn(io_base+EL3REG_DATA0);
+            *p++ = 0; //LongIn(io_base+EL3REG_DATA0);
 
          if(AddressFilter(unit,buffer+PACKET_DEST,base))
          {
@@ -439,7 +446,7 @@ static VOID RxInt(struct DevUnit *unit REG("a1"))
             unit->stats.PacketsReceived++;
 
             tracker=
-               FindTypeStats(unit,&unit->type_trackers,packet_type,base);
+               FindTypeStats (unit, &unit->type_trackers, packet_type, base);
             if(tracker!=NULL)
             {
                tracker->stats.PacketsReceived++;
@@ -450,21 +457,21 @@ static VOID RxInt(struct DevUnit *unit REG("a1"))
       else
       {
          unit->stats.BadData++;
-         ReportEvents(unit,S2EVENT_ERROR|S2EVENT_HARDWARE|S2EVENT_RX,base);
+         ReportEvents (unit, S2EVENT_ERROR | S2EVENT_HARDWARE | S2EVENT_RX, base);
       }
 
       /* Discard packet */
 
       Disable();   /* Needed? */
-      LEWordOut(io_base+EL3REG_COMMAND,EL3CMD_RXDISCARD);
-      while((LEWordIn(io_base+EL3REG_STATUS)&
-         EL3REG_STATUSF_CMDINPROGRESS)!=0);
+  //    LEWordOut(io_base+EL3REG_COMMAND,EL3CMD_RXDISCARD);
+   //   while((LEWordIn(io_base+EL3REG_STATUS)&
+    //     EL3REG_STATUSF_CMDINPROGRESS)!=0);
       Enable();
    }
 
    /* Return */
 
-   LEWordOut(io_base+EL3REG_COMMAND,EL3CMD_SETINTMASK|INT_MASK);
+//   LEWordOut(io_base+EL3REG_COMMAND,EL3CMD_SETINTMASK|INT_MASK);
    return;
 }
 
@@ -501,7 +508,7 @@ static VOID RxInt(struct DevUnit *unit REG("a1"))
 */
 
 static VOID CopyPacket(struct DevUnit *unit,struct IOSana2Req *request,
-   UWORD packet_size,UWORD packet_type,BOOL all_read,struct DevBase *base)
+   UWORD packet_size,UWORD packet_type,BOOL all_read, struct MyBase *base)
 {
    volatile UBYTE *io_base;
    struct Opener *opener;
@@ -513,7 +520,7 @@ static VOID CopyPacket(struct DevUnit *unit,struct IOSana2Req *request,
 
    io_base=unit->io_base;
    buffer=unit->rx_buffer;
-   request->ios2_Req.io_Flags&=~(SANA2IOF_BCAST|SANA2IOF_MCAST);
+   request->ios2_Req.io_Flags &= ~(SANA2IOF_BCAST | SANA2IOF_MCAST);
    if((*((ULONG *)(buffer+PACKET_DEST))==0xffffffff)&&
       (*((UWORD *)(buffer+PACKET_DEST+4))==0xffff))
       request->ios2_Req.io_Flags|=SANA2IOF_BCAST;
@@ -530,13 +537,13 @@ static VOID CopyPacket(struct DevUnit *unit,struct IOSana2Req *request,
 
    if(!all_read)
    {
-      p=(ULONG *)(buffer+((PACKET_DATA+3)&~3));
+      p=(ULONG *)(buffer+((PACKET_DATA + 3)&~3));
       end=(ULONG *)(buffer+packet_size);
       while(p<end)
-         *p++=LongIn(io_base+EL3REG_DATA0);
+         *p++ = 0;  //LongIn(io_base+EL3REG_DATA0);
    }
 
-   if((request->ios2_Req.io_Flags&SANA2IOF_RAW)==0)
+   if((request->ios2_Req.io_Flags & SANA2IOF_RAW)==0)
    {
       packet_size-=PACKET_DATA;
       buffer+=PACKET_DATA;
@@ -564,11 +571,11 @@ static VOID CopyPacket(struct DevUnit *unit,struct IOSana2Req *request,
       {
          request->ios2_Req.io_Error=S2ERR_NO_RESOURCES;
          request->ios2_WireError=S2WERR_BUFF_ERROR;
-         ReportEvents(unit,
-            S2EVENT_ERROR|S2EVENT_SOFTWARE|S2EVENT_BUFF|S2EVENT_RX,base);
+         ReportEvents (unit,            
+            S2EVENT_ERROR | S2EVENT_SOFTWARE | S2EVENT_BUFF | S2EVENT_RX, base);
       }
-      Remove((APTR)request);
-      ReplyMsg((APTR)request);
+      Remove ((APTR)request);
+      ReplyMsg ((APTR)request);
 
    }
 
@@ -578,11 +585,10 @@ static VOID CopyPacket(struct DevUnit *unit,struct IOSana2Req *request,
 
 
 
-static BOOL AddressFilter(struct DevUnit *unit,UBYTE *address,
-   struct DevBase *base)
+static BOOL AddressFilter (struct DevUnit *unit, UBYTE *address, struct MyBase *base)
 {
    struct AddressRange *range,*tail;
-   BOOL accept=TRUE;
+   BOOL accept = TRUE;
    ULONG address_left;
    UWORD address_right;
 
@@ -596,18 +602,18 @@ static BOOL AddressFilter(struct DevUnit *unit,UBYTE *address,
    {
       /* Check if this multicast address is wanted */
 
-      range=(APTR)unit->multicast_ranges.mlh_Head;
-      tail=(APTR)&unit->multicast_ranges.mlh_Tail;
-      accept=FALSE;
+      range = (APTR)unit->multicast_ranges.mlh_Head;
+      tail = (APTR)&unit->multicast_ranges.mlh_Tail;
+      accept = FALSE;
 
       while((range!=tail)&&!accept)
       {
-         if(((address_left>range->lower_bound_left)||
-            (address_left==range->lower_bound_left)&&
-            (address_right>=range->lower_bound_right))&&
-            ((address_left<range->upper_bound_left)||
-            (address_left==range->upper_bound_left)&&
-            (address_right<=range->upper_bound_right)))
+         if(((address_left > range->lower_bound_left)||
+            (address_left == range->lower_bound_left)&&
+            (address_right >= range->lower_bound_right))&&
+            ((address_left < range->upper_bound_left)||
+            (address_left == range->upper_bound_left)&&
+            (address_right <= range->upper_bound_right)))
             accept=TRUE;
          range=(APTR)range->node.mln_Succ;
       }
@@ -622,24 +628,24 @@ static BOOL AddressFilter(struct DevUnit *unit,UBYTE *address,
 
 
 
-static VOID TxInt(struct DevUnit *unit REG("a1"))
+static VOID TxInt (__reg("a1") struct DevUnit *unit)
 {
    volatile UBYTE *io_base;
    UWORD packet_size,data_size,send_size;
-   struct DevBase *base;
+   struct MyBase *base;
    struct IOSana2Req *request;
    BOOL proceed=TRUE;
    struct Opener *opener;
    ULONG *buffer,*end,wire_error;
-   ULONG *(*dma_tx_function)(APTR REG("a0"));
+   ULONG *(*dma_tx_function)(APTR __reg("a0"));
    BYTE error;
    struct MsgPort *port;
    struct TypeStats *tracker;
 
-   base=unit->device;
-   io_base=unit->io_base;
+   base = unit->device;
+   io_base = unit->io_base;
 
-   port=unit->request_ports[WRITE_QUEUE];
+   port=unit->request_ports [WRITE_QUEUE];
 
    while(proceed&&(!IsMsgPortEmpty(port)))
    {
@@ -651,24 +657,25 @@ static VOID TxInt(struct DevUnit *unit REG("a1"))
       if((request->ios2_Req.io_Flags&SANA2IOF_RAW)==0)
          packet_size+=PACKET_DATA;
 
-      if(LEWordIn(io_base+EL3REG_TXSPACE)>PREAMBLE_SIZE+packet_size)
+//      if(LEWordIn(io_base+EL3REG_TXSPACE)>PREAMBLE_SIZE+packet_size)
+        if (1)
       {
          /* Write packet preamble */
 
-         LELongOut(io_base+EL3REG_DATA0,packet_size);
+//         LELongOut(io_base+EL3REG_DATA0,packet_size);
 
          /* Write packet header */
 
          send_size=(packet_size+3)&(~0x3);
-         if((request->ios2_Req.io_Flags&SANA2IOF_RAW)==0)
+         if((request->ios2_Req.io_Flags & SANA2IOF_RAW)==0)
          {
-            LongOut(io_base+EL3REG_DATA0,*((ULONG *)request->ios2_DstAddr));
-            WordOut(io_base+EL3REG_DATA0,
-               *((UWORD *)(request->ios2_DstAddr+4)));
-            WordOut(io_base+EL3REG_DATA0,*((UWORD *)unit->address));
-            LongOut(io_base+EL3REG_DATA0,*((ULONG *)(unit->address+2)));
-            BEWordOut(io_base+EL3REG_DATA0,request->ios2_PacketType);
-            send_size-=PACKET_DATA;
+   //         LongOut(io_base+EL3REG_DATA0,*((ULONG *)request->ios2_DstAddr));
+   //         WordOut(io_base+EL3REG_DATA0,
+   //            *((UWORD *)(request->ios2_DstAddr+4)));
+   //         WordOut(io_base+EL3REG_DATA0,*((UWORD *)unit->address));
+    //        LongOut(io_base+EL3REG_DATA0,*((ULONG *)(unit->address+2)));
+     //       BEWordOut(io_base+EL3REG_DATA0,request->ios2_PacketType);
+            send_size -= PACKET_DATA;
          }
 
          /* Get packet data */
@@ -685,10 +692,10 @@ static VOID TxInt(struct DevUnit *unit REG("a1"))
             buffer=(ULONG *)unit->tx_buffer;
             if(!opener->tx_function(buffer,request->ios2_Data,data_size))
             {
-               error=S2ERR_NO_RESOURCES;
-               wire_error=S2WERR_BUFF_ERROR;
-               ReportEvents(unit,
-                  S2EVENT_ERROR|S2EVENT_SOFTWARE|S2EVENT_BUFF|S2EVENT_TX,
+               error = S2ERR_NO_RESOURCES;
+               wire_error = S2WERR_BUFF_ERROR;
+               ReportEvents (unit,
+                  S2EVENT_ERROR | S2EVENT_SOFTWARE | S2EVENT_BUFF | S2EVENT_TX,
                   base);
             }
          }
@@ -699,10 +706,12 @@ static VOID TxInt(struct DevUnit *unit REG("a1"))
          {
             end=buffer+(send_size>>2);
             while(buffer<end)
-               LongOut(io_base+EL3REG_DATA0,*buffer++);
+               // LongOut(io_base+EL3REG_DATA0,*buffer++);
+               ;
 
             if((send_size&0x3)!=0)
-               WordOut(io_base+EL3REG_DATA0,*((UWORD *)buffer));
+               //WordOut(io_base+EL3REG_DATA0,*((UWORD *)buffer));
+               ;
          }
 
          /* Reply packet */
@@ -716,10 +725,12 @@ static VOID TxInt(struct DevUnit *unit REG("a1"))
 
          if(error==0)
          {
-            unit->stats.PacketsSent++;
+            unit->stats.PacketsSent ++;
 
-            tracker=FindTypeStats(unit,&unit->type_trackers,
-               request->ios2_PacketType,base);
+            tracker = FindTypeStats (unit, &unit->type_trackers,
+                        request->ios2_PacketType,
+                        base);
+                        
             if(tracker!=NULL)
             {
                tracker->stats.PacketsSent++;
@@ -735,9 +746,9 @@ static VOID TxInt(struct DevUnit *unit REG("a1"))
       unit->request_ports[WRITE_QUEUE]->mp_Flags=PA_SOFTINT;
    else
    {
-      LEWordOut(io_base+EL3REG_COMMAND,EL3CMD_SETTXTHRESH
-         |(PREAMBLE_SIZE+packet_size));
-      unit->request_ports[WRITE_QUEUE]->mp_Flags=PA_IGNORE;
+   //   LEWordOut(io_base+EL3REG_COMMAND,EL3CMD_SETTXTHRESH
+//         |(PREAMBLE_SIZE+packet_size));
+      unit->request_ports [WRITE_QUEUE]->mp_Flags = PA_IGNORE;
    }
 
    return;
@@ -745,7 +756,7 @@ static VOID TxInt(struct DevUnit *unit REG("a1"))
 
 
 
-VOID TxError(struct DevUnit *unit,struct DevBase *base)
+static VOID TxError(struct DevUnit *unit, struct MyBase *base)
 {
    volatile UBYTE *io_base;
    UBYTE tx_status,flags=0;
@@ -754,15 +765,10 @@ VOID TxError(struct DevUnit *unit,struct DevBase *base)
 
    /* Gather all errors */
 
-   while(((tx_status=ByteIn(io_base+EL3REG_TXSTATUS))
-      &EL3REG_TXSTATUSF_COMPLETE)!=0)
-   {
-      flags|=tx_status;
-      ByteOut(io_base+EL3REG_TXSTATUS,0);
-   }
 
    /* Restart transmitter if necessary */
 
+/*
    if((flags&EL3REG_TXSTATUSF_JABBER)!=0)
    {
       Disable();
@@ -774,17 +780,16 @@ VOID TxError(struct DevUnit *unit,struct DevBase *base)
 
    if((flags&(EL3REG_TXSTATUSF_JABBER|EL3REG_TXSTATUSF_OVERFLOW))!=0)
       LEWordOut(io_base+EL3REG_COMMAND,EL3CMD_TXENABLE);
-
+*/
    /* Report the error(s) */
 
-   ReportEvents(unit,S2EVENT_ERROR|S2EVENT_HARDWARE|S2EVENT_TX,base);
+   ReportEvents (unit, S2EVENT_ERROR | S2EVENT_HARDWARE | S2EVENT_TX, base);
 
    return;
 }
 
 
-static VOID ReportEvents(struct DevUnit *unit,ULONG events,
-   struct DevBase *base)
+static VOID ReportEvents (struct DevUnit *unit, ULONG events, struct MyBase *base)
 {
    struct IOSana2Req *request,*tail,*next_request;
    struct List *list;
@@ -813,49 +818,21 @@ static VOID ReportEvents(struct DevUnit *unit,ULONG events,
 
 
 
-/****i* 3c589.device/UnitTask **********************************************
-*
-*   NAME
-*	UnitTask -- .
-*
-*   SYNOPSIS
-*	UnitTask()
-*
-*	VOID UnitTask();
-*
-*   FUNCTION
-*
-*   INPUTS
-*
-*   RESULT
-*
-*   EXAMPLE
-*
-*   NOTES
-*
-*   BUGS
-*
-*   SEE ALSO
-*
-****************************************************************************
-*
-*/
-
 static VOID UnitTask()
 {
    struct Task *task;
    struct IORequest *request;
    struct DevUnit *unit;
-   struct DevBase *base;
+   struct MyBase *base;
    struct MsgPort *general_port;
    ULONG signals,wait_signals,card_removed_signal,card_inserted_signal,
       general_port_signal;
 
    /* Get parameters */
 
-   task=AbsExecBase->ThisTask;
-   unit=task->tc_UserData;
-   base=unit->device;
+   task = AbsExecBase->ThisTask;
+   unit = task->tc_UserData;
+   base = unit->device;
 
    /* Activate general request port */
 
@@ -865,16 +842,11 @@ static VOID UnitTask()
    general_port_signal=1<<general_port->mp_SigBit;
    general_port->mp_Flags=PA_SIGNAL;
 
-   /* Allocate a signal for notification of card removal */
-
-   card_removed_signal=unit->card_removed_signal=1<<AllocSignal(-1);
-   card_inserted_signal=unit->card_inserted_signal=1<<AllocSignal(-1);
-   wait_signals=(1<<general_port->mp_SigBit)|card_removed_signal
-      |card_inserted_signal;
+   wait_signals = 1 << general_port->mp_SigBit;
 
    /* Tell ourselves to check port for old messages */
 
-   Signal(task,general_port_signal);
+   Signal (task, general_port_signal);
 
    /* Infinite loop to service requests and signals */
 
@@ -882,23 +854,6 @@ static VOID UnitTask()
    {
       signals=Wait(wait_signals);
 
-      if((signals&card_inserted_signal)!=0)
-      {
-         if(InitialiseCard(unit,base))
-         {
-            unit->flags|=UNITF_HAVECARD;
-            if((unit->flags&UNITF_CONFIGURED)!=0)
-               ConfigureAdapter(unit,base);
-         }
-         else
-            ReleaseCard(unit->card_handle,0);
-      }
-
-      if((signals&card_removed_signal)!=0)
-      {
-         ReleaseCard(unit->card_handle,0);
-         GoOffline(unit,base);
-      }
 
       if((signals&general_port_signal)!=0)
       {
@@ -906,8 +861,8 @@ static VOID UnitTask()
          {
             /* Service the request as soon as the unit is free */
 
-            ObtainSemaphore(&unit->access_lock);
-            ServiceRequest((APTR)request,base);
+            ObtainSemaphore (&unit->access_lock);
+            ServiceRequest ((APTR)request, base);
          }
       }
    }
@@ -915,44 +870,6 @@ static VOID UnitTask()
 
 
 
-/****i* 3c589.device/ReadEEPROM ********************************************
-*
-*   NAME
-*	ReadEEPROM -- .
-*
-*   SYNOPSIS
-*	value = ReadEEPROM(io_base,index)
-*
-*	UWORD ReadEEPROM(UBYTE *,UWORD);
-*
-*   FUNCTION
-*
-*   INPUTS
-*	io_base - Base of adapter's register window.
-*	index - Offset within EEPROM.
-*
-*   RESULT
-*	value - Contents of specified EEPROM location.
-*
-*   EXAMPLE
-*
-*   NOTES
-*
-*   BUGS
-*
-*   SEE ALSO
-*
-****************************************************************************
-*
-*/
-
-static UWORD ReadEEPROM(volatile UBYTE *io_base,UWORD index)
-{
-   LEWordOut(io_base+EL3REG_EEPROMCMD,EL3ECMD_READ|index);
-   while((LEWordIn(io_base+EL3REG_EEPROMCMD)&EL3REG_EEPROMCMDF_BUSY)
-      !=0);
-   return LEWordIn(io_base+EL3REG_EEPROMDATA);
-}
 
 
 

@@ -3,12 +3,18 @@
 #include <exec/libraries.h>
 #include <exec/initializers.h>
 #include <exec/resident.h>
+#include <exec/interrupts.h>
 #include <exec/io.h>
 #include <dos/dos.h>
 #include <libraries/dos.h>
 #include <devices/timer.h>
 
+#include <exec/semaphores.h>
+
 #include "devices/sana2.h"
+#include "devices/sana2specialstats.h"
+
+#include "device.h"
 
 
 #define VERSION  37
@@ -17,7 +23,7 @@
 #define MYLIBNAME "my"
 #define MYLIBVER  " 37.01 (25.07.2013)"
 
-char MyLibName [] = "my.device";	//"my.library";		// MYLIBNAME ".library";
+char device_name [] = "my.device";	//"my.library";		// MYLIBNAME ".library";
 char MyLibID   [] = "37.01 (25.07.2013)";	//MYLIBNAME MYLIBVER;
 
 char VERSTRING [] = "\0$VER: my 37.01 (25.07.2013)"; 	// EXLIBNAME EXLIBVER;
@@ -32,19 +38,6 @@ LONG LibStart (void) {
 	return -1;
 }
 
-#define ADDRESS_SIZE    6
-#define MTU             1500
-#define STAT_COUNT      3
-
-/* Unit flags */
-
-#define UNITF_SHARED        (1<<0)
-#define UNITF_ONLINE        (1<<1)
-//#define UNITF_HAVECARD      (1<<2)
-//#define UNITF_HAVEADAPTER   (1<<3)
-#define UNITF_CONFIGURED    (1<<4)
-#define UNITF_PROM          (1<<5)
-//#define UNITF_ROADRUNNER    (1<<6)
 
 UBYTE address [ADDRESS_SIZE];  // ?
 UBYTE default_address [ADDRESS_SIZE] = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66};
@@ -65,7 +58,7 @@ struct Sana2DeviceQuery sana2_info =
 struct Sana2DeviceStats stats;
 ULONG special_stats [STAT_COUNT];
 
-
+/*
 
 typedef struct {
  	struct Library            my_LibNode;
@@ -76,13 +69,14 @@ typedef struct {
 // struct GfxBase        *exb_GfxBase;
     struct UtilityBase          *my_UtilityBase;
 	BPTR                      log;
+	struct MinList             units;
 } MyBase_t;
+*/
+
+__saveds MyBase_t * InitLib (void); // (struct ExecBase *, APTR, MyBase_t *);
 
 
-__saveds struct MyBase * InitLib (void); // (struct ExecBase *, APTR, MyBase_t *);
-
-
-__saveds struct MyBase * OpenLib (APTR);
+//__saveds struct MyBase * OpenLib (APTR);
 __saveds BYTE DevOpen ( __reg ("a6") MyBase_t *my,
                         __reg ("a1") struct IOSana2Req *iorq,
                         __reg ("d1") ULONG flags,
@@ -107,8 +101,8 @@ static BOOL CmdBroadcast (struct IOSana2Req *iorq, struct DevBase *base);
 static BOOL CmdWrite (struct IOSana2Req *iorq, MyBase_t *my);
 static BOOL CmdOnline (struct IOSana2Req *iorq, struct DevBase *my);
 static BOOL CmdOffline (struct IOSana2Req *iorq, struct DevBase *my);
-void GoOnline (struct DevBase *my);
-void GoOffline (struct DevBase *my);
+//void GoOnline (struct DevBase *my);
+//void GoOffline (struct DevBase *my);
 
 /* ----------------------------------------------------------------------------------------
    ! ROMTag and Library inilitalization structure:
@@ -138,7 +132,7 @@ __aligned struct Resident ROMTag =     /* do not change */
  	VERSION,
  	NT_DEVICE,	// NT_LIBRARY,
  	0,
- 	&MyLibName [0],
+ 	&device_name [0],
  	&MyLibID [0],
  	&InitTab [0]
 };
@@ -159,7 +153,7 @@ struct MyDataInit {                     /* do not change */
 
 
 	0xe000, 8, NT_DEVICE << 0x08,	// NT_LIBRARY << 0x08,
-        0x80,	10, (ULONG) &MyLibName [0],
+        0x80,	10, (ULONG) &device_name [0],
         0xe000,	14, (LIBF_SUMUSED|LIBF_CHANGED) << 8,
         0xd000,	20, VERSION,
         0xd000,	22, REVISION,
@@ -239,7 +233,7 @@ __saveds __stdargs void L_CloseLibs (void);
 
 __saveds struct MyBase * InitLib (__reg ("a6") struct ExecBase  *sysbase,
                                   __reg ("a0") APTR 		seglist,
-                                  __reg ("d0") MyBase_t 	*my) 
+                                  __reg ("d0") struct MyBase_t 	*my) 
 {
 
 
@@ -303,19 +297,6 @@ register UBYTE i;
 		FPutC (MyBase->log, (nibble < 10) ? '0' + nibble : 'A' - 10 + nibble);
 	}
 
-/*
-	nibble = w >> 12;
-	FPutC (MyBase->log, (nibble < 10) ? '0' + nibble : 'A' - 10 + nibble);
-
-	nibble = w >> 8;
-	FPutC (MyBase->log, (nibble < 10) ? '0' + nibble : 'A' - 10 + nibble);
-
-	nibble = w >> 4;
-	FPutC (MyBase->log, (nibble < 10) ? '0' + nibble : 'A' - 10 + nibble);
-
-	nibble = w & 0x0f;
-	FPutC (MyBase->log, (nibble < 10) ? '0' + nibble : 'A' - 10 + nibble);
-*/
 	FPutC (MyBase->log, 0x20);
 
 	Flush (MyBase->log);
@@ -380,7 +361,8 @@ __saveds BYTE DevOpen (	__reg ("a6") MyBase_t *my,
 	if (tx_function == NULL)
 		Debug ("\n tx_function EMPTY");
 
-	
+	// Task
+//	InitializeAndStartTask (my);
 	
 	return (0);
 }
@@ -572,10 +554,8 @@ __saveds void BeginIO ( __reg ("a6") MyBase_t *my,
 {
     BOOL complete;
     
-        
     iorq->ios2_Req.io_Error = 0;
         
-//    	VFPrintf (my->log, "\n- BeginIO iorq: %x", (ULONG)iorq);
 	Debug ("\n- BeginIO ");
 //	DebugHex (my->log, iorq->ios2_Req.io_Unit);
 	Debug ("command ");
@@ -863,44 +843,6 @@ static BOOL CmdOffline (struct IOSana2Req *iorq, struct DevBase *my)
 }
 
 
-void GoOnline (struct DevBase *my)
-{    
-    flags |= UNITF_ONLINE;
-
-   /* Enable the transceiver */
-
-
-   /* Record start time and report Online event */
-
-//   GetSysTime (stats.LastStart);
-   
-//   ReportEvents (unit, S2EVENT_ONLINE, base);
-
-   return;
-}
-
-
-void GoOffline (struct DevBase *my)
-{
-   flags &= ~UNITF_ONLINE;
-
-      /* Stop interrupts */
-
-
-      /* Stop transmission and reception */
-
-      /* Turn off media functions */
-
-
-   /* Flush pending read and write requests */
-
-//   FlushUnit (unit, WRITE_QUEUE, S2ERR_OUTOFSERVICE, my);    
-
-   /* Report Offline event and return */
-
-//   ReportEvents(unit,S2EVENT_OFFLINE,base);
-   return;
-}
 
 
 static BOOL CmdConfigInterface (struct IOSana2Req *iorq, struct DevBase *my)
@@ -957,6 +899,7 @@ static BOOL CmdGetSpecialStats(struct IOSana2Req *iorq, struct DevBase *my)
 
    return TRUE;
 }
+
 
 
 
