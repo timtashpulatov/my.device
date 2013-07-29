@@ -1,6 +1,7 @@
 #include <exec/types.h>
 #include <exec/nodes.h>
 #include <exec/libraries.h>
+#include <exec/devices.h>
 #include <exec/initializers.h>
 #include <exec/resident.h>
 #include <exec/interrupts.h>
@@ -88,46 +89,10 @@ struct Sana2DeviceQuery sana2_info=
 };
 
 
+VOID ServiceRequest(struct IOSana2Req *request,struct MyBase *base) {
+BOOL complete;
 
-/****i* 3c589.device/ServiceRequest ****************************************
-*
-*   NAME
-*	ServiceRequest -- Attempt to service a device request.
-*
-*   SYNOPSIS
-*	ServiceRequest(request)
-*
-*	VOID ServiceRequest(struct IORequest *);
-*
-*   FUNCTION
-*	Attempts to carry out a request. The relevant unit's semaphore must
-*	be obtained before calling this function. This function releases the
-*	semaphore before returning.
-*
-*   INPUTS
-*	request
-*
-*   RESULT
-*	None.
-*
-*   EXAMPLE
-*
-*   NOTES
-*
-*   BUGS
-*
-*   SEE ALSO
-*
-****************************************************************************
-*
-*/
-
-VOID ServiceRequest(struct IOSana2Req *request,struct MyBase *base)
-{
-   BOOL complete;
-
-   switch(request->ios2_Req.io_Command)
-   {
+   switch(request->ios2_Req.io_Command) {
    case CMD_READ:
       complete=CmdRead(request,base);
       break;

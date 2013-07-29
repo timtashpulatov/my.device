@@ -715,14 +715,16 @@ __saveds __stdargs void L_CloseLibs (void)
 
 
 
+/*****************************************************************************
+ *
+ * BeginIO
+ *
+ *****************************************************************************/
+__saveds void BeginIO ( __reg ("a6") MyBase_t *base, __reg ("a1") struct IOSana2Req *iorq) {
+struct DevUnit *unit;
 
-
-__saveds void BeginIO ( __reg ("a6") MyBase_t *my, 
-                        __reg ("a1") struct IOSana2Req *iorq) 
-{
-    BOOL complete;
-    
     iorq->ios2_Req.io_Error = 0;
+    unit = (APTR)iorq->ios2_Req.io_Unit;
         
 	Debug ("\n- BeginIO ");
 //	DebugHex (my->log, iorq->ios2_Req.io_Unit);
@@ -736,40 +738,27 @@ __saveds void BeginIO ( __reg ("a6") MyBase_t *my,
             case CMD_WRITE:
                 Debug ("\n CMD_WRITE");
                 break;
-
             case S2_DEVICEQUERY:
                 Debug ("\n S2_DEVICEQUERY");
-
                 break;
-
             case S2_GETSTATIONADDRESS:
                 Debug ("\n S2_GETSTATIONADDRESS");
-
                 break;
-
             case S2_CONFIGINTERFACE:
                 Debug ("\n S2_CONFIGINTERFACE");
-
                 break;
-
             case S2_ADDMULTICASTADDRESS:
                 Debug ("\n S2_ADDMULTICASTADDRESS n/a");
                 break;
-
             case S2_DELMULTICASTADDRESS:
                 Debug ("\n S2_DELMULTICASTADDRESS n/a");
                 break;
-
             case S2_MULTICAST:
                 Debug ("\n S2_MULTICAST");
-
                 break;
-                
             case S2_BROADCAST:
                 Debug ("\n S2_BROADCAST");
-
-                break;
-                
+                break;            
             case S2_TRACKTYPE:
                 Debug ("\n S2_TRACKTYPE n/a");
                 break;
@@ -779,32 +768,23 @@ __saveds void BeginIO ( __reg ("a6") MyBase_t *my,
             case S2_GETTYPESTATS:
                 Debug ("\n S2_GETTYPESTATS n/a");
                 break;
-
             case S2_GETSPECIALSTATS:
                 Debug ("\n S2_GETSPECIALSTATS");
-
                 break;
-
             case S2_GETGLOBALSTATS:
                 Debug ("\n S2_GETGLOBALSTATS");
-
                 break;
-
             case S2_ONEVENT:
                 Debug ("\n S2_ONEVENT n/a");
                 break;
             case S2_READORPHAN:
                 Debug ("\n S2_READORPHAN n/a");
                 break;
-
             case S2_ONLINE:
                 Debug ("\n S2_ONLINE");
-
                 break;
-
             case S2_OFFLINE:
                 Debug ("\n S2_OFFLINE");
-
                 break;                
 
             default:
@@ -812,10 +792,13 @@ __saveds void BeginIO ( __reg ("a6") MyBase_t *my,
                 break;
         }    
             
-//    }
-    	
-//   if (complete && ((iorq->ios2_Req.io_Flags & IOF_QUICK) == 0))
-//      ReplyMsg ((APTR)iorq);
+   if (AttemptSemaphore (&unit->access_lock))
+      ServiceRequest (iorq, base);
+   else {
+      PutRequest (unit->request_ports [GENERAL_QUEUE], (APTR)iorq, base);
+   }
+
+   return;
     	
     	
 

@@ -2,6 +2,7 @@
 #include <exec/execbase.h>
 #include <exec/errors.h>
 #include <exec/io.h>
+#include <exec/devices.h>
 #include <exec/interrupts.h>
 #include <exec/semaphores.h>
 #include <dos/dos.h>
@@ -14,9 +15,9 @@
 #include "device.h"
 
 #define TASK_PRIORITY 0
-#define STACK_SIZE 4096
-#define MAX_TUPLE_SIZE 0xff
-#define TUPLE_BUFFER_SIZE (MAX_TUPLE_SIZE+8)
+#define STACK_SIZE 16384    // 8192 // 4096
+//#define MAX_TUPLE_SIZE 0xff
+//#define TUPLE_BUFFER_SIZE (MAX_TUPLE_SIZE+8)
 
 
 IMPORT struct ExecBase *AbsExecBase;
@@ -476,35 +477,7 @@ static VOID RxInt (__reg("a1") struct DevUnit *unit)
 
 
 
-/****i* 3c589.device/CopyPacket ********************************************
-*
-*   NAME
-*	CopyPacket -- .
-*
-*   SYNOPSIS
-*	CopyPacket(unit,request,packet_size,packet_type,
-*	    all_read)
-*
-*	VOID CopyPacket(struct DevUnit *,struct IOSana2Req *,UWORD,UWORD,
-*	    BOOL);
-*
-*   FUNCTION
-*
-*   INPUTS
-*
-*   RESULT
-*
-*   EXAMPLE
-*
-*   NOTES
-*
-*   BUGS
-*
-*   SEE ALSO
-*
-****************************************************************************
-*
-*/
+
 
 static VOID CopyPacket(struct DevUnit *unit,struct IOSana2Req *request,
    UWORD packet_size,UWORD packet_type,BOOL all_read, struct MyBase *base)
@@ -816,16 +789,20 @@ static VOID ReportEvents (struct DevUnit *unit, ULONG events, struct MyBase *bas
 }
 
 
+/*****************************************************************************
+ *
+ * UnitTask
+ *
+ *****************************************************************************/
+static VOID UnitTask () {
+struct Task *task;
+struct IORequest *request;
+struct DevUnit *unit;
+struct MyBase *base;
+struct DOSBase *DOSBase;
+struct MsgPort *general_port;
+ULONG signals, wait_signals, general_port_signal;
 
-static VOID UnitTask()
-{
-   struct Task *task;
-   struct IORequest *request;
-   struct DevUnit *unit;
-   struct MyBase *base;
-   struct MsgPort *general_port;
-   ULONG signals,wait_signals,card_removed_signal,card_inserted_signal,
-      general_port_signal;
 
    /* Get parameters */
 
@@ -833,15 +810,19 @@ static VOID UnitTask()
    unit = task->tc_UserData;
    base = unit->device;
 
+
    /* Activate general request port */
 
-   general_port=unit->request_ports[GENERAL_QUEUE];
-   general_port->mp_SigTask=task;
-   general_port->mp_SigBit=AllocSignal(-1);
-   general_port_signal=1<<general_port->mp_SigBit;
-   general_port->mp_Flags=PA_SIGNAL;
+   general_port = unit->request_ports [GENERAL_QUEUE];
+   general_port->mp_SigTask = task;
+   general_port->mp_SigBit = AllocSignal (-1);
+   general_port_signal = 1 << general_port->mp_SigBit;
+   general_port->mp_Flags = PA_SIGNAL;
 
    wait_signals = 1 << general_port->mp_SigBit;
+
+
+
 
    /* Tell ourselves to check port for old messages */
 
@@ -849,15 +830,12 @@ static VOID UnitTask()
 
    /* Infinite loop to service requests and signals */
 
-   while(TRUE)
-   {
-      signals=Wait(wait_signals);
+   while(TRUE) {
+      signals = Wait (wait_signals);
 
 
-      if((signals&general_port_signal)!=0)
-      {
-         while((request=(APTR)GetMsg(general_port))!=NULL)
-         {
+      if ((signals & general_port_signal) != 0) {
+         while ((request = (APTR)GetMsg (general_port)) != NULL) {
             /* Service the request as soon as the unit is free */
 
             ObtainSemaphore (&unit->access_lock);
