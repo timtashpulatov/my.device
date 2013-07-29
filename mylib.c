@@ -299,7 +299,7 @@ register UBYTE nibble;
 register UBYTE i;
 
 	for (i = 0; i < 4; i ++) {
-		nibble = w >> (12 - i * 4);
+		nibble = (w >> (12 - i * 4)) & 0x0f;
 		FPutC (MyBase->log, (nibble < 10) ? '0' + nibble : 'A' - 10 + nibble);
 	}
 
