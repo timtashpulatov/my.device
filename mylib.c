@@ -327,7 +327,7 @@ register UBYTE nibble;
 register UBYTE i;
 
 	for (i = 0; i < 8; i ++) {
-		nibble = (w >> (12 - i * 4)) & 0x0f;
+		nibble = (l >> (12 - i * 4)) & 0x0f;
 		FPutC (MyBase->log, (nibble < 10) ? '0' + nibble : 'A' - 10 + nibble);
     }
 
@@ -777,8 +777,7 @@ static BOOL CmdWrite (struct IOSana2Req *iorq, MyBase_t *my)
         //iorq->ios2_WireError = 0;
         //complete = TRUE;
 
-        Debug ("\n CmdWrite %d bytes: \n");
-	DebugHex16 (iorq->ios2_DataLength);
+        Debug ("\n CmdWrite ");	DebugHex16 (iorq->ios2_DataLength); Debug ("bytes: \n");
 
     // cannot access the data other than via ios2_BufferManagement 
     
