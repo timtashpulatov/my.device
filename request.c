@@ -106,10 +106,10 @@ BOOL complete;
       complete=CmdS2DeviceQuery((APTR)request,base);
       break;
    case S2_GETSTATIONADDRESS:
-      complete=CmdGetStationAddress((APTR)request,base);
+      complete = CmdGetStationAddress ((APTR)request, base);
       break;
    case S2_CONFIGINTERFACE:
-      complete=CmdConfigInterface((APTR)request,base);
+      complete = CmdConfigInterface ((APTR)request, base);
       break;
 /*      
    case S2_ADDMULTICASTADDRESS:
@@ -147,7 +147,7 @@ BOOL complete;
       complete=CmdReadOrphan((APTR)request,base);
       break;
    case S2_ONLINE:
-      complete=CmdOnline((APTR)request,base);
+      complete = CmdOnline ((APTR)request, base);
       break;
    case S2_OFFLINE:
       complete=CmdOffline((APTR)request,base);
@@ -280,41 +280,34 @@ static BOOL CmdS2DeviceQuery(struct IOSana2Req *request, struct MyBase *base) {
 
 
 
-static BOOL CmdGetStationAddress(struct IOSana2Req *request, struct MyBase *base)
-{
-   struct DevUnit *unit;
+static BOOL CmdGetStationAddress(struct IOSana2Req *request, struct MyBase *base) {
+struct DevUnit *unit;
 
-   /* Copy addresses */
-
-   unit=(APTR)request->ios2_Req.io_Unit;
-   CopyMem(unit->address,request->ios2_SrcAddr,ADDRESS_SIZE);
-   CopyMem(unit->default_address,request->ios2_DstAddr,ADDRESS_SIZE);
-
-   /* Return */
+   unit = (APTR)request->ios2_Req.io_Unit;
+   CopyMem (unit->address, request->ios2_SrcAddr, ADDRESS_SIZE);
+   CopyMem (unit->default_address, request->ios2_DstAddr, ADDRESS_SIZE);
 
    return TRUE;
 }
 
 
 
-static BOOL CmdConfigInterface(struct IOSana2Req *request, struct MyBase *base)
-{
-   struct DevUnit *unit;
+static BOOL CmdConfigInterface(struct IOSana2Req *request, struct MyBase *base) {
+struct DevUnit *unit;
 
    /* Configure adapter */
 
-   unit=(APTR)request->ios2_Req.io_Unit;
-   if((unit->flags&UNITF_CONFIGURED)==0)
-   {
-      CopyMem(request->ios2_SrcAddr,unit->address,ADDRESS_SIZE);
+   unit = (APTR)request->ios2_Req.io_Unit;
+   if((unit->flags & UNITF_CONFIGURED) == 0) {
+      CopyMem (request->ios2_SrcAddr, unit->address, ADDRESS_SIZE);
   
   //       ConfigureAdapter(unit,base);
-      unit->flags|=UNITF_CONFIGURED;
+      unit->flags |= UNITF_CONFIGURED;
    }
    else
    {
-      request->ios2_Req.io_Error=S2ERR_BAD_STATE;
-      request->ios2_WireError=S2WERR_IS_CONFIGURED;
+      request->ios2_Req.io_Error = S2ERR_BAD_STATE;
+      request->ios2_WireError = S2WERR_IS_CONFIGURED;
    }
 
    /* Return */
@@ -743,46 +736,19 @@ static BOOL CmdReadOrphan(struct IOSana2Req *request,
 
 
 
-/****** 3c589.device/S2_ONLINE *********************************************
-*
-*   NAME
-*	S2_ONLINE --
-*
-*   FUNCTION
-*
-*   INPUTS
-*	None.
-*
-*   RESULTS
-*	io_Error
-*	ios2_WireError
-*
-*   EXAMPLE
-*
-*   NOTES
-*
-*   BUGS
-*
-*   SEE ALSO
-*
-****************************************************************************
-*
-*/
 
-static BOOL CmdOnline(struct IOSana2Req *request,struct MyBase *base)
-{
-   struct DevUnit *unit;
-   BYTE error=0;
-   ULONG wire_error;
-   UWORD i;
+static BOOL CmdOnline (struct IOSana2Req *request, struct MyBase *base) {
+struct DevUnit *unit;
+BYTE error = 0;
+ULONG wire_error;
+UWORD i;
 
    /* Check request is valid */
 
-   unit=(APTR)request->ios2_Req.io_Unit;
-   if((unit->flags&UNITF_CONFIGURED)==0)
-   {
-      error=S2ERR_BAD_STATE;
-      wire_error=S2WERR_NOT_CONFIGURED;
+   unit = (APTR)request->ios2_Req.io_Unit;
+   if ((unit->flags & UNITF_CONFIGURED) == 0) {
+      error = S2ERR_BAD_STATE;
+      wire_error = S2WERR_NOT_CONFIGURED;
    }
 //   if((unit->flags&UNITF_HAVEADAPTER)==0)
     if (0)
@@ -793,25 +759,24 @@ static BOOL CmdOnline(struct IOSana2Req *request,struct MyBase *base)
 
    /* Clear global and special stats and put adapter back online */
 
-   if((error==0)&&((unit->flags&UNITF_ONLINE)==0))
-   {
-      unit->stats.PacketsReceived=0;
-      unit->stats.PacketsSent=0;
-      unit->stats.BadData=0;
-      unit->stats.Overruns=0;
-      unit->stats.UnknownTypesReceived=0;
-      unit->stats.Reconfigurations=0;
+   if ((error == 0) && ((unit->flags & UNITF_ONLINE) == 0)) {
+      unit->stats.PacketsReceived = 0;
+      unit->stats.PacketsSent = 0;
+      unit->stats.BadData = 0;
+      unit->stats.Overruns = 0;
+      unit->stats.UnknownTypesReceived = 0;
+      unit->stats.Reconfigurations = 0;
 
-      for(i=0;i<STAT_COUNT;i++)
-         unit->special_stats[i]=0;
+      for (i = 0; i < STAT_COUNT; i ++)
+         unit->special_stats [i] = 0;
 
-      GoOnline(unit,base);
+      GoOnline (unit, base);
    }
 
    /* Return */
 
-   request->ios2_Req.io_Error=error;
-   request->ios2_WireError=wire_error;
+   request->ios2_Req.io_Error = error;
+   request->ios2_WireError = wire_error;
    return TRUE;
 }
 
