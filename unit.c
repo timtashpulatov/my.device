@@ -90,8 +90,7 @@ struct DevUnit *CreateUnit (ULONG unit_num, struct MyBase *base)
    if (unit == NULL)
       success = FALSE;
 
-   if(success)
-   {
+   if (success) {
       unit->unit_num = unit_num;
       unit->device = base;
 
@@ -349,36 +348,31 @@ VOID FlushUnit (struct DevUnit *unit, UBYTE last_queue, BYTE error, struct MyBas
    return;
 }
 
+/*****************************************************************************
+ *
+ * RxInt
+ *
+ *****************************************************************************/
+static VOID RxInt (__reg("a1") struct DevUnit *unit) {
+UWORD rx_status, packet_size;
+struct MyBase *base;
+BOOL is_orphan, accepted;
+ULONG packet_type, *p, *end;
+UBYTE *buffer;
+struct IOSana2Req *request, *request_tail;
+struct Opener *opener, *opener_tail;
+struct TypeStats *tracker;
 
+UBYTE runs = 1;
 
+   base = unit->device;
+   buffer = unit->rx_buffer;
+   end = (ULONG *)(buffer + HEADER_SIZE);
 
-
-
-
-
-
-
-static VOID RxInt (__reg("a1") struct DevUnit *unit)
-{
-   volatile UBYTE *io_base;
-   UWORD rx_status,packet_size;
-   struct MyBase *base;
-   BOOL is_orphan,accepted;
-   ULONG packet_type,*p,*end;
-   UBYTE *buffer;
-   struct IOSana2Req *request,*request_tail;
-   struct Opener *opener,*opener_tail;
-   struct TypeStats *tracker;
-
-   base=unit->device;
-   io_base=unit->io_base;
-   buffer=unit->rx_buffer;
-   end=(ULONG *)(buffer+HEADER_SIZE);
-
-   while(
+   while (
 //   ((rx_status=LEWordIn(io_base+EL3REG_RXSTATUS))
  //     &EL3REG_RXSTATUSF_INCOMPLETE)==0
-      1
+      runs --
       )
    {
       if((rx_status /* & EL3REG_RXSTATUSF_ERROR */)==0)
@@ -388,85 +382,75 @@ static VOID RxInt (__reg("a1") struct DevUnit *unit)
          is_orphan = TRUE;
          packet_size = rx_status /*& EL3REG_RXSTATUS_SIZEMASK */;
          p = (ULONG *)buffer;
-         while(p<end)
+         while (p < end)
             *p++ = 0; //LongIn(io_base+EL3REG_DATA0);
 
-         if(AddressFilter(unit,buffer+PACKET_DEST,base))
-         {
-            packet_type=BEWord(*((UWORD *)(buffer+PACKET_TYPE)));
+         if (AddressFilter (unit,buffer+PACKET_DEST,base)) {
+            packet_type = BEWord (*((UWORD *)(buffer + PACKET_TYPE)));
 
-            opener=(APTR)unit->openers.mlh_Head;
-            opener_tail=(APTR)&unit->openers.mlh_Tail;
+            opener = (APTR)unit->openers.mlh_Head;
+            opener_tail = (APTR)&unit->openers.mlh_Tail;
 
             /* Offer packet to every opener */
 
-            while(opener!=opener_tail)
-            {
-               request=(APTR)opener->read_port.mp_MsgList.lh_Head;
-               request_tail=(APTR)&opener->read_port.mp_MsgList.lh_Tail;
-               accepted=FALSE;
+            while (opener != opener_tail) {
+               request = (APTR)opener->read_port.mp_MsgList.lh_Head;
+               request_tail = (APTR)&opener->read_port.mp_MsgList.lh_Tail;
+               accepted = FALSE;
 
                /* Offer packet to each request until it's accepted */
 
-               while((request!=request_tail)&&!accepted)
-               {
-                  if(request->ios2_PacketType==packet_type
-                     ||request->ios2_PacketType<=MTU
-                     &&packet_type<=MTU)
-                  {
-                     CopyPacket(unit,request,packet_size,packet_type,
-                        !is_orphan,base);
-                     accepted=TRUE;
+               while ((request != request_tail) && !accepted) {
+                  if (request->ios2_PacketType == packet_type
+                     || request->ios2_PacketType <= MTU
+                     && packet_type <= MTU) {
+
+                     CopyPacket (unit, request, packet_size, packet_type,
+                        !is_orphan, base);
+                     accepted = TRUE;
                   }
-                  request=
-                     (APTR)request->ios2_Req.io_Message.mn_Node.ln_Succ;
+                  request = (APTR)request->ios2_Req.io_Message.mn_Node.ln_Succ;
                }
 
-               if(accepted)
-                  is_orphan=FALSE;
-               opener=(APTR)opener->node.mln_Succ;
+               if (accepted)
+                  is_orphan = FALSE;
+               opener = (APTR)opener->node.mln_Succ;
             }
 
             /* If packet was unwanted, give it to S2_READORPHAN request */
 
-            if(is_orphan)
-            {
-               unit->stats.UnknownTypesReceived++;
-               if(!IsMsgPortEmpty(unit->request_ports[ADOPT_QUEUE]))
-               {
-                  CopyPacket(unit,
-                     (APTR)unit->request_ports[ADOPT_QUEUE]->
-                     mp_MsgList.lh_Head,packet_size,packet_type,
-                     FALSE,base);
+            if (is_orphan) {
+               unit->stats.UnknownTypesReceived ++;
+               if (!IsMsgPortEmpty (unit->request_ports [ADOPT_QUEUE])) {
+                  CopyPacket (unit,
+                     (APTR)unit->request_ports [ADOPT_QUEUE]->mp_MsgList.lh_Head, packet_size, packet_type,
+                     FALSE, base);
                }
             }
 
             /* Update remaining statistics */
 
-            unit->stats.PacketsReceived++;
+            unit->stats.PacketsReceived ++;
 
-            tracker=
-               FindTypeStats (unit, &unit->type_trackers, packet_type, base);
-            if(tracker!=NULL)
-            {
-               tracker->stats.PacketsReceived++;
-               tracker->stats.BytesReceived+=packet_size;
+            tracker = FindTypeStats (unit, &unit->type_trackers, packet_type, base);
+            if (tracker != NULL) {
+               tracker->stats.PacketsReceived ++;
+               tracker->stats.BytesReceived += packet_size;
             }
          }
       }
-      else
-      {
-         unit->stats.BadData++;
+      else {
+         unit->stats.BadData ++;
          ReportEvents (unit, S2EVENT_ERROR | S2EVENT_HARDWARE | S2EVENT_RX, base);
       }
 
       /* Discard packet */
 
-      Disable();   /* Needed? */
+//      Disable();   /* Needed? */
   //    LEWordOut(io_base+EL3REG_COMMAND,EL3CMD_RXDISCARD);
    //   while((LEWordIn(io_base+EL3REG_STATUS)&
     //     EL3REG_STATUSF_CMDINPROGRESS)!=0);
-      Enable();
+//      Enable();
    }
 
    /* Return */
@@ -793,8 +777,13 @@ struct DevUnit *unit;
 struct MyBase *base;
 struct DOSBase *DOSBase;
 struct MsgPort *general_port;
-ULONG signals, wait_signals, general_port_signal;
-
+struct MsgPort *timer_port;
+struct timerequest *TimerIO;
+ULONG signals, 
+    wait_signals, 
+    general_port_signal, 
+    timer_port_signal;
+const char TimerPortName [] = "my.device timer port";
 
    /* Get parameters */
 
@@ -811,7 +800,20 @@ ULONG signals, wait_signals, general_port_signal;
    general_port_signal = 1 << general_port->mp_SigBit;
    general_port->mp_Flags = PA_SIGNAL;
 
-   wait_signals = 1 << general_port->mp_SigBit;
+
+    // Timer port
+    timer_port = unit->request_ports [TIMER_QUEUE];
+    timer_port->mp_SigTask = task;
+    timer_port->mp_SigBit = AllocSignal (-1);
+    timer_port_signal = 1 << timer_port->mp_SigBit;
+    
+//    TimerIO = (struct timerequest *)CreateExtIO (TimerMP, sizeof (timerequest));
+//    OpenDevice (TIMERNAME, UNIT_VBLANK, TimerIO, 0);
+
+//   wait_signals = (1 << general_port->mp_SigBit) || (1 << timer_port->mp_SigBit);
+
+    wait_signals = general_port_signal | timer_port_signal;
+
 
 
 
@@ -822,9 +824,12 @@ ULONG signals, wait_signals, general_port_signal;
 
    /* Infinite loop to service requests and signals */
 
-   while(TRUE) {
+   while (TRUE) {
       signals = Wait (wait_signals);
 
+        if ((signals & timer_port_signal) != 0) {
+            Cause (&unit->rx_int);
+        }
 
       if ((signals & general_port_signal) != 0) {
          while ((request = (APTR)GetMsg (general_port)) != NULL) {
