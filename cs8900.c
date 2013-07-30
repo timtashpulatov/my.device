@@ -12,7 +12,7 @@ ULONG *ptr;
 ULONG value;
 
     // Dummy read
-    ptr = 0x40000000;
+    ptr = (ULONG *)0x40000000;
     value = *ptr;
     ptr = (ULONG *)addr;
     value = (*ptr) >> ((addr & 0x03) << 3);
@@ -30,7 +30,7 @@ void poke (ULONG addr, UBYTE value) {
 UBYTE *ptr;
 UBYTE dummy;
     // Dummy read
-    ptr = 0x40000000;
+    ptr = (UBYTE *)0x40000000;
     dummy = *ptr;
     ptr = (BYTE *) addr;
     *ptr = value;

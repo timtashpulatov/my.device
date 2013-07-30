@@ -158,6 +158,12 @@
 #define PP_Rx_LENGTH 0x0402 /* Receive length, in bytes*/
 
 
+// Prototypes
+UBYTE peek (ULONG addr);
+void poke (ULONG addr, UBYTE value);
+UWORD ppPeek (UWORD pport);
+void ppPoke (UWORD pport, UWORD value);
+
 
 
 #endif /* _CS8900_H_ */

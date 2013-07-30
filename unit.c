@@ -11,8 +11,8 @@
 #include "devices/sana2.h"
 #include "devices/sana2specialstats.h"
 
-
 #include "device.h"
+#include "cs8900.h"
 
 #define TASK_PRIORITY 0
 #define STACK_SIZE 4096
@@ -24,7 +24,7 @@ IMPORT struct ExecBase *AbsExecBase;
 
 //static struct AddressRange *FindMulticastRange(struct DevUnit *unit,  ULONG lower_bound_left, UWORD lower_bound_right, ULONG upper_bound_left,   UWORD upper_bound_right, struct DevBase *base);
 static VOID RxInt (__reg("a1") struct DevUnit *unit);
-static VOID CopyPacket(struct DevUnit *unit,struct IOSana2Req *request, UWORD packet_size,UWORD packet_type,BOOL all_read,struct MyBase *base);
+static VOID CopyPacket (struct DevUnit *unit, struct IOSana2Req *request, UWORD packet_size, UWORD packet_type, BOOL all_read, struct MyBase *base);
 static BOOL AddressFilter (struct DevUnit *unit, UBYTE *address, struct MyBase *base);
 static VOID TxInt(__reg("a1") struct DevUnit *unit);
 static VOID TxError(struct DevUnit *unit, struct MyBase *base);
@@ -348,6 +348,7 @@ VOID FlushUnit (struct DevUnit *unit, UBYTE last_queue, BYTE error, struct MyBas
    return;
 }
 
+
 /*****************************************************************************
  *
  * RxInt
@@ -363,7 +364,11 @@ struct IOSana2Req *request, *request_tail;
 struct Opener *opener, *opener_tail;
 struct TypeStats *tracker;
 
+UWORD r;
+BOOL emulate = TRUE;
+
 UBYTE runs = 1;
+
 
    base = unit->device;
    buffer = unit->rx_buffer;
@@ -371,18 +376,42 @@ UBYTE runs = 1;
 
     rx_status = 0;  // hack
 
+
+
+
    while (runs --) {
 //   ((rx_status=LEWordIn(io_base+EL3REG_RXSTATUS))
  //     &EL3REG_RXSTATUSF_INCOMPLETE)==0
 
-      if ((rx_status /* & EL3REG_RXSTATUSF_ERROR */)==0) {
-         /* Read packet header */
+        r = ppPeek (PP_RER);
 
-         is_orphan = TRUE;
-         packet_size = 16;  // rx_status /*& EL3REG_RXSTATUS_SIZEMASK */;
-         p = (ULONG *)buffer;
-         while (p < end)
-            *p++ = 0; //LongIn(io_base+EL3REG_DATA0);
+        if (r & 0x0004) {
+            // CS8900 present, PP_RER should read xxx4
+
+            emulate = FALSE;
+
+        }
+
+
+        if ((r & PP_RER_RxOK || emulate) {
+
+            /* Read packet header */
+
+            is_orphan = TRUE;
+            if (emulate)
+                packet_size = 16;  // rx_status /*& EL3REG_RXSTATUS_SIZEMASK */;
+            else
+                packet_size = peek (0x44000001) + (peek (0x44000000) << 8);
+            
+            p = (ULONG *)buffer;
+         
+            while (p < end)
+                if (emulate)
+                    *p++ = 0; //LongIn(io_base+EL3REG_DATA0);
+                else {
+                    *p++ = peek (0x44000000);
+                    *p++ = peek (0x44000001);
+                }
 
          if (AddressFilter (unit, buffer + PACKET_DEST, base)) {
             packet_type = BEWord (*((UWORD *)(buffer + PACKET_TYPE)));
@@ -400,6 +429,7 @@ UBYTE runs = 1;
                /* Offer packet to each request until it's accepted */
 
                while ((request != request_tail) && !accepted) {
+                    
                   if (request->ios2_PacketType == packet_type
                      || request->ios2_PacketType <= MTU
                      && packet_type <= MTU) {
@@ -459,74 +489,71 @@ UBYTE runs = 1;
 }
 
 
-
-
-
-static VOID CopyPacket(struct DevUnit *unit,struct IOSana2Req *request,
-   UWORD packet_size,UWORD packet_type,BOOL all_read, struct MyBase *base)
-{
-   volatile UBYTE *io_base;
-   struct Opener *opener;
-   UBYTE *buffer;
-   BOOL filtered=FALSE;
-   ULONG *p,*end;
+/*****************************************************************************
+ *
+ * CopyPacket
+ *
+ *****************************************************************************/
+static VOID CopyPacket (struct DevUnit *unit, struct IOSana2Req *request,
+   UWORD packet_size, UWORD packet_type, BOOL all_read, struct MyBase *base) {
+//volatile UBYTE *io_base;
+struct Opener *opener;
+UBYTE *buffer;
+BOOL filtered = FALSE;
+ULONG *p, *end;
 
    /* Set multicast and broadcast flags */
 
-   io_base=unit->io_base;
-   buffer=unit->rx_buffer;
+//   io_base=unit->io_base;
+   buffer = unit->rx_buffer;
    request->ios2_Req.io_Flags &= ~(SANA2IOF_BCAST | SANA2IOF_MCAST);
-   if((*((ULONG *)(buffer+PACKET_DEST))==0xffffffff)&&
-      (*((UWORD *)(buffer+PACKET_DEST+4))==0xffff))
-      request->ios2_Req.io_Flags|=SANA2IOF_BCAST;
-   else if((buffer[PACKET_DEST]&0x1)!=0)
-      request->ios2_Req.io_Flags|=SANA2IOF_MCAST;
+   if((*((ULONG *)(buffer + PACKET_DEST)) == 0xffffffff) &&
+      (*((UWORD *)(buffer + PACKET_DEST + 4)) == 0xffff))
+      request->ios2_Req.io_Flags |= SANA2IOF_BCAST;
+   else if ((buffer [PACKET_DEST] & 0x1) != 0)
+      request->ios2_Req.io_Flags |= SANA2IOF_MCAST;
 
    /* Set source and destination addresses and packet type */
 
-   CopyMem(buffer+PACKET_SOURCE,request->ios2_SrcAddr,ADDRESS_SIZE);
-   CopyMem(buffer+PACKET_DEST,request->ios2_DstAddr,ADDRESS_SIZE);
-   request->ios2_PacketType=packet_type;
+   CopyMem (buffer + PACKET_SOURCE, request->ios2_SrcAddr, ADDRESS_SIZE);
+   CopyMem (buffer + PACKET_DEST, request->ios2_DstAddr, ADDRESS_SIZE);
+   request->ios2_PacketType = packet_type;
 
    /* Read rest of packet */
 
-   if(!all_read)
-   {
-      p=(ULONG *)(buffer+((PACKET_DATA + 3)&~3));
-      end=(ULONG *)(buffer+packet_size);
-      while(p<end)
+   if (!all_read) {
+      p = (ULONG *)(buffer + ((PACKET_DATA + 3) & ~3));
+      end = (ULONG *)(buffer + packet_size);
+      while (p < end)
          *p++ = 0;  //LongIn(io_base+EL3REG_DATA0);
    }
 
-   if((request->ios2_Req.io_Flags & SANA2IOF_RAW)==0)
-   {
-      packet_size-=PACKET_DATA;
-      buffer+=PACKET_DATA;
+   if ((request->ios2_Req.io_Flags & SANA2IOF_RAW) == 0) {
+      packet_size -= PACKET_DATA;
+      buffer += PACKET_DATA;
    }
 #ifdef USE_HACKS
    else
       packet_size+=4;   /* Needed for Shapeshifter & Fusion */
 #endif
 
-   request->ios2_DataLength=packet_size;
+   request->ios2_DataLength = packet_size;
 
    /* Filter packet */
 
-   opener=request->ios2_BufferManagement;
-   if((request->ios2_Req.io_Command==CMD_READ)&&
-      (opener->filter_hook!=NULL))
-      if(!CallHookPkt(opener->filter_hook,request,buffer))
-         filtered=TRUE;
+   opener = request->ios2_BufferManagement;
+   if ((request->ios2_Req.io_Command == CMD_READ) &&
+      (opener->filter_hook != NULL))
+      if (!CallHookPkt (opener->filter_hook, request, buffer))
+         filtered = TRUE;
 
-   if(!filtered)
-   {
+   if (!filtered) {
       /* Copy packet into opener's buffer and reply packet */
 
-      if(!opener->rx_function(request->ios2_Data,buffer,packet_size))
-      {
-         request->ios2_Req.io_Error=S2ERR_NO_RESOURCES;
-         request->ios2_WireError=S2WERR_BUFF_ERROR;
-         ReportEvents (unit,            
+      if (!opener->rx_function (request->ios2_Data, buffer, packet_size)) {
+         request->ios2_Req.io_Error = S2ERR_NO_RESOURCES;
+         request->ios2_WireError = S2WERR_BUFF_ERROR;
+         ReportEvents (unit,
             S2EVENT_ERROR | S2EVENT_SOFTWARE | S2EVENT_BUFF | S2EVENT_RX, base);
       }
       Remove ((APTR)request);
@@ -539,18 +566,21 @@ static VOID CopyPacket(struct DevUnit *unit,struct IOSana2Req *request,
 
 
 
-
-static BOOL AddressFilter (struct DevUnit *unit, UBYTE *address, struct MyBase *base)
-{
-   struct AddressRange *range,*tail;
-   BOOL accept = TRUE;
-   ULONG address_left;
-   UWORD address_right;
+/*****************************************************************************
+ *
+ * AddressFilter
+ *
+ *****************************************************************************/
+static BOOL AddressFilter (struct DevUnit *unit, UBYTE *address, struct MyBase *base) {
+struct AddressRange *range, *tail;
+BOOL accept = TRUE;
+ULONG address_left;
+UWORD address_right;
 
    /* Check whether address is unicast/broadcast or multicast */
 
-   address_left=BELong(*((ULONG *)address));
-   address_right=BEWord(*((UWORD *)(address+4)));
+   address_left = BELong (*((ULONG *)address));
+   address_right = BEWord (*((UWORD *)(address + 4)));
 
    if(((address_left&0x01000000)!=0)&&
       !((address_left==0xffffffff)&&(address_right==0xffff)))
