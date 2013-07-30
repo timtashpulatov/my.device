@@ -748,10 +748,10 @@ struct DevUnit *unit;
                 Debug ("\n S2_CONFIGINTERFACE");
                 break;
             case S2_ADDMULTICASTADDRESS:
-                Debug ("\n S2_ADDMULTICASTADDRESS n/a");
+                Debug ("\n S2_ADDMULTICASTADDRESS");
                 break;
             case S2_DELMULTICASTADDRESS:
-                Debug ("\n S2_DELMULTICASTADDRESS n/a");
+                Debug ("\n S2_DELMULTICASTADDRESS");
                 break;
             case S2_MULTICAST:
                 Debug ("\n S2_MULTICAST");
@@ -760,13 +760,13 @@ struct DevUnit *unit;
                 Debug ("\n S2_BROADCAST");
                 break;            
             case S2_TRACKTYPE:
-                Debug ("\n S2_TRACKTYPE n/a");
+                Debug ("\n S2_TRACKTYPE");
                 break;
             case S2_UNTRACKTYPE:
-                Debug ("\n S2_UNTRACKTYPE n/a");
+                Debug ("\n S2_UNTRACKTYPE");
                 break;
             case S2_GETTYPESTATS:
-                Debug ("\n S2_GETTYPESTATS n/a");
+                Debug ("\n S2_GETTYPESTATS");
                 break;
             case S2_GETSPECIALSTATS:
                 Debug ("\n S2_GETSPECIALSTATS");
@@ -775,10 +775,10 @@ struct DevUnit *unit;
                 Debug ("\n S2_GETGLOBALSTATS");
                 break;
             case S2_ONEVENT:
-                Debug ("\n S2_ONEVENT n/a");
+                Debug ("\n S2_ONEVENT");
                 break;
             case S2_READORPHAN:
-                Debug ("\n S2_READORPHAN n/a");
+                Debug ("\n S2_READORPHAN");
                 break;
             case S2_ONLINE:
                 Debug ("\n S2_ONLINE");

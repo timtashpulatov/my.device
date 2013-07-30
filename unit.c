@@ -369,23 +369,22 @@ UBYTE runs = 1;
    buffer = unit->rx_buffer;
    end = (ULONG *)(buffer + HEADER_SIZE);
 
-   while (
+    rx_status = 0;  // hack
+
+   while (runs --) {
 //   ((rx_status=LEWordIn(io_base+EL3REG_RXSTATUS))
  //     &EL3REG_RXSTATUSF_INCOMPLETE)==0
-      runs --
-      )
-   {
-      if((rx_status /* & EL3REG_RXSTATUSF_ERROR */)==0)
-      {
+
+      if ((rx_status /* & EL3REG_RXSTATUSF_ERROR */)==0) {
          /* Read packet header */
 
          is_orphan = TRUE;
-         packet_size = rx_status /*& EL3REG_RXSTATUS_SIZEMASK */;
+         packet_size = 16;  // rx_status /*& EL3REG_RXSTATUS_SIZEMASK */;
          p = (ULONG *)buffer;
          while (p < end)
             *p++ = 0; //LongIn(io_base+EL3REG_DATA0);
 
-         if (AddressFilter (unit,buffer+PACKET_DEST,base)) {
+         if (AddressFilter (unit, buffer + PACKET_DEST, base)) {
             packet_type = BEWord (*((UWORD *)(buffer + PACKET_TYPE)));
 
             opener = (APTR)unit->openers.mlh_Head;
