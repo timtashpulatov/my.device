@@ -163,7 +163,7 @@ UBYTE peek (ULONG addr);
 void poke (ULONG addr, UBYTE value);
 UWORD ppPeek (UWORD pport);
 void ppPoke (UWORD pport, UWORD value);
-
+void CS8900_Configure (void);
 
 
 #endif /* _CS8900_H_ */

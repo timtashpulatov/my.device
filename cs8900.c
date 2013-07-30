@@ -29,6 +29,7 @@ ULONG value;
 void poke (ULONG addr, UBYTE value) {
 UBYTE *ptr;
 UBYTE dummy;
+
     // Dummy read
     ptr = (UBYTE *)0x40000000;
     dummy = *ptr;
@@ -63,3 +64,13 @@ void ppPoke (UWORD pport, UWORD value) {
     poke (0x4400000d, (value >> 8) & 0xff);
 }
 
+/*****************************************************************************
+ *
+ * CS8900_Configure
+ *
+ *****************************************************************************/
+void CS8900_Configure () {
+    ppPoke (PP_RxCTL, PP_RxCTL_Promiscuous | PP_RxCTL_RxOK);
+    ppPoke (PP_TestCTL, 0x4000);
+    ppPoke (PP_LineCTL, PP_LineCTL_Rx | PP_LineCTL_Tx);
+}

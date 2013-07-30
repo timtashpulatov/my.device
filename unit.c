@@ -374,6 +374,7 @@ UWORD rx_status, packet_size;
 struct MyBase *base;
 BOOL is_orphan, accepted;
 ULONG packet_type;
+UWORD status;
 UBYTE *p, *end;
 UBYTE *buffer;
 struct IOSana2Req *request, *request_tail;
@@ -398,25 +399,32 @@ UBYTE runs = 1;
  //     &EL3REG_RXSTATUSF_INCOMPLETE)==0
 
         r = ppPeek (PP_RER);
+        //status = peek (0x44000001) << 8;
+        //status += peek (0x44000000);
 
         if (r & 0x0004) {
             // CS8900 present, PP_RER should read xxx4
-
             emulate = FALSE;
         }
 
-     //   if ((r & PP_RER_RxOK) || emulate) {
+       // if ((r & PP_RER_RxOK) || emulate) {
             if (1) {
 
             /* Read packet header */
 
             is_orphan = TRUE;
             if (emulate)
-                packet_size = 32;  // rx_status /*& EL3REG_RXSTATUS_SIZEMASK */;
+                packet_size = 64;  // rx_status /*& EL3REG_RXSTATUS_SIZEMASK */;
             else {
-                // dummy read
-//                r = peek (0x44000001) + (peek (0x44000000) << 8);
-                packet_size = peek (0x44000001) + (peek (0x44000000) << 8);
+                // status
+                status = peek (0x44000001);
+                status += peek (0x44000000) << 8;
+  
+                // packet size  
+            //    packet_size = (peek (0x44000000) << 8) + peek (0x44000001);
+                packet_size = peek (0x44000000);
+                packet_size += peek (0x44000001) << 8;
+
             }
   
               
@@ -455,7 +463,7 @@ UBYTE runs = 1;
                             && packet_type <= MTU) {
 
                             CopyPacket (unit, request, packet_size, packet_type,
-                                !is_orphan, base, emulate);
+                                TRUE /* !is_orphan */, base, emulate);
                             accepted = TRUE;
                         }
                         request = (APTR)request->ios2_Req.io_Message.mn_Node.ln_Succ;
@@ -545,7 +553,7 @@ UBYTE *p, *end;
     if (!all_read) {
     UWORD i;
     
-      p = (UBYTE *)(buffer + PACKET_DATA);
+      p = (UBYTE *)(buffer + ((PACKET_DATA + 1) & ~1));              // p=(ULONG *)(buffer+((PACKET_DATA+3)&~3));
       end = (UBYTE *)(buffer + packet_size);
       
       i = 0;
@@ -873,11 +881,13 @@ ULONG signals,
     OpenDevice (TIMERNAME, UNIT_MICROHZ, TimerIO, 0);
     
     TimerIO->tr_node.io_Command = TR_ADDREQUEST;
-    TimerIO->tr_time.tv_secs = 5;
+    TimerIO->tr_time.tv_secs = 3;
     TimerIO->tr_time.tv_micro = 0;
     
     SendIO ((struct IORequest *)TimerIO);
 
+    // Dunno where to put it
+    CS8900_Configure ();
     
     
 
@@ -899,16 +909,26 @@ ULONG signals,
       signals = Wait (wait_signals);
 
         if ((signals & timer_port_signal) != 0) {
+            UWORD r;
             
             TimerIO->tr_node.io_Command = TR_ADDREQUEST;
-            TimerIO->tr_time.tv_secs = 5;
+            TimerIO->tr_time.tv_secs = 3;
             TimerIO->tr_time.tv_micro = 0;
 
             SendIO ((struct IORequest *)TimerIO);
 
-            
-            
-            Cause (&unit->rx_int);
+
+          //  r = ppPeek (PP_RER);
+
+          //  if (r & 0x0004) {
+          //      // CS8900 present, PP_RER should read xxx4
+          //      if (r != 0x0004)
+          //          Cause (&unit->rx_int);
+          //  }
+          //  else {
+           //     // under emulator always cause RxInt
+                Cause (&unit->rx_int);
+           // }
         }
 
       if ((signals & general_port_signal) != 0) {
