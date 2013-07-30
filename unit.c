@@ -602,32 +602,30 @@ static BOOL AddressFilter (struct DevUnit *unit, UBYTE *address, struct MyBase *
 
 static VOID TxInt (__reg("a1") struct DevUnit *unit)
 {
-   volatile UBYTE *io_base;
-   UWORD packet_size,data_size,send_size;
+   UWORD packet_size, data_size, send_size;
    struct MyBase *base;
    struct IOSana2Req *request;
    BOOL proceed=TRUE;
    struct Opener *opener;
-   ULONG *buffer,*end,wire_error;
+   ULONG *buffer, *end, wire_error;
    ULONG *(*dma_tx_function)(APTR __reg("a0"));
    BYTE error;
    struct MsgPort *port;
    struct TypeStats *tracker;
 
    base = unit->device;
-   io_base = unit->io_base;
 
-   port=unit->request_ports [WRITE_QUEUE];
+   port = unit->request_ports [WRITE_QUEUE];
 
-   while(proceed&&(!IsMsgPortEmpty(port)))
+   while (proceed && (!IsMsgPortEmpty (port)))
    {
-      error=0;
+      error = 0;
 
-      request=(APTR)port->mp_MsgList.lh_Head;
-      data_size=packet_size=request->ios2_DataLength;
+      request = (APTR)port->mp_MsgList.lh_Head;
+      data_size = packet_size=request->ios2_DataLength;
 
-      if((request->ios2_Req.io_Flags&SANA2IOF_RAW)==0)
-         packet_size+=PACKET_DATA;
+      if ((request->ios2_Req.io_Flags & SANA2IOF_RAW) == 0)
+         packet_size += PACKET_DATA;
 
 //      if(LEWordIn(io_base+EL3REG_TXSPACE)>PREAMBLE_SIZE+packet_size)
         if (1)
@@ -638,8 +636,8 @@ static VOID TxInt (__reg("a1") struct DevUnit *unit)
 
          /* Write packet header */
 
-         send_size=(packet_size+3)&(~0x3);
-         if((request->ios2_Req.io_Flags & SANA2IOF_RAW)==0)
+         send_size = (packet_size + 3) & (~0x3);
+         if ((request->ios2_Req.io_Flags & SANA2IOF_RAW) == 0)
          {
    //         LongOut(io_base+EL3REG_DATA0,*((ULONG *)request->ios2_DstAddr));
    //         WordOut(io_base+EL3REG_DATA0,
@@ -652,18 +650,16 @@ static VOID TxInt (__reg("a1") struct DevUnit *unit)
 
          /* Get packet data */
 
-         opener=(APTR)request->ios2_BufferManagement;
-         dma_tx_function=opener->dma_tx_function;
-         if(dma_tx_function!=NULL)
-            buffer=dma_tx_function(request->ios2_Data);
+         opener = (APTR)request->ios2_BufferManagement;
+         dma_tx_function = opener->dma_tx_function;
+         if (dma_tx_function != NULL)
+            buffer = dma_tx_function (request->ios2_Data);
          else
-            buffer=NULL;
+            buffer = NULL;
 
-         if(buffer==NULL)
-         {
-            buffer=(ULONG *)unit->tx_buffer;
-            if(!opener->tx_function(buffer,request->ios2_Data,data_size))
-            {
+         if (buffer == NULL) {
+            buffer = (ULONG *)unit->tx_buffer;
+            if (!opener->tx_function (buffer, request->ios2_Data, data_size)) {
                error = S2ERR_NO_RESOURCES;
                wire_error = S2WERR_BUFF_ERROR;
                ReportEvents (unit,
@@ -674,50 +670,46 @@ static VOID TxInt (__reg("a1") struct DevUnit *unit)
 
          /* Write packet data */
 
-         if(error==0)
-         {
-            end=buffer+(send_size>>2);
-            while(buffer<end)
+         if (error == 0) {
+            end = buffer + (send_size >> 2);
+            while (buffer < end)
                // LongOut(io_base+EL3REG_DATA0,*buffer++);
-               ;
+               buffer ++;
 
-            if((send_size&0x3)!=0)
+            if ((send_size & 0x3) != 0)
                //WordOut(io_base+EL3REG_DATA0,*((UWORD *)buffer));
                ;
          }
 
          /* Reply packet */
 
-         request->ios2_Req.io_Error=error;
-         request->ios2_WireError=wire_error;
-         Remove((APTR)request);
-         ReplyMsg((APTR)request);
+         request->ios2_Req.io_Error = error;
+         request->ios2_WireError = wire_error;
+         Remove ((APTR)request);
+         ReplyMsg ((APTR)request);
 
          /* Update statistics */
 
-         if(error==0)
-         {
+         if (error == 0) {
             unit->stats.PacketsSent ++;
 
             tracker = FindTypeStats (unit, &unit->type_trackers,
                         request->ios2_PacketType,
                         base);
                         
-            if(tracker!=NULL)
-            {
-               tracker->stats.PacketsSent++;
-               tracker->stats.BytesSent+=packet_size;
+            if (tracker != NULL) {
+               tracker->stats.PacketsSent ++;
+               tracker->stats.BytesSent += packet_size;
             }
          }
       }
       else
-         proceed=FALSE;
+         proceed = FALSE;
    }
 
-   if(proceed)
-      unit->request_ports[WRITE_QUEUE]->mp_Flags=PA_SOFTINT;
-   else
-   {
+   if (proceed)
+      unit->request_ports [WRITE_QUEUE]->mp_Flags = PA_SOFTINT;
+   else {
    //   LEWordOut(io_base+EL3REG_COMMAND,EL3CMD_SETTXTHRESH
 //         |(PREAMBLE_SIZE+packet_size));
       unit->request_ports [WRITE_QUEUE]->mp_Flags = PA_IGNORE;
