@@ -685,10 +685,14 @@ __saveds __stdargs ULONG L_OpenLibs (MyBase_t *MyBase)
 	
     UtilityBase = (APTR)OpenLibrary ("utility.library", 37);
     if (!UtilityBase) return (FALSE);
+
+//    OpenDevice (TIMERNAME, UNIT_VBLANK, (APTR)&MyBase->timer_request, 0);
 	
     MyBase->my_UtilityBase = UtilityBase;
 	MyBase->my_SysBase = SysBase;
 	MyBase->my_DOSBase = DOSBase;
+	
+
 
  return (TRUE);
 }

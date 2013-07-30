@@ -7,6 +7,7 @@
 #include <exec/semaphores.h>
 #include <dos/dos.h>
 #include <libraries/dos.h>
+#include <devices/timer.h>
 
 #include "devices/sana2.h"
 #include "devices/sana2specialstats.h"
@@ -413,10 +414,12 @@ UBYTE runs = 1;
             if (emulate)
                 packet_size = 32;  // rx_status /*& EL3REG_RXSTATUS_SIZEMASK */;
             else {
-                //packet_size = peek (0x44000001) + (peek (0x44000000) << 8);
+                // dummy read
+//                r = peek (0x44000001) + (peek (0x44000000) << 8);
                 packet_size = peek (0x44000001) + (peek (0x44000000) << 8);
             }
-            
+  
+              
             p = (UBYTE *)buffer;
          
 
@@ -839,7 +842,7 @@ ULONG signals,
     wait_signals, 
     general_port_signal, 
     timer_port_signal;
-const char TimerPortName [] = "my.device timer port";
+//const char TimerPortName [] = "my.device timer port";
 
    /* Get parameters */
 
@@ -858,13 +861,25 @@ const char TimerPortName [] = "my.device timer port";
 
 
     // Timer port
-    timer_port = unit->request_ports [TIMER_QUEUE];
+//    timer_port = unit->request_ports [TIMER_QUEUE];
+    timer_port = (APTR) AllocMem (sizeof (struct MsgPort), MEMF_PUBLIC | MEMF_CLEAR);
     timer_port->mp_SigTask = task;
     timer_port->mp_SigBit = AllocSignal (-1);
     timer_port_signal = 1 << timer_port->mp_SigBit;
+    general_port->mp_Flags = PA_SIGNAL;
     
-//    TimerIO = (struct timerequest *)CreateExtIO (TimerMP, sizeof (timerequest));
-//    OpenDevice (TIMERNAME, UNIT_VBLANK, TimerIO, 0);
+    TimerIO = (struct timerequest *) CreateExtIO (timer_port, sizeof (struct timerequest));  
+
+    OpenDevice (TIMERNAME, UNIT_MICROHZ, TimerIO, 0);
+    
+    TimerIO->tr_node.io_Command = TR_ADDREQUEST;
+    TimerIO->tr_time.tv_secs = 5;
+    TimerIO->tr_time.tv_micro = 0;
+    
+    SendIO ((struct IORequest *)TimerIO);
+
+    
+    
 
 //   wait_signals = (1 << general_port->mp_SigBit) || (1 << timer_port->mp_SigBit);
 
@@ -884,6 +899,15 @@ const char TimerPortName [] = "my.device timer port";
       signals = Wait (wait_signals);
 
         if ((signals & timer_port_signal) != 0) {
+            
+            TimerIO->tr_node.io_Command = TR_ADDREQUEST;
+            TimerIO->tr_time.tv_secs = 5;
+            TimerIO->tr_time.tv_micro = 0;
+
+            SendIO ((struct IORequest *)TimerIO);
+
+            
+            
             Cause (&unit->rx_int);
         }
 

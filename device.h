@@ -29,7 +29,7 @@ enum {
    ADOPT_QUEUE,
    EVENT_QUEUE,
    GENERAL_QUEUE,
-   TIMER_QUEUE,
+//   TIMER_QUEUE,
    REQUEST_QUEUE_COUNT
 };
 
@@ -44,6 +44,7 @@ typedef struct MyBase {
     struct UtilityBase          *my_UtilityBase;
 	BPTR                      log;
 	struct MinList             units;
+//	struct timerequest     *timer_request;
 } MyBase_t;
 
 struct DevUnit
