@@ -24,7 +24,7 @@ IMPORT struct ExecBase *AbsExecBase;
 
 //static struct AddressRange *FindMulticastRange(struct DevUnit *unit,  ULONG lower_bound_left, UWORD lower_bound_right, ULONG upper_bound_left,   UWORD upper_bound_right, struct DevBase *base);
 static VOID RxInt (__reg("a1") struct DevUnit *unit);
-static VOID CopyPacket (struct DevUnit *unit, struct IOSana2Req *request, UWORD packet_size, UWORD packet_type, BOOL all_read, struct MyBase *base);
+static VOID CopyPacket (struct DevUnit *unit, struct IOSana2Req *request, UWORD packet_size, UWORD packet_type, BOOL all_read, struct MyBase *base, BOOL emulate);
 static BOOL AddressFilter (struct DevUnit *unit, UBYTE *address, struct MyBase *base);
 static VOID TxInt(__reg("a1") struct DevUnit *unit);
 static VOID TxError(struct DevUnit *unit, struct MyBase *base);
@@ -349,6 +349,20 @@ VOID FlushUnit (struct DevUnit *unit, UBYTE last_queue, BYTE error, struct MyBas
 }
 
 
+
+
+UBYTE emulated_packet [] = {
+    0xfe, 0xed, 0xfa, 0xce, 0xaa, 0x55,
+    0xde, 0xad, 0xbe, 0xef, 0xff, 0x00,
+    0x77, 0x77,
+    0x00, 0x01, 
+    0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09,
+    0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
+    0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a
+};
+
+
+
 /*****************************************************************************
  *
  * RxInt
@@ -358,7 +372,8 @@ static VOID RxInt (__reg("a1") struct DevUnit *unit) {
 UWORD rx_status, packet_size;
 struct MyBase *base;
 BOOL is_orphan, accepted;
-ULONG packet_type, *p, *end;
+ULONG packet_type;
+UBYTE *p, *end;
 UBYTE *buffer;
 struct IOSana2Req *request, *request_tail;
 struct Opener *opener, *opener_tail;
@@ -366,20 +381,18 @@ struct TypeStats *tracker;
 
 UWORD r;
 BOOL emulate = TRUE;
+                                    
 
 UBYTE runs = 1;
 
 
-   base = unit->device;
-   buffer = unit->rx_buffer;
-   end = (ULONG *)(buffer + HEADER_SIZE);
+    base = unit->device;
+    buffer = unit->rx_buffer;
+    end = (UBYTE *)(buffer + HEADER_SIZE);
 
     rx_status = 0;  // hack
 
-
-
-
-   while (runs --) {
+    while (runs --) {
 //   ((rx_status=LEWordIn(io_base+EL3REG_RXSTATUS))
  //     &EL3REG_RXSTATUSF_INCOMPLETE)==0
 
@@ -389,25 +402,29 @@ UBYTE runs = 1;
             // CS8900 present, PP_RER should read xxx4
 
             emulate = FALSE;
-
         }
 
-
-        if ((r & PP_RER_RxOK || emulate) {
+     //   if ((r & PP_RER_RxOK) || emulate) {
+            if (1) {
 
             /* Read packet header */
 
             is_orphan = TRUE;
             if (emulate)
-                packet_size = 16;  // rx_status /*& EL3REG_RXSTATUS_SIZEMASK */;
-            else
+                packet_size = 32;  // rx_status /*& EL3REG_RXSTATUS_SIZEMASK */;
+            else {
+                //packet_size = peek (0x44000001) + (peek (0x44000000) << 8);
                 packet_size = peek (0x44000001) + (peek (0x44000000) << 8);
+            }
             
-            p = (ULONG *)buffer;
+            p = (UBYTE *)buffer;
+         
+
+            r = 0; // use r var as an index
          
             while (p < end)
                 if (emulate)
-                    *p++ = 0; //LongIn(io_base+EL3REG_DATA0);
+                    *p++ = emulated_packet [r++]; //LongIn(io_base+EL3REG_DATA0);
                 else {
                     *p++ = peek (0x44000000);
                     *p++ = peek (0x44000001);
@@ -419,59 +436,59 @@ UBYTE runs = 1;
             opener = (APTR)unit->openers.mlh_Head;
             opener_tail = (APTR)&unit->openers.mlh_Tail;
 
-            /* Offer packet to every opener */
+                /* Offer packet to every opener */
 
-            while (opener != opener_tail) {
-               request = (APTR)opener->read_port.mp_MsgList.lh_Head;
-               request_tail = (APTR)&opener->read_port.mp_MsgList.lh_Tail;
-               accepted = FALSE;
+                while (opener != opener_tail) {
+                    request = (APTR)opener->read_port.mp_MsgList.lh_Head;
+                    request_tail = (APTR)&opener->read_port.mp_MsgList.lh_Tail;
+                    accepted = FALSE;
 
-               /* Offer packet to each request until it's accepted */
+                    /* Offer packet to each request until it's accepted */
 
-               while ((request != request_tail) && !accepted) {
+                    while ((request != request_tail) && !accepted) {
                     
-                  if (request->ios2_PacketType == packet_type
-                     || request->ios2_PacketType <= MTU
-                     && packet_type <= MTU) {
+                        if (request->ios2_PacketType == packet_type
+                            || request->ios2_PacketType <= MTU
+                            && packet_type <= MTU) {
 
-                     CopyPacket (unit, request, packet_size, packet_type,
-                        !is_orphan, base);
-                     accepted = TRUE;
-                  }
-                  request = (APTR)request->ios2_Req.io_Message.mn_Node.ln_Succ;
-               }
+                            CopyPacket (unit, request, packet_size, packet_type,
+                                !is_orphan, base, emulate);
+                            accepted = TRUE;
+                        }
+                        request = (APTR)request->ios2_Req.io_Message.mn_Node.ln_Succ;
+                    }
 
-               if (accepted)
-                  is_orphan = FALSE;
-               opener = (APTR)opener->node.mln_Succ;
+                    if (accepted)
+                        is_orphan = FALSE;
+                    opener = (APTR)opener->node.mln_Succ;
+                }
+
+                /* If packet was unwanted, give it to S2_READORPHAN request */
+
+                if (is_orphan) {
+                    unit->stats.UnknownTypesReceived ++;
+                    if (!IsMsgPortEmpty (unit->request_ports [ADOPT_QUEUE])) {
+                        CopyPacket (unit, (APTR)unit->request_ports [ADOPT_QUEUE]->mp_MsgList.lh_Head, 
+                                packet_size, packet_type,
+                                TRUE /* FALSE */, base, emulate);
+                    }
+                }
+
+                /* Update remaining statistics */
+
+                unit->stats.PacketsReceived ++;
+
+                tracker = FindTypeStats (unit, &unit->type_trackers, packet_type, base);
+                if (tracker != NULL) {
+                    tracker->stats.PacketsReceived ++;
+                    tracker->stats.BytesReceived += packet_size;
+                }
             }
-
-            /* If packet was unwanted, give it to S2_READORPHAN request */
-
-            if (is_orphan) {
-               unit->stats.UnknownTypesReceived ++;
-               if (!IsMsgPortEmpty (unit->request_ports [ADOPT_QUEUE])) {
-                  CopyPacket (unit,
-                     (APTR)unit->request_ports [ADOPT_QUEUE]->mp_MsgList.lh_Head, packet_size, packet_type,
-                     FALSE, base);
-               }
-            }
-
-            /* Update remaining statistics */
-
-            unit->stats.PacketsReceived ++;
-
-            tracker = FindTypeStats (unit, &unit->type_trackers, packet_type, base);
-            if (tracker != NULL) {
-               tracker->stats.PacketsReceived ++;
-               tracker->stats.BytesReceived += packet_size;
-            }
-         }
-      }
-      else {
-         unit->stats.BadData ++;
-         ReportEvents (unit, S2EVENT_ERROR | S2EVENT_HARDWARE | S2EVENT_RX, base);
-      }
+        }
+        else {
+            unit->stats.BadData ++;
+            ReportEvents (unit, S2EVENT_ERROR | S2EVENT_HARDWARE | S2EVENT_RX, base);
+        }
 
       /* Discard packet */
 
@@ -480,7 +497,7 @@ UBYTE runs = 1;
    //   while((LEWordIn(io_base+EL3REG_STATUS)&
     //     EL3REG_STATUSF_CMDINPROGRESS)!=0);
 //      Enable();
-   }
+    }
 
    /* Return */
 
@@ -495,18 +512,19 @@ UBYTE runs = 1;
  *
  *****************************************************************************/
 static VOID CopyPacket (struct DevUnit *unit, struct IOSana2Req *request,
-   UWORD packet_size, UWORD packet_type, BOOL all_read, struct MyBase *base) {
+   UWORD packet_size, UWORD packet_type, BOOL all_read, struct MyBase *base,
+   BOOL emulate) {
 //volatile UBYTE *io_base;
 struct Opener *opener;
 UBYTE *buffer;
 BOOL filtered = FALSE;
-ULONG *p, *end;
+UBYTE *p, *end;
 
    /* Set multicast and broadcast flags */
 
 //   io_base=unit->io_base;
    buffer = unit->rx_buffer;
-   request->ios2_Req.io_Flags &= ~(SANA2IOF_BCAST | SANA2IOF_MCAST);
+   request->ios2_Req.io_Flags &= ~(SANA2IOF_BCAST | SANA2IOF_MCAST);    // clear bcast and mcast flags
    if((*((ULONG *)(buffer + PACKET_DEST)) == 0xffffffff) &&
       (*((UWORD *)(buffer + PACKET_DEST + 4)) == 0xffff))
       request->ios2_Req.io_Flags |= SANA2IOF_BCAST;
@@ -521,11 +539,20 @@ ULONG *p, *end;
 
    /* Read rest of packet */
 
-   if (!all_read) {
-      p = (ULONG *)(buffer + ((PACKET_DATA + 3) & ~3));
-      end = (ULONG *)(buffer + packet_size);
+    if (!all_read) {
+    UWORD i;
+    
+      p = (UBYTE *)(buffer + PACKET_DATA);
+      end = (UBYTE *)(buffer + packet_size);
+      
+      i = 0;
       while (p < end)
-         *p++ = 0;  //LongIn(io_base+EL3REG_DATA0);
+        if (emulate)
+            *p++ = emulated_packet [i];  //LongIn(io_base+EL3REG_DATA0);
+        else {
+            *p++ = peek (0x44000000);
+            *p++ = peek (0x44000001);
+        }
    }
 
    if ((request->ios2_Req.io_Flags & SANA2IOF_RAW) == 0) {
