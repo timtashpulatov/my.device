@@ -407,8 +407,7 @@ UBYTE runs = 1;
             emulate = FALSE;
         }
 
-       // if ((r & PP_RER_RxOK) || emulate) {
-            if (1) {
+        if ((r & PP_RER_RxOK) || emulate) {
 
             /* Read packet header */
 
@@ -426,6 +425,9 @@ UBYTE runs = 1;
                 packet_size += peek (0x44000001) << 8;
 
             }
+  
+  
+        
   
               
             p = (UBYTE *)buffer;
@@ -463,7 +465,7 @@ UBYTE runs = 1;
                             && packet_type <= MTU) {
 
                             CopyPacket (unit, request, packet_size, packet_type,
-                                TRUE /* !is_orphan */, base, emulate);
+                                !is_orphan, base, emulate);
                             accepted = TRUE;
                         }
                         request = (APTR)request->ios2_Req.io_Message.mn_Node.ln_Succ;
@@ -543,14 +545,14 @@ UBYTE *p, *end;
       request->ios2_Req.io_Flags |= SANA2IOF_MCAST;
 
    /* Set source and destination addresses and packet type */
-
    CopyMem (buffer + PACKET_SOURCE, request->ios2_SrcAddr, ADDRESS_SIZE);
    CopyMem (buffer + PACKET_DEST, request->ios2_DstAddr, ADDRESS_SIZE);
    request->ios2_PacketType = packet_type;
 
    /* Read rest of packet */
 
-    if (!all_read) {
+//    if (!all_read) {
+    if (1)  // HAHAHACK
     UWORD i;
     
       p = (UBYTE *)(buffer + ((PACKET_DATA + 1) & ~1));              // p=(ULONG *)(buffer+((PACKET_DATA+3)&~3));
