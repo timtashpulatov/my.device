@@ -720,6 +720,7 @@ struct TypeStats *tracker;
 
                 WordToTxDataPort0 (*((UWORD *)unit->address));
                 LongToTxDataPort0 (*((ULONG *)(unit->address + 2)));
+        
                 WordToTxDataPort0 (request->ios2_PacketType);
 
    //           LongOut(io_base+EL3REG_DATA0,*((ULONG *)request->ios2_DstAddr));
@@ -900,11 +901,10 @@ UBYTE i;
 
    /* Decide on promiscuous mode */
 
-    if ((unit->flags & UNITF_PROM) != 0)
-        ppPoke (PP_RxCTL, PP_RxCTL_Promiscuous | PP_RxCTL_RxOK);
-    else
-        ppPoke (PP_RxCTL, PP_RxCTL_IA | PP_RxCTL_Broadcast | PP_RxCTL_RxOK);    
-//      unit->rx_filter_cmd|=EL3CMD_SETRXFILTERF_PROM;
+//    if ((unit->flags & UNITF_PROM) != 0)
+        ppPoke (PP_RxCTL, PP_RxCTL_Promiscuous | PP_RxCTL_RxOK | PP_RxCTL_RUNT);
+//    else
+//        ppPoke (PP_RxCTL, PP_RxCTL_IA | PP_RxCTL_Broadcast | PP_RxCTL_RxOK);    
 
 
    /* Go online */
@@ -968,7 +968,7 @@ ULONG signals,
     
     TimerIO->tr_node.io_Command = TR_ADDREQUEST;
     TimerIO->tr_time.tv_secs = 0;
-    TimerIO->tr_time.tv_micro = 50000;
+    TimerIO->tr_time.tv_micro = 20000;
     
     SendIO ((struct IORequest *)TimerIO);
     
@@ -996,7 +996,7 @@ ULONG signals,
             
             TimerIO->tr_node.io_Command = TR_ADDREQUEST;
             TimerIO->tr_time.tv_secs = 0;
-            TimerIO->tr_time.tv_micro = 50000;
+            TimerIO->tr_time.tv_micro = 20000;
 
             SendIO ((struct IORequest *)TimerIO);
 
