@@ -37,6 +37,7 @@ struct DevUnit *CreateUnit (ULONG unit_num, struct MyBase *base);
 struct TypeStats *FindTypeStats (struct DevUnit *unit, struct MinList *list, ULONG packet_type, struct MyBase *base);
 VOID FlushUnit (struct DevUnit *unit, UBYTE last_queue, BYTE error, struct MyBase *base);
 void InitialiseCard (struct DevUnit *unit, struct MyBase *base);
+VOID ConfigureCard (struct DevUnit *unit, struct MyBase *base);
 
 
 struct DevUnit *GetUnit (ULONG unit_num, struct MyBase *base) {
@@ -152,6 +153,8 @@ APTR stack;
         
         InitialiseCard (unit, base);
         
+        ConfigureCard (unit, base);
+        
       /* Create a new task */
 
       unit->task = task = (struct Task *) AllocMem (sizeof(struct Task), MEMF_PUBLIC | MEMF_CLEAR);
@@ -230,15 +233,20 @@ struct Task *task;
 
 
 
+/*****************************************************************************
+ *
+ * GoOnline
+ *
+ *****************************************************************************/
+VOID GoOnline (struct DevUnit *unit, struct MyBase *base) {
+//volatile UBYTE *io_base;
+UWORD transceiver;
 
-VOID GoOnline(struct DevUnit *unit, struct MyBase *base)
-{
-   volatile UBYTE *io_base;
-   UWORD transceiver;
+    /* Choose interrupts */
+    unit->flags |= UNITF_ONLINE;
 
-   /* Choose interrupts */
-
-   unit->flags |= UNITF_ONLINE;
+    // Enable RX and TX
+    ppPoke (PP_LineCTL, PP_LineCTL_Rx | PP_LineCTL_Tx);
 
    /* Record start time and report Online event */
 
@@ -249,9 +257,12 @@ VOID GoOnline(struct DevUnit *unit, struct MyBase *base)
 }
 
 
-
-VOID GoOffline (struct DevUnit *unit, struct MyBase *base)
-{
+/*****************************************************************************
+ *
+ * GoOffline
+ *
+ *****************************************************************************/
+VOID GoOffline (struct DevUnit *unit, struct MyBase *base) {
    volatile UBYTE *io_base;
 
    io_base = unit->io_base;
@@ -264,6 +275,7 @@ VOID GoOffline (struct DevUnit *unit, struct MyBase *base)
 
 
       /* Stop transmission and reception */
+      ppPoke (PP_LineCTL, ppPeek (PP_LineCTL) & ~(PP_LineCTL_Rx | PP_LineCTL_Tx));
 
 
       /* Turn off media functions */
@@ -678,10 +690,10 @@ struct TypeStats *tracker;
     base = unit->device;
     port = unit->request_ports [WRITE_QUEUE];
 
-//    while (proceed && (!IsMsgPortEmpty (port))) {
+    while (proceed && (!IsMsgPortEmpty (port))) {
     
     // run once DEBUG
-    if (!IsMsgPortEmpty (port)) {
+    //if (!IsMsgPortEmpty (port)) {
         error = 0;
 
         request = (APTR)port->mp_MsgList.lh_Head;
@@ -863,7 +875,7 @@ static VOID ReportEvents (struct DevUnit *unit, ULONG events, struct MyBase *bas
    return;
 }
 
-UBYTE fakeMAC [6] = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66};
+UBYTE fakeMAC [6] = {0x22, 0x44, 0x66, 0x88, 0xaa, 0xcc};
 
 /*****************************************************************************
  *
@@ -880,6 +892,40 @@ UBYTE *p, i;
         *p++ = fakeMAC [i];
     }    
 }
+
+/*****************************************************************************
+ *
+ * ConfigureCard
+ *
+ *****************************************************************************/
+VOID ConfigureCard (struct DevUnit *unit, struct MyBase *base) {
+volatile UBYTE *io_base;
+UBYTE i;
+
+   /* Set MAC address */
+
+    for (i = 0; i < ADDRESS_SIZE; i += 2)
+//      ByteOut (io_base+EL3REG_ADDRESS0+i,unit->address[i]);
+        ppPoke (PP_IA + i, unit->address [i] + (unit->address [i + 1] << 8));
+
+   /* Decide on promiscuous mode */
+
+    if ((unit->flags & UNITF_PROM) != 0)
+        ppPoke (PP_RxCTL, PP_RxCTL_Promiscuous | PP_RxCTL_RxOK);
+    else
+        ppPoke (PP_RxCTL, PP_RxCTL_IA | PP_RxCTL_Broadcast | PP_RxCTL_RxOK);    
+//      unit->rx_filter_cmd|=EL3CMD_SETRXFILTERF_PROM;
+
+
+   /* Go online */
+
+   GoOnline (unit, base);
+
+   /* Return */
+
+   return;
+}
+
 
 
 /*****************************************************************************
@@ -932,12 +978,9 @@ ULONG signals,
     
     TimerIO->tr_node.io_Command = TR_ADDREQUEST;
     TimerIO->tr_time.tv_secs = 0;
-    TimerIO->tr_time.tv_micro = 100000;
+    TimerIO->tr_time.tv_micro = 50000;
     
     SendIO ((struct IORequest *)TimerIO);
-
-    // Dunno where to put it
-    CS8900_Configure ();
     
     
 
@@ -963,7 +1006,7 @@ ULONG signals,
             
             TimerIO->tr_node.io_Command = TR_ADDREQUEST;
             TimerIO->tr_time.tv_secs = 0;
-            TimerIO->tr_time.tv_micro = 100000;
+            TimerIO->tr_time.tv_micro = 50000;
 
             SendIO ((struct IORequest *)TimerIO);
 
