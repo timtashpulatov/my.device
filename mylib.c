@@ -277,6 +277,8 @@ static BYTE DevOpen(ULONG unit_num REG("d0"),
    struct DevBase *base REG(BASE_REG))
 */
 
+/*
+
 void Debug (char *s) {
 	FPuts (MyBase->log, s);
 }
@@ -322,52 +324,10 @@ register UBYTE i;
 //	Flush (MyBase->log);
 }
 
+*/
 
 
 
-
-BOOL (*tx_function)(APTR __reg("a0"), APTR __reg("a1"), ULONG __reg("d0"));
-
-__saveds BYTE DevOpen (	__reg ("a6") MyBase_t *my,
-			__reg ("a1") struct IOSana2Req *request,
-			__reg ("d1") ULONG flags,
-			__reg ("d0") ULONG unit_num
-	) 
-{
-    struct TagItem *tag_list;
-    
-	if (my->log == NULL)
-		my->log = Open ("T:log", MODE_READWRITE);
-
-	if (my->log) {
-	//	Debug (my->log, "\n- DevOpen");
-		//VFPrintf (my->log, "\n- DevOpen (unit %d, flags %x)",
-	          //  unit_num, flags
-	    Seek (my->log, 0, OFFSET_END);
-		Debug ("\n\n- DevOpen unit ");
-		DebugHex (unit_num);
-		Debug (", flags ");
-		DebugHex32 (flags);
-        };
-	
-	my->device.dd_Library.lib_OpenCnt ++;
-	my->device.dd_Library.lib_Flags &= ~LIBF_DELEXP;
-	
-	request->ios2_Req.io_Unit = NULL; // FIXME
-	tag_list = request->ios2_BufferManagement;
-	request->ios2_BufferManagement = NULL;
-	
-	// tags
-	
-    	tx_function = (APTR)GetTagData (S2_CopyFromBuff, NULL, tag_list);
-	if (tx_function == NULL)
-		Debug ("\n tx_function EMPTY");
-
-	// Task
-//	InitializeAndStartTask (my);
-	
-	return (0);
-}
 
 
 /* ----------------------------------------------------------------------------------------
@@ -419,6 +379,7 @@ __saveds BYTE DevOpenNew (__reg ("d0") ULONG unit_num,
    base->device.dd_Library.lib_OpenCnt ++;
    base->device.dd_Library.lib_Flags &= ~LIBF_DELEXP;
 
+/*
     // Log
    	if (base->log == NULL)
     	base->log = Open ("T:log", MODE_READWRITE);
@@ -431,7 +392,7 @@ __saveds BYTE DevOpenNew (__reg ("d0") ULONG unit_num,
 		DebugHex32 (flags);
         };
 
-
+*/
    request->ios2_Req.io_Unit = NULL;
    tag_list = request->ios2_BufferManagement;
    request->ios2_BufferManagement = NULL;
@@ -727,14 +688,13 @@ struct DevUnit *unit;
 
     iorq->ios2_Req.io_Error = 0;
     unit = (APTR)iorq->ios2_Req.io_Unit;
-        
+/*      
 	Debug ("\n- BeginIO ");
-//	DebugHex (my->log, iorq->ios2_Req.io_Unit);
 	Debug ("command ");
 	DebugHex16 (iorq->ios2_Req.io_Command);
 	Debug ("flags ");
 	DebugHex32 (iorq->ios2_Req.io_Flags);
-            
+          
         switch (iorq->ios2_Req.io_Command) {
 
             case CMD_WRITE:
@@ -793,7 +753,7 @@ struct DevUnit *unit;
                 Debug ("\n CMD???");
                 break;
         }    
-            
+*/          
    if (AttemptSemaphore (&unit->access_lock))
       ServiceRequest (iorq, base);
    else {

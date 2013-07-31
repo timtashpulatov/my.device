@@ -401,9 +401,6 @@ struct TypeStats *tracker;
 
 UWORD r;
 BOOL emulate = TRUE;
-                                    
-
-UBYTE runs = 1;
 
 
     base = unit->device;
@@ -412,13 +409,11 @@ UBYTE runs = 1;
 
     rx_status = 0;  // hack
 
-    while (runs --) {
+    if (1) {
 //   ((rx_status=LEWordIn(io_base+EL3REG_RXSTATUS))
  //     &EL3REG_RXSTATUSF_INCOMPLETE)==0
 
         r = ppPeek (PP_RER);
-        //status = peek (0x44000001) << 8;
-        //status += peek (0x44000000);
 
         if (r & 0x0004) {
             // CS8900 present, PP_RER should read xxx4
@@ -443,13 +438,8 @@ UBYTE runs = 1;
                 packet_size += peek (0x44000001) << 8;
 
             }
-  
-  
-        
-  
               
             p = (UBYTE *)buffer;
-         
 
             r = 0; // use r var as an index
          
@@ -640,29 +630,29 @@ UWORD address_right;
    address_left = BELong (*((ULONG *)address));
    address_right = BEWord (*((UWORD *)(address + 4)));
 
-   if(((address_left&0x01000000)!=0)&&
-      !((address_left==0xffffffff)&&(address_right==0xffff)))
-   {
+   if (((address_left & 0x01000000) != 0) &&
+      !((address_left == 0xffffffff) && (address_right == 0xffff))) {
       /* Check if this multicast address is wanted */
 
       range = (APTR)unit->multicast_ranges.mlh_Head;
       tail = (APTR)&unit->multicast_ranges.mlh_Tail;
       accept = FALSE;
 
-      while((range!=tail)&&!accept)
-      {
-         if(((address_left > range->lower_bound_left)||
-            (address_left == range->lower_bound_left)&&
-            (address_right >= range->lower_bound_right))&&
-            ((address_left < range->upper_bound_left)||
-            (address_left == range->upper_bound_left)&&
-            (address_right <= range->upper_bound_right)))
-            accept=TRUE;
-         range=(APTR)range->node.mln_Succ;
+      while ((range != tail) && !accept) {
+         if (((address_left > range->lower_bound_left) ||
+                (address_left == range->lower_bound_left) &&
+                (address_right >= range->lower_bound_right)) &&
+                ((address_left < range->upper_bound_left) ||
+                (address_left == range->upper_bound_left) &&
+                (address_right <= range->upper_bound_right)))
+                
+            accept = TRUE;
+            
+         range = (APTR)range->node.mln_Succ;
       }
 
-      if(!accept)
-         unit->special_stats[S2SS_ETHERNET_BADMULTICAST&0xffff]++;
+      if (!accept)
+         unit->special_stats [S2SS_ETHERNET_BADMULTICAST & 0xffff] ++;
    }
 
    return accept;
