@@ -89,7 +89,7 @@ struct Sana2DeviceQuery sana2_info=
 };
 
 
-VOID ServiceRequest(struct IOSana2Req *request,struct MyBase *base) {
+VOID ServiceRequest(struct IOSana2Req *request, struct MyBase *base) {
 BOOL complete;
 
    switch(request->ios2_Req.io_Command) {
@@ -97,7 +97,7 @@ BOOL complete;
       complete=CmdRead(request,base);
       break;
    case CMD_WRITE:
-      complete=CmdWrite(request,base);
+      complete = CmdWrite (request, base);
       break;
    case CMD_FLUSH:
       complete=CmdFlush((APTR)request,base);
@@ -210,37 +210,34 @@ static BOOL CmdRead(struct IOSana2Req *request,struct MyBase *base)
    return complete;
 }
 
-static BOOL CmdWrite(struct IOSana2Req *request,struct MyBase *base)
-{
-   struct DevUnit *unit;
-   BYTE error=0;
-   ULONG wire_error;
-   BOOL complete=FALSE;
+static BOOL CmdWrite (struct IOSana2Req *request, struct MyBase *base) {
+struct DevUnit *unit;
+BYTE error = 0;
+ULONG wire_error;
+BOOL complete = FALSE;
 
    /* Check request is valid */
 
-   unit=(APTR)request->ios2_Req.io_Unit;
-   if((unit->flags&UNITF_ONLINE)==0)
-   {
-      error=S2ERR_OUTOFSERVICE;
-      wire_error=S2WERR_UNIT_OFFLINE;
+   unit = (APTR)request->ios2_Req.io_Unit;
+   if ((unit->flags & UNITF_ONLINE) == 0) {
+      error = S2ERR_OUTOFSERVICE;
+      wire_error = S2WERR_UNIT_OFFLINE;
    }
-   else if((request->ios2_Req.io_Command==S2_MULTICAST)&&
-      ((request->ios2_DstAddr[0]&0x1)==0))
+   else if ((request->ios2_Req.io_Command == S2_MULTICAST) &&
+      ((request->ios2_DstAddr [0] & 0x1) == 0))
    {
-      error=S2ERR_BAD_ADDRESS;
-      wire_error=S2WERR_BAD_MULTICAST;
+      error = S2ERR_BAD_ADDRESS;
+      wire_error = S2WERR_BAD_MULTICAST;
    }
 
    /* Queue request for sending */
 
-   if(error==0)
-      PutRequest(unit->request_ports[WRITE_QUEUE],(APTR)request,base);
-   else
-   {
-      request->ios2_Req.io_Error=error;
-      request->ios2_WireError=wire_error;
-      complete=TRUE;
+   if (error == 0)
+      PutRequest (unit->request_ports [WRITE_QUEUE], (APTR)request, base);
+   else {
+      request->ios2_Req.io_Error = error;
+      request->ios2_WireError = wire_error;
+      complete = TRUE;
    }
 
    /* Return */
@@ -667,66 +664,28 @@ static BOOL CmdOnEvent(struct IOSana2Req *request,struct MyBase *base)
 
 
 
-/****** 3c589.device/S2_READORPHAN *****************************************
-*
-*   NAME
-*	S2_READORPHAN --
-*
-*   FUNCTION
-*
-*   INPUTS
-*	io_Flags
-*	ios2_Data
-*
-*   RESULTS
-*	io_Flags
-*	io_Error
-*	ios2_WireError
-*	ios2_PacketType - A copy of the packet's type field.
-*	ios2_SrcAddr
-*	ios2_DstAddr
-*	ios2_DataLength
-*	ios2_Data
-*
-*
-*   EXAMPLE
-*
-*   NOTES
-*
-*   BUGS
-*
-*   SEE ALSO
-*
-****************************************************************************
-*
-*/
-
-static BOOL CmdReadOrphan(struct IOSana2Req *request,
-   struct MyBase *base)
-{
-   struct DevUnit *unit;
-   BYTE error=0;
-   ULONG wire_error;
-   BOOL complete=FALSE;
+static BOOL CmdReadOrphan(struct IOSana2Req *request, struct MyBase *base) {
+struct DevUnit *unit;
+BYTE error = 0;
+ULONG wire_error;
+BOOL complete = FALSE;
 
    /* Check request is valid */
 
-   unit=(APTR)request->ios2_Req.io_Unit;
-   if((unit->flags&UNITF_ONLINE)==0)
-   {
-      error=S2ERR_OUTOFSERVICE;
-      wire_error=S2WERR_UNIT_OFFLINE;
+   unit = (APTR)request->ios2_Req.io_Unit;
+   if ((unit->flags & UNITF_ONLINE) == 0) {
+      error = S2ERR_OUTOFSERVICE;
+      wire_error = S2WERR_UNIT_OFFLINE;
    }
 
    /* Queue request */
 
-   if(error==0)
-      PutRequest(unit->request_ports[ADOPT_QUEUE],(APTR)request,base);
-   else
-   {
-      request->ios2_Req.io_Error=error;
-      request->ios2_WireError=wire_error;
-      complete=TRUE;
+   if (error == 0)
+      PutRequest (unit->request_ports [ADOPT_QUEUE], (APTR)request, base);
+   else {
+      request->ios2_Req.io_Error = error;
+      request->ios2_WireError = wire_error;
+      complete = TRUE;
    }
 
    /* Return */

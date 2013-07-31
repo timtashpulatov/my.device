@@ -438,7 +438,7 @@ __saveds BYTE DevOpenNew (__reg ("d0") ULONG unit_num,
 
    /* Check request size and unit number */
 
-   if ((request->ios2_Req.io_Message.mn_Length < sizeof(struct IOSana2Req)) ||
+   if ((request->ios2_Req.io_Message.mn_Length < sizeof (struct IOSana2Req)) ||
        (unit_num >= UNIT_COUNT))
       error = IOERR_OPENFAIL;
 
@@ -459,9 +459,8 @@ __saveds BYTE DevOpenNew (__reg ("d0") ULONG unit_num,
       unit->open_count ++;
    }
 
-   if(error == 0)
-   {
-      if((flags & SANA2OPF_MINE) == 0)
+   if(error == 0) {
+      if ((flags & SANA2OPF_MINE) == 0)
          unit->flags |= UNITF_SHARED;
       else if ((flags & SANA2OPF_PROM) != 0)
          unit->flags |= UNITF_PROM;
@@ -474,25 +473,24 @@ __saveds BYTE DevOpenNew (__reg ("d0") ULONG unit_num,
          error = IOERR_OPENFAIL;
    }
 
-   if(error==0)
-   {
-      NewList(&opener->read_port.mp_MsgList);
-      opener->read_port.mp_Flags=PA_IGNORE;
-      NewList((APTR)&opener->initial_stats);
+   if (error == 0) {
+      NewList (&opener->read_port.mp_MsgList);
+      opener->read_port.mp_Flags = PA_IGNORE;
+      NewList ((APTR)&opener->initial_stats);
 
-      for(i=0;i<2;i++)
-         opener->rx_function=(APTR)GetTagData(rx_tags[i],
-            (ULONG)opener->rx_function,tag_list);
-      for(i=0;i<3;i++)
-         opener->tx_function=(APTR)GetTagData(tx_tags[i],
-            (ULONG)opener->tx_function,tag_list);
+      for (i = 0; i < 2; i ++)
+         opener->rx_function = (APTR)GetTagData (rx_tags [i],
+            (ULONG)opener->rx_function, tag_list);
+      for (i = 0; i < 3; i ++)
+         opener->tx_function = (APTR)GetTagData (tx_tags [i],
+            (ULONG)opener->tx_function, tag_list);
 
-      opener->filter_hook=(APTR)GetTagData(S2_PacketFilter,NULL,tag_list);
+      opener->filter_hook = (APTR)GetTagData (S2_PacketFilter, NULL, tag_list);
       opener->dma_tx_function = NULL; //   (APTR)GetTagData(S2_DMACopyFromBuff32,NULL,tag_list);
 
-      Disable();
-      AddTail((APTR)&unit->openers,(APTR)opener);
-      Enable();
+      Disable ();
+      AddTail ((APTR)&unit->openers, (APTR)opener);
+      Enable ();
    }
 
    /* Back out if anything went wrong */

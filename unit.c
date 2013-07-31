@@ -27,16 +27,16 @@ IMPORT struct ExecBase *AbsExecBase;
 static VOID RxInt (__reg("a1") struct DevUnit *unit);
 static VOID CopyPacket (struct DevUnit *unit, struct IOSana2Req *request, UWORD packet_size, UWORD packet_type, BOOL all_read, struct MyBase *base, BOOL emulate);
 static BOOL AddressFilter (struct DevUnit *unit, UBYTE *address, struct MyBase *base);
-static VOID TxInt(__reg("a1") struct DevUnit *unit);
-static VOID TxError(struct DevUnit *unit, struct MyBase *base);
+static VOID TxInt (__reg("a1") struct DevUnit *unit);
+static VOID TxError (struct DevUnit *unit, struct MyBase *base);
 static VOID ReportEvents (struct DevUnit *unit, ULONG events, struct MyBase *base);
-static VOID UnitTask();
+static VOID UnitTask ();
 VOID DeleteUnit (struct DevUnit *unit, struct MyBase *base);
 struct DevUnit *FindUnit (ULONG unit_num, struct MyBase *base);
 struct DevUnit *CreateUnit (ULONG unit_num, struct MyBase *base);
 struct TypeStats *FindTypeStats (struct DevUnit *unit, struct MinList *list, ULONG packet_type, struct MyBase *base);
 VOID FlushUnit (struct DevUnit *unit, UBYTE last_queue, BYTE error, struct MyBase *base);
-
+void InitialiseCard (struct DevUnit *unit, struct MyBase *base);
 
 
 struct DevUnit *GetUnit (ULONG unit_num, struct MyBase *base) {
@@ -76,15 +76,18 @@ struct DevUnit *FindUnit (ULONG unit_num, struct MyBase *base)
    return unit;
 }
 
-
-struct DevUnit *CreateUnit (ULONG unit_num, struct MyBase *base)
-{
-   BOOL success = TRUE;
-   struct DevUnit *unit;
-   struct Task *task;
-   struct MsgPort *port;
-   UBYTE i;
-   APTR stack;
+/*****************************************************************************
+ *
+ * CreateUnit
+ *
+ *****************************************************************************/
+struct DevUnit *CreateUnit (ULONG unit_num, struct MyBase *base) {
+BOOL success = TRUE;
+struct DevUnit *unit;
+struct Task *task;
+struct MsgPort *port;
+UBYTE i;
+APTR stack;
 //   struct Interrupt *card_removed_int,*card_inserted_int,*card_status_int;
 
    unit = (APTR) AllocMem (sizeof (struct DevUnit), MEMF_CLEAR);
@@ -101,7 +104,7 @@ struct DevUnit *CreateUnit (ULONG unit_num, struct MyBase *base)
 //      unit->rx_filter_cmd=EL3CMD_SETRXFILTER|EL3CMD_SETRXFILTERF_BCAST
 //         |EL3CMD_SETRXFILTERF_UCAST;
 
-      /* Create the message ports for queuing requests */
+      /* Create the message ports for queueing requests */
 
       for (i = 0; i < REQUEST_QUEUE_COUNT; i ++)
       {
@@ -122,7 +125,7 @@ struct DevUnit *CreateUnit (ULONG unit_num, struct MyBase *base)
       unit->rx_buffer = (APTR) AllocVec ((MAX_PACKET_SIZE + 3) &~ 3, MEMF_PUBLIC);
       unit->tx_buffer = (APTR) AllocVec (MAX_PACKET_SIZE, MEMF_PUBLIC);
       if(/*(unit->tuple_buffer==NULL)||*/
-         (unit->rx_buffer==NULL)||(unit->tx_buffer==NULL))
+         (unit->rx_buffer == NULL) || (unit->tx_buffer == NULL))
          success = FALSE;
    }
 
@@ -145,7 +148,10 @@ struct DevUnit *CreateUnit (ULONG unit_num, struct MyBase *base)
       unit->request_ports [WRITE_QUEUE]->mp_Flags = PA_SOFTINT;
    }
 
-   if(success) {
+   if (success) {
+        
+        InitialiseCard (unit, base);
+        
       /* Create a new task */
 
       unit->task = task = (struct Task *) AllocMem (sizeof(struct Task), MEMF_PUBLIC | MEMF_CLEAR);
@@ -552,7 +558,7 @@ UBYTE *p, *end;
    /* Read rest of packet */
 
 //    if (!all_read) {
-    if (1)  // HAHAHACK
+    if (1) {  // HAHAHACK
     UWORD i;
     
       p = (UBYTE *)(buffer + ((PACKET_DATA + 1) & ~1));              // p=(ULONG *)(buffer+((PACKET_DATA+3)&~3));
@@ -652,123 +658,147 @@ UWORD address_right;
 
 
 
+/*****************************************************************************
+ *
+ * TxInt
+ *
+ *****************************************************************************/
+static VOID TxInt (__reg("a1") struct DevUnit *unit) {
+UWORD packet_size, data_size, send_size;
+struct MyBase *base;
+struct IOSana2Req *request;
+BOOL proceed = TRUE;
+struct Opener *opener;
+UBYTE *buffer, *end, wire_error;
+ULONG *(*dma_tx_function)(APTR __reg("a0"));
+BYTE error;
+struct MsgPort *port;
+struct TypeStats *tracker;
 
-static VOID TxInt (__reg("a1") struct DevUnit *unit)
-{
-   UWORD packet_size, data_size, send_size;
-   struct MyBase *base;
-   struct IOSana2Req *request;
-   BOOL proceed=TRUE;
-   struct Opener *opener;
-   ULONG *buffer, *end, wire_error;
-   ULONG *(*dma_tx_function)(APTR __reg("a0"));
-   BYTE error;
-   struct MsgPort *port;
-   struct TypeStats *tracker;
+    base = unit->device;
+    port = unit->request_ports [WRITE_QUEUE];
 
-   base = unit->device;
+//    while (proceed && (!IsMsgPortEmpty (port))) {
+    
+    // run once DEBUG
+    if (!IsMsgPortEmpty (port)) {
+        error = 0;
 
-   port = unit->request_ports [WRITE_QUEUE];
+        request = (APTR)port->mp_MsgList.lh_Head;
+        data_size = packet_size = request->ios2_DataLength;
 
-   while (proceed && (!IsMsgPortEmpty (port)))
-   {
-      error = 0;
+        if ((request->ios2_Req.io_Flags & SANA2IOF_RAW) == 0)
+            packet_size += PACKET_DATA;
 
-      request = (APTR)port->mp_MsgList.lh_Head;
-      data_size = packet_size=request->ios2_DataLength;
-
-      if ((request->ios2_Req.io_Flags & SANA2IOF_RAW) == 0)
-         packet_size += PACKET_DATA;
+        // Bid for buffer space on the chip by writing the transmit command
+        // to the TxCMD port and the length to TxLength port then checking
+        // the BusSt register
+        
+        poke (0x44000004, CS8900_TxCMD & 0xff);
+        poke (0x44000005, (CS8900_TxCMD >> 8) & 0xff);
+        
+        poke (0x44000006, packet_size & 0xff);
+        poke (0x44000007, (packet_size >> 8 )& 0xff);
+        
+        if (ppPeek (PP_BusStat) & PP_BusStat_TxRDY) {
 
 //      if(LEWordIn(io_base+EL3REG_TXSPACE)>PREAMBLE_SIZE+packet_size)
-        if (1)
-      {
-         /* Write packet preamble */
+//        if (1) {
+            /* Write packet preamble */
 
-//         LELongOut(io_base+EL3REG_DATA0,packet_size);
+//          LELongOut (io_base + EL3REG_DATA0, packet_size);
 
-         /* Write packet header */
+            /* Write packet header */
+            
+            send_size = (packet_size + 1) & (~0x1);
 
-         send_size = (packet_size + 3) & (~0x3);
-         if ((request->ios2_Req.io_Flags & SANA2IOF_RAW) == 0)
-         {
-   //         LongOut(io_base+EL3REG_DATA0,*((ULONG *)request->ios2_DstAddr));
-   //         WordOut(io_base+EL3REG_DATA0,
-   //            *((UWORD *)(request->ios2_DstAddr+4)));
-   //         WordOut(io_base+EL3REG_DATA0,*((UWORD *)unit->address));
-    //        LongOut(io_base+EL3REG_DATA0,*((ULONG *)(unit->address+2)));
-     //       BEWordOut(io_base+EL3REG_DATA0,request->ios2_PacketType);
-            send_size -= PACKET_DATA;
-         }
+            if ((request->ios2_Req.io_Flags & SANA2IOF_RAW) == 0) {
+                LongToTxDataPort0 (*((ULONG *)request->ios2_DstAddr));
+                WordToTxDataPort0 (*((UWORD *)(request->ios2_DstAddr + 4)));
 
-         /* Get packet data */
+                WordToTxDataPort0 (*((UWORD *)unit->address));
+                LongToTxDataPort0 (*((ULONG *)(unit->address + 2)));
+                WordToTxDataPort0 (request->ios2_PacketType);
 
-         opener = (APTR)request->ios2_BufferManagement;
-         dma_tx_function = opener->dma_tx_function;
-         if (dma_tx_function != NULL)
-            buffer = dma_tx_function (request->ios2_Data);
-         else
-            buffer = NULL;
-
-         if (buffer == NULL) {
-            buffer = (ULONG *)unit->tx_buffer;
-            if (!opener->tx_function (buffer, request->ios2_Data, data_size)) {
-               error = S2ERR_NO_RESOURCES;
-               wire_error = S2WERR_BUFF_ERROR;
-               ReportEvents (unit,
-                  S2EVENT_ERROR | S2EVENT_SOFTWARE | S2EVENT_BUFF | S2EVENT_TX,
-                  base);
+   //           LongOut(io_base+EL3REG_DATA0,*((ULONG *)request->ios2_DstAddr));
+   //           WordOut(io_base+EL3REG_DATA0,*((UWORD *)(request->ios2_DstAddr+4)));
+   //           WordOut(io_base+EL3REG_DATA0,*((UWORD *)unit->address));
+   //           LongOut(io_base+EL3REG_DATA0,*((ULONG *)(unit->address+2)));
+   //           BEWordOut(io_base+EL3REG_DATA0,request->ios2_PacketType);
+                     
+                send_size -= PACKET_DATA;
             }
-         }
 
-         /* Write packet data */
+            /* Get packet data */
 
-         if (error == 0) {
-            end = buffer + (send_size >> 2);
-            while (buffer < end)
-               // LongOut(io_base+EL3REG_DATA0,*buffer++);
-               buffer ++;
+            opener = (APTR)request->ios2_BufferManagement;
+            dma_tx_function = opener->dma_tx_function;
+            if (dma_tx_function != NULL)
+                buffer = (UBYTE *)dma_tx_function (request->ios2_Data);
+            else
+                buffer = NULL;
 
-            if ((send_size & 0x3) != 0)
-               //WordOut(io_base+EL3REG_DATA0,*((UWORD *)buffer));
-               ;
-         }
+            if (buffer == NULL) {
+                buffer = (UBYTE *)unit->tx_buffer;
+                if (!opener->tx_function (buffer, request->ios2_Data, data_size)) {
+                    error = S2ERR_NO_RESOURCES;
+                    wire_error = S2WERR_BUFF_ERROR;
+                    ReportEvents (unit,
+                        S2EVENT_ERROR | S2EVENT_SOFTWARE | S2EVENT_BUFF | S2EVENT_TX,
+                        base);
+                }
+            }
 
-         /* Reply packet */
+            /* Write packet data */
 
-         request->ios2_Req.io_Error = error;
-         request->ios2_WireError = wire_error;
-         Remove ((APTR)request);
-         ReplyMsg ((APTR)request);
+            if (error == 0) {
+                end = buffer + (send_size >> 1);
+                while (buffer < end) {
+                    // LongOut(io_base+EL3REG_DATA0,*buffer++);
+                    WordToTxDataPort0 (*((UWORD *)buffer));
+                    buffer += 2;
+                }
 
-         /* Update statistics */
+                if ((send_size & 0x1) != 0)
+                    WordToTxDataPort0 (*((UWORD *)buffer));
 
-         if (error == 0) {
-            unit->stats.PacketsSent ++;
+            }
+
+            /* Reply packet */
+
+            request->ios2_Req.io_Error = error;
+            request->ios2_WireError = wire_error;
+            Remove ((APTR)request);
+            ReplyMsg ((APTR)request);
+
+            /* Update statistics */
+
+            if (error == 0) {
+                unit->stats.PacketsSent ++;
 
             tracker = FindTypeStats (unit, &unit->type_trackers,
                         request->ios2_PacketType,
                         base);
                         
             if (tracker != NULL) {
-               tracker->stats.PacketsSent ++;
-               tracker->stats.BytesSent += packet_size;
+                tracker->stats.PacketsSent ++;
+                tracker->stats.BytesSent += packet_size;
             }
-         }
-      }
-      else
-         proceed = FALSE;
-   }
+        }
+    }
+    else
+        proceed = FALSE;
+    }
 
-   if (proceed)
-      unit->request_ports [WRITE_QUEUE]->mp_Flags = PA_SOFTINT;
-   else {
+    if (proceed)
+        unit->request_ports [WRITE_QUEUE]->mp_Flags = PA_SOFTINT;
+    else {
    //   LEWordOut(io_base+EL3REG_COMMAND,EL3CMD_SETTXTHRESH
 //         |(PREAMBLE_SIZE+packet_size));
-      unit->request_ports [WRITE_QUEUE]->mp_Flags = PA_IGNORE;
-   }
+        unit->request_ports [WRITE_QUEUE]->mp_Flags = PA_IGNORE;
+    }
 
-   return;
+    return;
 }
 
 
@@ -833,6 +863,24 @@ static VOID ReportEvents (struct DevUnit *unit, ULONG events, struct MyBase *bas
    return;
 }
 
+UBYTE fakeMAC [6] = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66};
+
+/*****************************************************************************
+ *
+ * InitialiseCard
+ *
+ *****************************************************************************/
+void InitialiseCard (struct DevUnit *unit, struct MyBase *base) {
+UBYTE *p, i;
+    
+    // Get default MAC address
+    p = unit->default_address;
+
+    for (i = 0; i < ADDRESS_SIZE; i ++) {
+        *p++ = fakeMAC [i];
+    }    
+}
+
 
 /*****************************************************************************
  *
@@ -883,8 +931,8 @@ ULONG signals,
     OpenDevice (TIMERNAME, UNIT_MICROHZ, TimerIO, 0);
     
     TimerIO->tr_node.io_Command = TR_ADDREQUEST;
-    TimerIO->tr_time.tv_secs = 3;
-    TimerIO->tr_time.tv_micro = 0;
+    TimerIO->tr_time.tv_secs = 0;
+    TimerIO->tr_time.tv_micro = 100000;
     
     SendIO ((struct IORequest *)TimerIO);
 
@@ -914,8 +962,8 @@ ULONG signals,
             UWORD r;
             
             TimerIO->tr_node.io_Command = TR_ADDREQUEST;
-            TimerIO->tr_time.tv_secs = 3;
-            TimerIO->tr_time.tv_micro = 0;
+            TimerIO->tr_time.tv_secs = 0;
+            TimerIO->tr_time.tv_micro = 100000;
 
             SendIO ((struct IORequest *)TimerIO);
 

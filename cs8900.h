@@ -163,6 +163,8 @@ UBYTE peek (ULONG addr);
 void poke (ULONG addr, UBYTE value);
 UWORD ppPeek (UWORD pport);
 void ppPoke (UWORD pport, UWORD value);
+void WordToTxDataPort0 (UWORD value);
+void LongToTxDataPort0 (ULONG value);
 void CS8900_Configure (void);
 
 
