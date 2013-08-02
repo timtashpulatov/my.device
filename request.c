@@ -89,12 +89,17 @@ struct Sana2DeviceQuery sana2_info=
 };
 
 
-VOID ServiceRequest(struct IOSana2Req *request, struct MyBase *base) {
+/*****************************************************************************
+ *
+ * ServiceRequest
+ *
+ *****************************************************************************/
+VOID ServiceRequest (struct IOSana2Req *request, struct MyBase *base) {
 BOOL complete;
 
    switch(request->ios2_Req.io_Command) {
    case CMD_READ:
-      complete=CmdRead(request,base);
+      complete = CmdRead (request, base);
       break;
    case CMD_WRITE:
       complete = CmdWrite (request, base);
@@ -143,9 +148,11 @@ BOOL complete;
    case S2_ONEVENT:
       complete=CmdOnEvent((APTR)request,base);
       break;
+      
    case S2_READORPHAN:
-      complete=CmdReadOrphan((APTR)request,base);
+      complete = CmdReadOrphan((APTR)request, base);
       break;
+      
    case S2_ONLINE:
       complete = CmdOnline ((APTR)request, base);
       break;
@@ -663,8 +670,12 @@ static BOOL CmdOnEvent(struct IOSana2Req *request,struct MyBase *base)
 }
 
 
-
-static BOOL CmdReadOrphan(struct IOSana2Req *request, struct MyBase *base) {
+/*****************************************************************************
+ *
+ * CmdReadOrphan
+ *
+ *****************************************************************************/
+static BOOL CmdReadOrphan (struct IOSana2Req *request, struct MyBase *base) {
 struct DevUnit *unit;
 BYTE error = 0;
 ULONG wire_error;

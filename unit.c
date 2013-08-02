@@ -400,7 +400,7 @@ struct Opener *opener, *opener_tail;
 struct TypeStats *tracker;
 
 UWORD r;
-BOOL emulate = TRUE;
+BOOL emulate = FALSE;
 
 
     base = unit->device;
@@ -413,14 +413,16 @@ BOOL emulate = TRUE;
 //   ((rx_status=LEWordIn(io_base+EL3REG_RXSTATUS))
  //     &EL3REG_RXSTATUSF_INCOMPLETE)==0
 
-        r = ppPeek (PP_RER);
+//        r = ppPeek (PP_RER);
 
-        if (r & 0x0004) {
-            // CS8900 present, PP_RER should read xxx4
-            emulate = FALSE;
-        }
+//        if (r & 0x0004) {
+//            // CS8900 present, PP_RER should read xxx4
+//            emulate = FALSE;
+//        }
 
-        if ((r & PP_RER_RxOK) || emulate) {
+//        if ((r & PP_RER_RxOK) || emulate) {
+    
+        if (1) {
 
             /* Read packet header */
 
@@ -428,15 +430,13 @@ BOOL emulate = TRUE;
             if (emulate)
                 packet_size = 64;  // rx_status /*& EL3REG_RXSTATUS_SIZEMASK */;
             else {
-                // status
+                // Read status and packet size
+                
                 status = peek (0x44000001);
                 status += peek (0x44000000) << 8;
-  
-                // packet size  
-            //    packet_size = (peek (0x44000000) << 8) + peek (0x44000001);
+              
                 packet_size = peek (0x44000000);
                 packet_size += peek (0x44000001) << 8;
-
             }
               
             p = (UBYTE *)buffer;
@@ -901,10 +901,10 @@ UBYTE i;
 
    /* Decide on promiscuous mode */
 
-//    if ((unit->flags & UNITF_PROM) != 0)
-        ppPoke (PP_RxCTL, PP_RxCTL_Promiscuous | PP_RxCTL_RxOK | PP_RxCTL_RUNT);
-//    else
-//        ppPoke (PP_RxCTL, PP_RxCTL_IA | PP_RxCTL_Broadcast | PP_RxCTL_RxOK);    
+    if ((unit->flags & UNITF_PROM) != 0)
+        ppPoke (PP_RxCTL, PP_RxCTL_Promiscuous | PP_RxCTL_RxOK /*| PP_RxCTL_RUNT */);
+    else
+        ppPoke (PP_RxCTL, PP_RxCTL_IA | PP_RxCTL_Broadcast | PP_RxCTL_RxOK);
 
 
    /* Go online */
@@ -916,7 +916,7 @@ UBYTE i;
    return;
 }
 
-
+#define INTERVAL_MICROSECONDS 20000
 
 /*****************************************************************************
  *
@@ -936,7 +936,6 @@ ULONG signals,
     wait_signals, 
     general_port_signal, 
     timer_port_signal;
-//const char TimerPortName [] = "my.device timer port";
 
    /* Get parameters */
 
@@ -955,7 +954,6 @@ ULONG signals,
 
 
     // Timer port
-//    timer_port = unit->request_ports [TIMER_QUEUE];
     timer_port = (APTR) AllocMem (sizeof (struct MsgPort), MEMF_PUBLIC | MEMF_CLEAR);
     timer_port->mp_SigTask = task;
     timer_port->mp_SigBit = AllocSignal (-1);
@@ -968,7 +966,7 @@ ULONG signals,
     
     TimerIO->tr_node.io_Command = TR_ADDREQUEST;
     TimerIO->tr_time.tv_secs = 0;
-    TimerIO->tr_time.tv_micro = 20000;
+    TimerIO->tr_time.tv_micro = INTERVAL_MICROSECONDS;
     
     SendIO ((struct IORequest *)TimerIO);
     
@@ -994,24 +992,18 @@ ULONG signals,
         if ((signals & timer_port_signal) != 0) {
             UWORD r;
             
+            // Setup next timer signal
+            
             TimerIO->tr_node.io_Command = TR_ADDREQUEST;
             TimerIO->tr_time.tv_secs = 0;
-            TimerIO->tr_time.tv_micro = 20000;
+            TimerIO->tr_time.tv_micro = INTERVAL_MICROSECONDS;
 
             SendIO ((struct IORequest *)TimerIO);
 
-
-          //  r = ppPeek (PP_RER);
-
-          //  if (r & 0x0004) {
-          //      // CS8900 present, PP_RER should read xxx4
-          //      if (r != 0x0004)
-          //          Cause (&unit->rx_int);
-          //  }
-          //  else {
-           //     // under emulator always cause RxInt
+            // Cause soft interrupt on RX
+            
+            if (ppPeek (PP_RER) & PP_RER_RxOK)
                 Cause (&unit->rx_int);
-           // }
         }
 
       if ((signals & general_port_signal) != 0) {
