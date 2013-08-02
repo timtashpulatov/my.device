@@ -409,7 +409,9 @@ BOOL emulate = FALSE;
 
     rx_status = 0;  // hack
 
-    if (1) {
+//    if (1) {
+    do {
+    
 //   ((rx_status=LEWordIn(io_base+EL3REG_RXSTATUS))
  //     &EL3REG_RXSTATUSF_INCOMPLETE)==0
 
@@ -518,7 +520,7 @@ BOOL emulate = FALSE;
    //   while((LEWordIn(io_base+EL3REG_STATUS)&
     //     EL3REG_STATUSF_CMDINPROGRESS)!=0);
 //      Enable();
-    }
+    } while (ppPeek (PP_RER != 0x0004);
 
    /* Return */
 
@@ -1000,10 +1002,10 @@ ULONG signals,
 
             SendIO ((struct IORequest *)TimerIO);
 
-            // Cause soft interrupt on RX
             
+            // Check RxEvent (will be cleared!)
             if (ppPeek (PP_RER) & PP_RER_RxOK)
-                Cause (&unit->rx_int);
+                Cause (&unit->rx_int);      // Cause soft interrupt on RX
         }
 
       if ((signals & general_port_signal) != 0) {
