@@ -174,10 +174,10 @@ BOOL complete;
       complete=CmdInvalid((APTR)request,base);
    }
 
-   if(complete&&((request->ios2_Req.io_Flags&IOF_QUICK)==0))
-      ReplyMsg((APTR)request);
+   if (complete && ((request->ios2_Req.io_Flags & IOF_QUICK) == 0))
+      ReplyMsg ((APTR)request);
 
-   ReleaseSemaphore(&((struct DevUnit *)request->ios2_Req.io_Unit)->
+   ReleaseSemaphore (&((struct DevUnit *)request->ios2_Req.io_Unit)->
       access_lock);
    return;
 }
