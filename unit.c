@@ -779,7 +779,7 @@ struct TypeStats *tracker;
             /* Write packet data */
 
             if (error == 0) {
-                end = buffer + (send_size >> 1);
+                end = buffer + send_size;
                 while (buffer < end) {
                     // LongOut(io_base+EL3REG_DATA0,*buffer++);
                     //WordToTxDataPort0 (*((UWORD *)buffer));
@@ -790,8 +790,12 @@ struct TypeStats *tracker;
 
                 }
 
-                if ((send_size & 0x1) != 0)
-                    WordToTxDataPort0 (*((UWORD *)buffer));
+                if ((send_size & 0x1) != 0) {
+                 //   WordToTxDataPort0 (*((UWORD *)buffer));
+                    poke (0x44000000, *buffer++);
+                    poke (0x44000001, *buffer++);
+
+                }
 
             }
 

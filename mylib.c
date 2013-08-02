@@ -82,7 +82,7 @@ ULONG ExtFuncLib (void);
 __saveds void BeginIO (	__reg ("a6") MyBase_t *my, 
                         __reg ("a1") struct IOSana2Req *iorq);
 
-void AbortIO (struct IORequest *);
+__saveds void AbortIO (struct IOSana2Req *iorq, __reg ("a6") MyBase_t *base);
 
 
 /* ----------------------------------------------------------------------------------------
@@ -762,12 +762,29 @@ struct DevUnit *unit;
 
    return;
     	
-    	
-
+    
 }
 
-void AbortIO (struct IORequest *) {
+
+__saveds void AbortIO (struct IOSana2Req *iorq, __reg ("a6") MyBase_t *base) {
+struct DevUnit *unit;
+
+   unit = (APTR)iorq->ios2_Req.io_Unit;
+
+   Disable();
+   if ((iorq->ios2_Req.io_Message.mn_Node.ln_Type == NT_MESSAGE) &&
+        ((iorq->ios2_Req.io_Flags & IOF_QUICK) == 0)) {
+      Remove ((APTR)iorq);
+      iorq->ios2_Req.io_Error = IOERR_ABORTED;
+      iorq->ios2_WireError = S2WERR_GENERIC_ERROR;
+      ReplyMsg ((APTR)iorq);
+   }
+   Enable();
+
+   return;
 }
+
+
 
 
 
