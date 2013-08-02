@@ -409,8 +409,8 @@ BOOL emulate = FALSE;
 
     rx_status = 0;  // hack
 
-//    if (1) {
-    do {
+    if (1) {
+//    do {
     
 //   ((rx_status=LEWordIn(io_base+EL3REG_RXSTATUS))
  //     &EL3REG_RXSTATUSF_INCOMPLETE)==0
@@ -520,7 +520,7 @@ BOOL emulate = FALSE;
    //   while((LEWordIn(io_base+EL3REG_STATUS)&
     //     EL3REG_STATUSF_CMDINPROGRESS)!=0);
 //      Enable();
-    } while (ppPeek (PP_RER != 0x0004);
+    } //while (ppPeek (PP_RER != 0x0004));
 
    /* Return */
 
@@ -686,6 +686,7 @@ struct TypeStats *tracker;
     
     // run once DEBUG
     //if (!IsMsgPortEmpty (port)) {
+    
         error = 0;
 
         request = (APTR)port->mp_MsgList.lh_Head;
@@ -694,21 +695,22 @@ struct TypeStats *tracker;
         if ((request->ios2_Req.io_Flags & SANA2IOF_RAW) == 0)
             packet_size += PACKET_DATA;
 
-        // Bid for buffer space on the chip by writing the transmit command
-        // to the TxCMD port and the length to TxLength port then checking
-        // the BusSt register
+            // Bid for buffer space on the chip by writing the transmit command
+            // to the TxCMD port and the length to TxLength port then checking
+            // the BusSt register
         
-        poke (0x44000004, CS8900_TxCMD & 0xff);
-        poke (0x44000005, (CS8900_TxCMD >> 8) & 0xff);
+            ppPoke (PP_TxCommand, PP_TxCmd_TxStart_Full);
+            ppPoke (PP_TxLength, packet_size);
         
-        poke (0x44000006, packet_size & 0xff);
-        poke (0x44000007, (packet_size >> 8 )& 0xff);
-        
-        if (ppPeek (PP_BusStat) & PP_BusStat_TxRDY) {
+           // if (ppPeek (PP_BusStat) & PP_BusStat_TxRDY) {
+             while ((ppPeek (PP_BusStat) & PP_BusStat_TxRDY) == 0);
+             
+            if (1) {
 
 //      if(LEWordIn(io_base+EL3REG_TXSPACE)>PREAMBLE_SIZE+packet_size)
 //        if (1) {
-            /* Write packet preamble */
+            
+                /* Write packet preamble */
 
 //          LELongOut (io_base + EL3REG_DATA0, packet_size);
 
@@ -717,6 +719,7 @@ struct TypeStats *tracker;
             send_size = (packet_size + 1) & (~0x1);
 
             if ((request->ios2_Req.io_Flags & SANA2IOF_RAW) == 0) {
+                /*
                 LongToTxDataPort0 (*((ULONG *)request->ios2_DstAddr));
                 WordToTxDataPort0 (*((UWORD *)(request->ios2_DstAddr + 4)));
 
@@ -724,6 +727,25 @@ struct TypeStats *tracker;
                 LongToTxDataPort0 (*((ULONG *)(unit->address + 2)));
         
                 WordToTxDataPort0 (request->ios2_PacketType);
+                */
+                
+                poke (0x44000000, request->ios2_DstAddr [0]);
+                poke (0x44000001, request->ios2_DstAddr [1]);
+                poke (0x44000000, request->ios2_DstAddr [2]);
+                poke (0x44000001, request->ios2_DstAddr [3]);
+                poke (0x44000000, request->ios2_DstAddr [4]);
+                poke (0x44000001, request->ios2_DstAddr [5]);
+                
+                poke (0x44000000, unit->address [0]);
+                poke (0x44000001, unit->address [1]);
+                poke (0x44000000, unit->address [2]);
+                poke (0x44000001, unit->address [3]);
+                poke (0x44000000, unit->address [4]);
+                poke (0x44000001, unit->address [5]);
+                
+                poke (0x44000000, (request->ios2_PacketType >> 8) & 0xff);      // Big-endian
+                poke (0x44000001, request->ios2_PacketType & 0xff);
+                
 
    //           LongOut(io_base+EL3REG_DATA0,*((ULONG *)request->ios2_DstAddr));
    //           WordOut(io_base+EL3REG_DATA0,*((UWORD *)(request->ios2_DstAddr+4)));
@@ -760,8 +782,12 @@ struct TypeStats *tracker;
                 end = buffer + (send_size >> 1);
                 while (buffer < end) {
                     // LongOut(io_base+EL3REG_DATA0,*buffer++);
-                    WordToTxDataPort0 (*((UWORD *)buffer));
-                    buffer += 2;
+                    //WordToTxDataPort0 (*((UWORD *)buffer));
+                    
+                    poke (0x44000000, *buffer++);
+                    poke (0x44000001, *buffer++);
+                    
+
                 }
 
                 if ((send_size & 0x1) != 0)
