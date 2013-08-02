@@ -948,7 +948,7 @@ UBYTE i;
    return;
 }
 
-#define INTERVAL_MICROSECONDS 20000
+#define INTERVAL_MICROSECONDS 1000
 
 /*****************************************************************************
  *

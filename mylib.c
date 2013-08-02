@@ -77,6 +77,9 @@ __saveds APTR CloseLib (__reg ("a6") struct MyBase *my);
 //__saveds APTR ExpungeLib (APTR);
 __saveds APTR ExpungeLib (__reg ("a6") struct MyBase *my);
 __saveds APTR DevExpunge (__reg ("a6") struct MyBase *base);
+__saveds APTR DevClose (__reg ("a1") struct IOSana2Req *request, __reg ("a6") struct MyBase *base);
+__saveds void DeleteDevice (struct MyBase *base);
+
 ULONG ExtFuncLib (void);
 
 __saveds void BeginIO (	__reg ("a6") MyBase_t *my, 
@@ -760,9 +763,7 @@ struct DevUnit *unit;
       PutRequest (unit->request_ports [GENERAL_QUEUE], (APTR)iorq, base);
    }
 
-   return;
-    	
-    
+   return;    
 }
 
 
@@ -788,7 +789,7 @@ struct DevUnit *unit;
 
 
 
-VOID DeleteDevice (struct MyBase *base) {
+__saveds void DeleteDevice (struct MyBase *base) {
 UWORD neg_size, pos_size;
 
    /* Close devices */
