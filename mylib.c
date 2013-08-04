@@ -169,8 +169,7 @@ static const ULONG tx_tags[]=
 
 
 APTR FuncTab [] = {
-//	(APTR) DevOpen,	// 	(APTR) OpenLib,
-    (APTR) DevOpenNew, 
+	(APTR) DevOpenNew, 
  	(APTR) CloseLib,
  	(APTR) ExpungeLib,
 	(APTR) ExtFuncLib,
@@ -297,38 +296,6 @@ register UBYTE i;
 */
 
 
-
-
-
-/* ----------------------------------------------------------------------------------------
-   ! OpenLib:
-   !
-   ! This one is enclosed within a Forbid/Permit pair by Exec V37-40. Since a Wait() call
-   ! would break this Forbid/Permit(), you are not allowed to start any operations that
-   ! may cause a Wait() during their processing. It's possible, that future OS versions
-   ! won't turn the multi-tasking off, but instead use semaphore protection for this
-   ! function.
-   !
-   ! Currently you only can bypass this restriction by supplying your own semaphore
-   ! mechanism.
-   ---------------------------------------------------------------------------------------- */
-
-__saveds struct MyBase * OpenLib (__reg ("a6") struct MyBase *my) {
-
-	if (my->log == NULL)
-		my->log = Open ("T:log", MODE_READWRITE);
-
-	if (my->log) {
-        Seek (my->log, 0, OFFSET_END);
-       	Debug ("\n- OpenLib");		
-    }
-	
-	my->device.dd_Library.lib_OpenCnt ++;
-
-	my->device.dd_Library.lib_Flags &= ~LIBF_DELEXP;
-	
-	return (my);
-}
 
 
 /*****************************************************************************
@@ -477,10 +444,10 @@ struct Opener *opener;
    /* Free buffer-management resources */
 
    opener = (APTR)request->ios2_BufferManagement;
-   if(opener != NULL) {
-      Disable();
+   if (opener != NULL) {
+      Disable ();
       Remove ((APTR)opener);
-      Enable();
+      Enable ();
       FreeVec (opener);
    }
 
