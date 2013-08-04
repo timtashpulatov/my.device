@@ -27,10 +27,10 @@
 
 #define UNIT_COUNT 1
 
-char device_name [] = "my.device";	//"my.library";		// MYLIBNAME ".library";
-char MyLibID   [] = "37.01 (25.07.2013)";	//MYLIBNAME MYLIBVER;
+char device_name [] = "my.device";
+char MyLibID   [] = "37.01 (25.07.2013)";
 
-char VERSTRING [] = "\0$VER: my 37.01 (25.07.2013)"; 	// EXLIBNAME EXLIBVER;
+char VERSTRING [] = "\0$VER: my 37.01 (25.07.2013)";
 
 
 struct ExecBase 	*SysBase  		= NULL;
@@ -44,37 +44,18 @@ LONG LibStart (void) {
 
 
 
-/*
-
-typedef struct {
- 	struct Library            my_LibNode;
- 	APTR                      my_SegList;
- 	struct ExecBase           *my_SysBase;
-	struct DOSBase            *my_DOSBase;
-// struct IntuitionBase  *exb_IntuitionBase;
-// struct GfxBase        *exb_GfxBase;
-    struct UtilityBase          *my_UtilityBase;
-	BPTR                      log;
-	struct MinList             units;
-} MyBase_t;
-*/
-
 __saveds struct MyBase * InitLib (__reg ("a6") struct ExecBase  *sysbase,
                                   __reg ("a0") APTR 		seglist,
                                   __reg ("d0") struct MyBase 	*my);
 
 
-
-//__saveds struct MyBase * OpenLib (APTR);
 __saveds BYTE DevOpen ( __reg ("a6") MyBase_t *my,
                         __reg ("a1") struct IOSana2Req *iorq,
                         __reg ("d1") ULONG flags,
                         __reg ("d0") ULONG unit_num
 	);
 __saveds BYTE DevOpenNew ( __reg ("a6") MyBase_t *my, __reg ("a1") struct IOSana2Req *iorq, __reg ("d1") ULONG flags, __reg ("d0") ULONG unit_num);
-//__saveds APTR CloseLib (APTR);
 __saveds APTR CloseLib (__reg ("a6") struct MyBase *my);
-//__saveds APTR ExpungeLib (APTR);
 __saveds APTR ExpungeLib (__reg ("a6") struct MyBase *my);
 __saveds APTR DevExpunge (__reg ("a6") struct MyBase *base);
 __saveds APTR DevClose (__reg ("a1") struct IOSana2Req *request, __reg ("a6") struct MyBase *base);
@@ -114,7 +95,7 @@ extern APTR EndResident; /* below */
  	&EndResident,
  	RTF_AUTOINIT,
  	VERSION,
- 	NT_DEVICE,	// NT_LIBRARY,
+ 	NT_DEVICE,	
  	0,
  	&device_name [0],
  	&MyLibID [0],
@@ -134,8 +115,6 @@ struct MyDataInit {                     /* do not change */
  UBYTE lib_IdString_Init; UBYTE lib_IdString_Offset; ULONG lib_IdString_Content;
  ULONG ENDMARK;
 } DataTab = {
-
-
 	0xe000, 8, NT_DEVICE << 0x08,	// NT_LIBRARY << 0x08,
         0x80,	10, (ULONG) &device_name [0],
         0xe000,	14, (LIBF_SUMUSED|LIBF_CHANGED) << 8,
@@ -143,23 +122,11 @@ struct MyDataInit {                     /* do not change */
         0xd000,	22, REVISION,
         0x80,	24, (ULONG) &MyLibID [0],
         (ULONG) 0
-
-
-//{
-// INITBYTE(OFFSET(Node,         ln_Type),      NT_LIBRARY),
-// 0x80, (UBYTE) OFFSET(Node,    ln_Name),      (ULONG) &MyLibName[0],
-// INITBYTE(OFFSET(Library,      lib_Flags),    LIBF_SUMUSED|LIBF_CHANGED),
-// INITWORD(OFFSET(Library,      lib_Version),  VERSION),
-// INITWORD(OFFSET(Library,      lib_Revision), REVISION),
-// 0x80, (UBYTE) OFFSET(Library, lib_IdString), (ULONG) &MyLibID[0],
-// (ULONG) 0
 };
 
 
 
 MyBase_t *MyBase;
-
-
 
 
 /* ----------------------------------------------------------------------------------------
