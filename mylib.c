@@ -347,37 +347,6 @@ __saveds BYTE DevOpenNew (__reg ("d0") ULONG unit_num,
 
 
 
-/* ----------------------------------------------------------------------------------------
-   ! CloseLib:
-   !
-   ! This one is enclosed within a Forbid/Permit pair by Exec V37-40. Since a Wait() call
-   ! would break this Forbid/Permit(), you are not allowed to start any operations that
-   ! may cause a Wait() during their processing. It's possible, that future OS versions
-   ! won't turn the multi-tasking off, but instead use semaphore protection for this
-   ! function.
-   !
-   ! Currently you only can bypass this restriction by supplying your own semaphore
-   ! mechanism.
-   ---------------------------------------------------------------------------------------- */
-
-__saveds APTR CloseLib (__reg ("a6") struct MyBase *my) {
-	my->device.dd_Library.lib_OpenCnt --;
-
-	if (my->log) {
-		Debug ("\n- CloseLib");
-		Close (my->log);
-		my->log = NULL;
-	}
-
-	if (!my->device.dd_Library.lib_OpenCnt) {
-		if (my->device.dd_Library.lib_Flags & LIBF_DELEXP) {
-	     		return (ExpungeLib (my));
-    		}
-  	}
-
- return (NULL);
-}
-
 
 /*****************************************************************************
  *
