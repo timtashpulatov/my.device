@@ -170,7 +170,7 @@ static const ULONG tx_tags[]=
 
 APTR FuncTab [] = {
 	(APTR) DevOpenNew, 
- 	(APTR) CloseLib,
+ 	(APTR) DevClose, 	//(APTR) CloseLib,
  	(APTR) ExpungeLib,
 	(APTR) ExtFuncLib,
 
@@ -436,6 +436,11 @@ __saveds APTR CloseLib (__reg ("a6") struct MyBase *my) {
 }
 
 
+/*****************************************************************************
+ *
+ * DevClose
+ *
+ *****************************************************************************/
 __saveds APTR DevClose (__reg ("a1") struct IOSana2Req *request, __reg ("a6") struct MyBase *base) {
 struct DevUnit *unit;
 APTR seg_list;
