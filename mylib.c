@@ -48,6 +48,9 @@ __saveds struct MyBase * InitLib (__reg ("a6") struct ExecBase  *sysbase,
                                   __reg ("a0") APTR 		seglist,
                                   __reg ("d0") struct MyBase 	*my);
 
+__saveds struct MyBase *DevInit (__reg("d0") struct MyBase *dev_base,
+   				__reg("a0") APTR seg_list,
+   				__reg("a6") struct MyBase *base);
 
 __saveds BYTE DevOpen ( __reg ("a6") MyBase_t *my,
                         __reg ("a1") struct IOSana2Req *iorq,
@@ -147,7 +150,7 @@ struct InitTable {                       /* do not change */
  	(ULONG)               sizeof(MyBase_t),
  	(APTR              *) &FuncTab [0],
  	(struct MyDataInit *) &DataTab,
- 	(APTR)                InitLib
+ 	(APTR)		DevInit 	//(APTR)                InitLib
 };
 
 static const ULONG rx_tags[]=
