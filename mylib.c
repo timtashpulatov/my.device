@@ -240,13 +240,13 @@ __saveds struct MyBase * InitLib (__reg ("a6") struct ExecBase  *sysbase,
 
 
 
-
+/*
 static BYTE DevOpen(ULONG unit_num REG("d0"),
    struct IOSana2Req *request REG("a1"),ULONG flags REG("d1"),
    struct DevBase *base REG(BASE_REG))
 */
 
-/*
+
 
 void Debug (char *s) {
 	FPuts (MyBase->log, s);
