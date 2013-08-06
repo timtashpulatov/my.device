@@ -150,7 +150,7 @@ struct InitTable {                       /* do not change */
  	(ULONG)               sizeof(MyBase_t),
  	(APTR              *) &FuncTab [0],
  	(struct MyDataInit *) &DataTab,
- 	(APTR)		DevInit 	//(APTR)                InitLib
+ 	(APTR)                InitLib		// see DevInit
 };
 
 static const ULONG rx_tags[]=
