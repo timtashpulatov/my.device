@@ -284,7 +284,7 @@ __saveds struct MyBase *DevInit (__reg("d0") struct MyBase *dev_base,
    				__reg("a6") struct MyBase *base) {
 BOOL success = TRUE;
 
-	dev_base->sys_base = (APTR)base;
+	dev_base->my_SysBase = (APTR)base;
 	base = dev_base;
 	base->my_SegList = seg_list;
 
