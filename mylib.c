@@ -247,41 +247,39 @@ register UBYTE i;
  *
  *****************************************************************************/
 __saveds struct MyBase * InitLib (__reg ("a6") struct ExecBase  *sysbase,
-                                  __reg ("a0") APTR seglist,
-                                  __reg ("d0") struct MyBase 	*my) 
-{
+                                  __reg ("a0") APTR 			seglist,
+                                  __reg ("d0") struct MyBase 	*my) {
 
 
- MyBase = my;
+ 	MyBase = my;
 
- MyBase->my_SysBase = sysbase;
- MyBase->my_SegList = seglist;
+ 	MyBase->my_SysBase = sysbase;
+ 	MyBase->my_SegList = seglist;
 
- MyBase->log = NULL;
+ 	MyBase->log = NULL;
  
- NewList ((APTR)(&MyBase->units));
+ 	NewList ((APTR)(&MyBase->units));
 
- if (L_OpenLibs (MyBase)) 
-	return (MyBase);
+ 	if (L_OpenLibs (MyBase)) 
+		return (MyBase);
 
 
+ 	L_CloseLibs ();
 
- L_CloseLibs ();
+  	{
+   	ULONG negsize, possize, fullsize;
+   	UBYTE *negptr = (UBYTE *) MyBase;
 
-  {
-   ULONG negsize, possize, fullsize;
-   UBYTE *negptr = (UBYTE *) MyBase;
+   	negsize  = MyBase->device.dd_Library.lib_NegSize;
+   	possize  = MyBase->device.dd_Library.lib_PosSize;
+   	fullsize = negsize + possize;
+   	negptr  -= negsize;
 
-   negsize  = MyBase->device.dd_Library.lib_NegSize;
-   possize  = MyBase->device.dd_Library.lib_PosSize;
-   fullsize = negsize + possize;
-   negptr  -= negsize;
+   	FreeMem (negptr, fullsize);
 
-   FreeMem (negptr, fullsize);
+  	}
 
-  }
-
- return (NULL);
+ 	return (NULL);
 }
 
 
@@ -317,22 +315,20 @@ BOOL success = TRUE;
 
 
 
-
-
 /*****************************************************************************
  *
  * DevOpenNew
  *
  *****************************************************************************/
-__saveds BYTE DevOpenNew (__reg ("d0") ULONG unit_num,
-                     __reg ("a1") struct IOSana2Req *request,
-                     __reg ("d1") ULONG flags,
-                     __reg ("a6") struct MyBase *base) {
-   struct DevUnit *unit;
-   BYTE error = 0;
-   struct Opener *opener;
-   struct TagItem *tag_list;
-   UWORD i;
+__saveds BYTE DevOpenNew (	__reg ("d0") ULONG unit_num,
+                     		__reg ("a1") struct IOSana2Req *request,
+                     		__reg ("d1") ULONG flags,
+                     		__reg ("a6") struct MyBase *base) {
+struct DevUnit *unit;
+BYTE error = 0;
+struct Opener *opener;
+struct TagItem *tag_list;
+UWORD i;
 
    base->device.dd_Library.lib_OpenCnt ++;
    base->device.dd_Library.lib_Flags &= ~LIBF_DELEXP;
@@ -351,71 +347,73 @@ __saveds BYTE DevOpenNew (__reg ("d0") ULONG unit_num,
         };
 
 
-   request->ios2_Req.io_Unit = NULL;
-   tag_list = request->ios2_BufferManagement;
-   request->ios2_BufferManagement = NULL;
+   	request->ios2_Req.io_Unit = NULL;
+   	tag_list = request->ios2_BufferManagement;
+   	request->ios2_BufferManagement = NULL;
 
-   /* Check request size and unit number */
+   	/* Check request size and unit number */
 
-   if ((request->ios2_Req.io_Message.mn_Length < sizeof (struct IOSana2Req)) ||
-       (unit_num >= UNIT_COUNT))
-      error = IOERR_OPENFAIL;
+   	if ((request->ios2_Req.io_Message.mn_Length < sizeof (struct IOSana2Req)) ||
+       	(unit_num >= UNIT_COUNT))
+      	error = IOERR_OPENFAIL;
 
-   /* Get the requested unit */
+   	/* Get the requested unit */
 
-   if (error == 0) {
-      request->ios2_Req.io_Unit = unit = GetUnit (unit_num, base);
-      if (unit == NULL)
-         error = IOERR_OPENFAIL;
-   }
+   	if (error == 0) {
+      	request->ios2_Req.io_Unit = unit = GetUnit (unit_num, base);
+      	if (unit == NULL)
+         	error = IOERR_OPENFAIL;
+   	}
 
-   /* Handle device sharing */
+   	/* Handle device sharing */
 
-   if (error == 0) {
-      if ((unit->open_count != 0) && (((unit->flags & UNITF_SHARED) == 0) ||
-         ((flags & SANA2OPF_MINE) !=0)))
-         error = IOERR_UNITBUSY;
-      unit->open_count ++;
-   }
-
-   if(error == 0) {
-      if ((flags & SANA2OPF_MINE) == 0)
-         unit->flags |= UNITF_SHARED;
-      else if ((flags & SANA2OPF_PROM) != 0)
-         unit->flags |= UNITF_PROM;
-
-      /* Set up buffer-management structure and get hooks */
-
-      request->ios2_BufferManagement = opener =
-         (APTR)AllocVec (sizeof (struct Opener), MEMF_PUBLIC);
-      if (opener == NULL)
-         error = IOERR_OPENFAIL;
+   	if (error == 0) {
+      	if ((unit->open_count != 0) && (((unit->flags & UNITF_SHARED) == 0) ||
+         	((flags & SANA2OPF_MINE) !=0)))
+         	error = IOERR_UNITBUSY;
+         	
+      	unit->open_count ++;
    }
 
    if (error == 0) {
-      NewList (&opener->read_port.mp_MsgList);
-      opener->read_port.mp_Flags = PA_IGNORE;
-      NewList ((APTR)&opener->initial_stats);
+      	if ((flags & SANA2OPF_MINE) == 0)
+         	unit->flags |= UNITF_SHARED;
+      	else if ((flags & SANA2OPF_PROM) != 0)
+         	unit->flags |= UNITF_PROM;
 
-      for (i = 0; i < 2; i ++)
-         opener->rx_function = (APTR)GetTagData (rx_tags [i],
-            (ULONG)opener->rx_function, tag_list);
-      for (i = 0; i < 3; i ++)
-         opener->tx_function = (APTR)GetTagData (tx_tags [i],
-            (ULONG)opener->tx_function, tag_list);
+      	/* Set up buffer-management structure and get hooks */
 
-      opener->filter_hook = (APTR)GetTagData (S2_PacketFilter, NULL, tag_list);
-      opener->dma_tx_function = NULL; //   (APTR)GetTagData(S2_DMACopyFromBuff32,NULL,tag_list);
+      	request->ios2_BufferManagement = opener =
+         	(APTR)AllocVec (sizeof (struct Opener), MEMF_PUBLIC);
+      	if (opener == NULL)
+         	error = IOERR_OPENFAIL;
+   	}
 
-      Disable ();
-      AddTail ((APTR)&unit->openers, (APTR)opener);
-      Enable ();
-   }
+   	if (error == 0) {
+      	NewList (&opener->read_port.mp_MsgList);
+      	opener->read_port.mp_Flags = PA_IGNORE;
+      	NewList ((APTR)&opener->initial_stats);
 
-   /* Back out if anything went wrong */
+      	for (i = 0; i < 2; i ++)
+         	opener->rx_function = (APTR)GetTagData (rx_tags [i],
+            	(ULONG)opener->rx_function, tag_list);
+    
+		for (i = 0; i < 3; i ++)
+         	opener->tx_function = (APTR)GetTagData (tx_tags [i],
+            	(ULONG)opener->tx_function, tag_list);
 
-   if (error != 0)
-      DevClose (request, base);
+      	opener->filter_hook = (APTR)GetTagData (S2_PacketFilter, NULL, tag_list);
+      	opener->dma_tx_function = NULL; //   (APTR)GetTagData(S2_DMACopyFromBuff32,NULL,tag_list);
+
+      	Disable ();
+      	AddTail ((APTR)&unit->openers, (APTR)opener);
+      	Enable ();
+   	}
+
+	/* Back out if anything went wrong */
+
+   	if (error != 0)
+      	DevClose (request, base);
 
    /* Return */
 
