@@ -240,7 +240,7 @@ __saveds struct MyBase * InitLib (__reg ("a6") struct ExecBase  *sysbase,
 
 
 
-/*
+
 static BYTE DevOpen(ULONG unit_num REG("d0"),
    struct IOSana2Req *request REG("a1"),ULONG flags REG("d1"),
    struct DevBase *base REG(BASE_REG))
@@ -293,7 +293,7 @@ register UBYTE i;
 //	Flush (MyBase->log);
 }
 
-*/
+
 
 
 
@@ -316,7 +316,7 @@ __saveds BYTE DevOpenNew (__reg ("d0") ULONG unit_num,
    base->device.dd_Library.lib_OpenCnt ++;
    base->device.dd_Library.lib_Flags &= ~LIBF_DELEXP;
 
-/*
+
     // Log
    	if (base->log == NULL)
     	base->log = Open ("T:log", MODE_READWRITE);
@@ -329,7 +329,7 @@ __saveds BYTE DevOpenNew (__reg ("d0") ULONG unit_num,
 		DebugHex32 (flags);
         };
 
-*/
+
    request->ios2_Req.io_Unit = NULL;
    tag_list = request->ios2_BufferManagement;
    request->ios2_BufferManagement = NULL;
@@ -630,7 +630,7 @@ struct DevUnit *unit;
 
     iorq->ios2_Req.io_Error = 0;
     unit = (APTR)iorq->ios2_Req.io_Unit;
-/*      
+      
 	Debug ("\n- BeginIO ");
 	Debug ("command ");
 	DebugHex16 (iorq->ios2_Req.io_Command);
@@ -638,6 +638,10 @@ struct DevUnit *unit;
 	DebugHex32 (iorq->ios2_Req.io_Flags);
           
         switch (iorq->ios2_Req.io_Command) {
+
+	    case CMD_READ:
+	    	Debug ("\n CMD_READ");
+	    	break;
 
             case CMD_WRITE:
                 Debug ("\n CMD_WRITE");
@@ -695,7 +699,7 @@ struct DevUnit *unit;
                 Debug ("\n CMD???");
                 break;
         }    
-*/          
+          
    if (AttemptSemaphore (&unit->access_lock))
       ServiceRequest (iorq, base);
    else {
