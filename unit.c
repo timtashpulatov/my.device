@@ -40,20 +40,30 @@ void InitialiseCard (struct DevUnit *unit, struct MyBase *base);
 VOID ConfigureCard (struct DevUnit *unit, struct MyBase *base);
 
 
+/*****************************************************************************
+ *
+ * GetUnit
+ *
+ *****************************************************************************/
 struct DevUnit *GetUnit (ULONG unit_num, struct MyBase *base) {
-   struct DevUnit *unit;
+struct DevUnit *unit;
 
-   unit = FindUnit (unit_num, base);
+    unit = FindUnit (unit_num, base);
 
-   if (unit == NULL) {
-      unit = CreateUnit (unit_num, base);
-      if (unit != NULL)
-         AddTail ((APTR)&(base->units), (APTR)unit);
+    if (unit == NULL) {
+        unit = CreateUnit (unit_num, base);
+    if (unit != NULL)
+        AddTail ((APTR)&(base->units), (APTR)unit);
    }
 
    return unit;
 }
 
+/*****************************************************************************
+ *
+ * FindUnit
+ *
+ *****************************************************************************/
 struct DevUnit *FindUnit (ULONG unit_num, struct MyBase *base)
 {
    struct DevUnit *unit,*tail;
@@ -77,6 +87,7 @@ struct DevUnit *FindUnit (ULONG unit_num, struct MyBase *base)
    return unit;
 }
 
+
 /*****************************************************************************
  *
  * CreateUnit
@@ -91,103 +102,103 @@ UBYTE i;
 APTR stack;
 //   struct Interrupt *card_removed_int,*card_inserted_int,*card_status_int;
 
-   unit = (APTR) AllocMem (sizeof (struct DevUnit), MEMF_CLEAR);
-   if (unit == NULL)
-      success = FALSE;
+    unit = (APTR) AllocMem (sizeof (struct DevUnit), MEMF_CLEAR);
+    if (unit == NULL)
+        success = FALSE;
 
-   if (success) {
-      unit->unit_num = unit_num;
-      unit->device = base;
+    if (success) {
+        unit->unit_num = unit_num;
+        unit->device = base;
 
-      InitSemaphore (&unit->access_lock);
+        InitSemaphore (&unit->access_lock);
 
       /* Set up packet filter command */
 //      unit->rx_filter_cmd=EL3CMD_SETRXFILTER|EL3CMD_SETRXFILTERF_BCAST
 //         |EL3CMD_SETRXFILTERF_UCAST;
 
-      /* Create the message ports for queueing requests */
+        /* Create the message ports for queueing requests */
 
-      for (i = 0; i < REQUEST_QUEUE_COUNT; i ++)
-      {
-         unit->request_ports [i] = port = (APTR) AllocMem (sizeof (struct MsgPort),
-            MEMF_PUBLIC | MEMF_CLEAR);
-         if (port == NULL)
-            success = FALSE;
+        for (i = 0; i < REQUEST_QUEUE_COUNT; i ++) {
+            unit->request_ports [i] = port = (APTR) AllocMem (sizeof (struct MsgPort),
+                                                                MEMF_PUBLIC | MEMF_CLEAR);
+            if (port == NULL)
+                success = FALSE;
 
-         if (success) {
-            NewList (&port->mp_MsgList);
-            port->mp_Flags = PA_IGNORE;
-            port->mp_SigTask = &unit->tx_int;
-         }
-      }
+            if (success) {
+                NewList (&port->mp_MsgList);
+                port->mp_Flags = PA_IGNORE;
+                port->mp_SigTask = &unit->tx_int;
+            }
+        }
 
 //      unit->tuple_buffer=
  //        AllocVec(TUPLE_BUFFER_SIZE,MEMF_ANY);
-      unit->rx_buffer = (APTR) AllocVec ((MAX_PACKET_SIZE + 3) &~ 3, MEMF_PUBLIC);
-      unit->tx_buffer = (APTR) AllocVec (MAX_PACKET_SIZE, MEMF_PUBLIC);
-      if(/*(unit->tuple_buffer==NULL)||*/
-         (unit->rx_buffer == NULL) || (unit->tx_buffer == NULL))
-         success = FALSE;
-   }
+        unit->rx_buffer = (APTR) AllocVec ((MAX_PACKET_SIZE + 3) &~ 3, MEMF_PUBLIC);
+        unit->tx_buffer = (APTR) AllocVec (MAX_PACKET_SIZE, MEMF_PUBLIC);
+        if (/*(unit->tuple_buffer==NULL)||*/
+            (unit->rx_buffer == NULL) || (unit->tx_buffer == NULL))
+                success = FALSE;
+    }
 
-   if (success) {
-      NewList ((APTR)&unit->openers);
-      NewList ((APTR)&unit->type_trackers);
-      NewList ((APTR)&unit->multicast_ranges);
+    if (success) {
+        NewList ((APTR)&unit->openers);
+        NewList ((APTR)&unit->type_trackers);
+        NewList ((APTR)&unit->multicast_ranges);
 
-      /* Initialise transmit and receive interrupts */
+        /* Initialise transmit and receive interrupts */
 
-      unit->rx_int.is_Node.ln_Name = (TEXT *)device_name;
-      unit->rx_int.is_Node.ln_Pri = 16;
-      unit->rx_int.is_Code = RxInt;
-      unit->rx_int.is_Data = unit;
+        unit->rx_int.is_Node.ln_Name = (TEXT *)device_name;
+        unit->rx_int.is_Node.ln_Pri = 16;
+        unit->rx_int.is_Code = RxInt;
+        unit->rx_int.is_Data = unit;
 
-      unit->tx_int.is_Node.ln_Name = (TEXT *)device_name;
-      unit->tx_int.is_Code = TxInt;
-      unit->tx_int.is_Data = unit;
+        unit->tx_int.is_Node.ln_Name = (TEXT *)device_name;
+        unit->tx_int.is_Code = TxInt;
+        unit->tx_int.is_Data = unit;
 
-      unit->request_ports [WRITE_QUEUE]->mp_Flags = PA_SOFTINT;
-   }
+        unit->request_ports [WRITE_QUEUE]->mp_Flags = PA_SOFTINT;
+    }
 
-   if (success) {
+    if (success) {
         
         InitialiseCard (unit, base);
         
         ConfigureCard (unit, base);
         
-      /* Create a new task */
+        /* Create a new task */
 
-      unit->task = task = (struct Task *) AllocMem (sizeof(struct Task), MEMF_PUBLIC | MEMF_CLEAR);
-      if (task == NULL)
-         success = FALSE;
-   }
+        unit->task = task = (struct Task *) AllocMem (sizeof(struct Task), MEMF_PUBLIC | MEMF_CLEAR);
+        if (task == NULL)
+            success = FALSE;
+    }
 
-   if (success) {
-      stack = (APTR) AllocMem (STACK_SIZE, MEMF_PUBLIC);
-      if (stack == NULL)
-         success = FALSE;
-   }
+    if (success) {
+        stack = (APTR) AllocMem (STACK_SIZE, MEMF_PUBLIC);
+        if (stack == NULL)
+            success = FALSE;
+    }
 
-   if(success)
-   {
-      /* Initialise and start task */
+    if (success) {
+       /* Initialise and start task */
 
-      task->tc_Node.ln_Type = NT_TASK;
-      task->tc_Node.ln_Pri = TASK_PRIORITY;
-      task->tc_Node.ln_Name = (APTR)device_name;
-      task->tc_SPUpper = (APTR)((ULONG)stack + STACK_SIZE);
-      task->tc_SPLower = stack;
-      task->tc_SPReg = (APTR)((ULONG)stack + STACK_SIZE);
-      NewList (&task->tc_MemEntry);
+        task->tc_Node.ln_Type = NT_TASK;
+        task->tc_Node.ln_Pri = TASK_PRIORITY;
+        task->tc_Node.ln_Name = (APTR)device_name;
+        task->tc_SPUpper = (APTR)((ULONG)stack + STACK_SIZE);
+        task->tc_SPLower = stack;
+        task->tc_SPReg = (APTR)((ULONG)stack + STACK_SIZE);
+        NewList (&task->tc_MemEntry);
 
-      if (AddTask (task, UnitTask, NULL) == NULL)
-         success = FALSE;
-   }
+        if (AddTask (task, UnitTask, NULL) == NULL)
+            success = FALSE;
+    }
 
    /* Send the unit to the new task */
 
-   if (success)
+   if (success) {
       task->tc_UserData = unit;
+      Debug ("\n AddTask () success");
+   }
 
    if (!success) {
       DeleteUnit (unit, base);
@@ -198,6 +209,11 @@ APTR stack;
 }
 
 
+/*****************************************************************************
+ *
+ * DeleteUnit
+ *
+ *****************************************************************************/
 VOID DeleteUnit (struct DevUnit *unit, struct MyBase *base) {
 UBYTE i;
 struct Task *task;
