@@ -518,7 +518,7 @@ __saveds APTR DevExpunge (__reg("a6") struct MyBase *base) {
 APTR seg_list;
 
    if (base->device.dd_Library.lib_OpenCnt == 0) {
-      seg_list = base->seg_list;
+      seg_list = base->my_SegList;
       Remove ((APTR)base);
       DeleteDevice (base);
    }
