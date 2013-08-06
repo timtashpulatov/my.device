@@ -53,7 +53,7 @@ __saveds struct MyBase *DevInit (__reg("d0") struct MyBase *dev_base,
    				__reg("a6") struct MyBase *base);
 
 
-__saveds BYTE DevOpenNew ( __reg ("a6") MyBase_t *my, __reg ("a1") struct IOSana2Req *iorq, __reg ("d1") ULONG flags, __reg ("d0") ULONG unit_num);
+__saveds BYTE DevOpenNew ( __reg ("a6") struct MyBase *my, __reg ("a1") struct IOSana2Req *iorq, __reg ("d1") ULONG flags, __reg ("d0") ULONG unit_num);
 __saveds APTR DevExpunge (__reg ("a6") struct MyBase *base);
 __saveds APTR DevClose (__reg ("a1") struct IOSana2Req *request, __reg ("a6") struct MyBase *base);
 __saveds void DeleteDevice (struct MyBase *base);
@@ -123,7 +123,7 @@ struct MyDataInit {                     /* do not change */
 
 
 
-MyBase_t *MyBase;
+struct MyBase *MyBase;
 
 
 /* ----------------------------------------------------------------------------------------
@@ -568,7 +568,7 @@ APTR seg_list;
  * BeginIO
  *
  *****************************************************************************/
-__saveds void BeginIO ( __reg ("a6") MyBase_t *base, __reg ("a1") struct IOSana2Req *iorq) {
+__saveds void BeginIO ( __reg ("a6") struct MyBase *base, __reg ("a1") struct IOSana2Req *iorq) {
 struct DevUnit *unit;
 
     iorq->ios2_Req.io_Error = 0;
@@ -660,7 +660,7 @@ struct DevUnit *unit;
  * AbortIO
  *
  *****************************************************************************/
-__saveds void AbortIO (struct IOSana2Req *iorq, __reg ("a6") MyBase_t *base) {
+__saveds void AbortIO (struct IOSana2Req *iorq, __reg ("a6") struct MyBase *base) {
 struct DevUnit *unit;
 
 	Debug ("\n- AbortIO");
