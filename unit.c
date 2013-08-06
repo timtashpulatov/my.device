@@ -56,7 +56,8 @@ struct DevUnit *unit;
     }
     
     if (unit != NULL) {
-        Debug ("\n Unit created, adding to unit list");    
+        Debug ("\n Unit created, adding to unit list" );
+        DebugHex32 (unit);
         AddTail ((APTR)&(base->units), (APTR)unit);
     }
    
