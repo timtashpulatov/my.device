@@ -241,6 +241,11 @@ register UBYTE i;
 
 
 
+/*****************************************************************************
+ *
+ * InitLib
+ *
+ *****************************************************************************/
 __saveds struct MyBase * InitLib (__reg ("a6") struct ExecBase  *sysbase,
                                   __reg ("a0") APTR seglist,
                                   __reg ("d0") struct MyBase 	*my) 
@@ -281,7 +286,11 @@ __saveds struct MyBase * InitLib (__reg ("a6") struct ExecBase  *sysbase,
 
 
 
-
+/*****************************************************************************
+ *
+ * DevInit
+ *
+ *****************************************************************************/
 __saveds struct MyBase *DevInit (__reg("d0") struct MyBase *dev_base,
    				__reg("a0") APTR seg_list,
    				__reg("a6") struct MyBase *base) {
@@ -652,6 +661,11 @@ struct DevUnit *unit;
 }
 
 
+/*****************************************************************************
+ *
+ * AbortIO
+ *
+ *****************************************************************************/
 __saveds void AbortIO (struct IOSana2Req *iorq, __reg ("a6") MyBase_t *base) {
 struct DevUnit *unit;
 
