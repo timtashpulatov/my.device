@@ -45,10 +45,9 @@ typedef struct MyBase {
 	BPTR                      log;
 	struct MinList             units;
 //	struct timerequest     *timer_request;
-} MyBase_t;
+};
 
-struct DevUnit
-{
+struct DevUnit {
    struct MinNode node;
    ULONG unit_num;
    ULONG open_count;
