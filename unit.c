@@ -51,10 +51,16 @@ struct DevUnit *unit;
     unit = FindUnit (unit_num, base);
 
     if (unit == NULL) {
+        Debug ("\n Unit not found, creating new");
         unit = CreateUnit (unit_num, base);
-    if (unit != NULL)
+    }
+    
+    if (unit != NULL) {
+        Debug ("\n Unit created, adding to unit list");    
         AddTail ((APTR)&(base->units), (APTR)unit);
-   }
+    }
+   
+   Flush (base->log);
 
    return unit;
 }
