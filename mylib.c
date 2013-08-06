@@ -475,7 +475,7 @@ __saveds __stdargs void L_CloseLibs (void)
  * DevExpunge
  *
  *****************************************************************************/
-__saveds APTR DevExpunge (__reg("a6") struct DevBase *base) {
+__saveds APTR DevExpunge (__reg("a6") struct MyBase *base) {
 APTR seg_list;
 
    if (base->device.dd_Library.lib_OpenCnt == 0) {
