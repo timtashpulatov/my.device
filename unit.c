@@ -64,27 +64,25 @@ struct DevUnit *unit;
  * FindUnit
  *
  *****************************************************************************/
-struct DevUnit *FindUnit (ULONG unit_num, struct MyBase *base)
-{
-   struct DevUnit *unit,*tail;
-   BOOL found;
+struct DevUnit *FindUnit (ULONG unit_num, struct MyBase *base) {
+struct DevUnit *unit,*tail;
+BOOL found;
 
-   unit = (APTR)base->units.mlh_Head;
-   tail = (APTR)&base->units.mlh_Tail;
-   found = FALSE;
+    unit = (APTR)base->units.mlh_Head;
+    tail = (APTR)&base->units.mlh_Tail;
+    found = FALSE;
 
-   while ((unit != tail) && !found)
-   {
-      if (unit->unit_num == unit_num)
-         found = TRUE;
-      else
-         unit = (APTR)unit->node.mln_Succ;
-   }
+    while ((unit != tail) && !found) {
+        if (unit->unit_num == unit_num)
+            found = TRUE;
+        else
+            unit = (APTR)unit->node.mln_Succ;
+    }
 
-   if(!found)
-      unit = NULL;
+    if (!found)
+        unit = NULL;
 
-   return unit;
+    return unit;
 }
 
 
@@ -101,6 +99,10 @@ struct MsgPort *port;
 UBYTE i;
 APTR stack;
 //   struct Interrupt *card_removed_int,*card_inserted_int,*card_status_int;
+
+
+    Debug ("\n CreateUnit");
+    Flush (base->log);
 
     unit = (APTR) AllocMem (sizeof (struct DevUnit), MEMF_CLEAR);
     if (unit == NULL)
