@@ -238,6 +238,45 @@ register UBYTE i;
 
 
 
+__saveds struct MyBase * InitLib (__reg ("a6") struct ExecBase  *sysbase,
+                                  __reg ("a0") APTR seglist,
+                                  __reg ("d0") struct MyBase 	*my) 
+{
+
+
+ MyBase = my;
+
+ MyBase->my_SysBase = sysbase;
+ MyBase->my_SegList = seglist;
+
+ MyBase->log = NULL;
+ 
+ NewList ((APTR)(&MyBase->units));
+
+ if (L_OpenLibs (MyBase)) 
+	return (MyBase);
+
+
+
+ L_CloseLibs ();
+
+  {
+   ULONG negsize, possize, fullsize;
+   UBYTE *negptr = (UBYTE *) MyBase;
+
+   negsize  = MyBase->device.dd_Library.lib_NegSize;
+   possize  = MyBase->device.dd_Library.lib_PosSize;
+   fullsize = negsize + possize;
+   negptr  -= negsize;
+
+   FreeMem (negptr, fullsize);
+
+  }
+
+ return (NULL);
+}
+
+
 
 
 
