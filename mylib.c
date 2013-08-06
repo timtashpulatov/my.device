@@ -181,7 +181,7 @@ APTR FuncTab [] = {
 
 
 
-__saveds __stdargs ULONG L_OpenLibs (MyBase_t *MyBase);
+__saveds __stdargs ULONG L_OpenLibs (struct MyBase *MyBase);
 __saveds __stdargs void L_CloseLibs (void);
 
 
