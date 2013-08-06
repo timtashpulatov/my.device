@@ -52,11 +52,7 @@ __saveds struct MyBase *DevInit (__reg("d0") struct MyBase *dev_base,
    				__reg("a0") APTR seg_list,
    				__reg("a6") struct MyBase *base);
 
-__saveds BYTE DevOpen ( __reg ("a6") MyBase_t *my,
-                        __reg ("a1") struct IOSana2Req *iorq,
-                        __reg ("d1") ULONG flags,
-                        __reg ("d0") ULONG unit_num
-	);
+
 __saveds BYTE DevOpenNew ( __reg ("a6") MyBase_t *my, __reg ("a1") struct IOSana2Req *iorq, __reg ("d1") ULONG flags, __reg ("d0") ULONG unit_num);
 __saveds APTR DevExpunge (__reg ("a6") struct MyBase *base);
 __saveds APTR DevClose (__reg ("a1") struct IOSana2Req *request, __reg ("a6") struct MyBase *base);
@@ -64,10 +60,10 @@ __saveds void DeleteDevice (struct MyBase *base);
 
 ULONG ExtFuncLib (void);
 
-__saveds void BeginIO (	__reg ("a6") MyBase_t *my, 
+__saveds void BeginIO (	__reg ("a6") struct MyBase *my, 
                         __reg ("a1") struct IOSana2Req *iorq);
 
-__saveds void AbortIO (struct IOSana2Req *iorq, __reg ("a6") MyBase_t *base);
+__saveds void AbortIO (struct IOSana2Req *iorq, __reg ("a6") struct MyBase *base);
 
 
 /* ----------------------------------------------------------------------------------------
@@ -147,21 +143,19 @@ struct InitTable {                       /* do not change */
  	struct MyDataInit *DataTable;
  	APTR               InitLibTable;
 } InitTab = {
- 	(ULONG)               sizeof(MyBase_t),
+ 	(ULONG)               sizeof(struct MyBase),
  	(APTR              *) &FuncTab [0],
  	(struct MyDataInit *) &DataTab,
  	(APTR)                InitLib		// see DevInit
 };
 
-static const ULONG rx_tags[]=
-{
+static const ULONG rx_tags [] = {
    S2_CopyToBuff,
 //   S2_CopyToBuff16
 };
 
 
-static const ULONG tx_tags[]=
-{
+static const ULONG tx_tags [] = {
    S2_CopyFromBuff,
 //   S2_CopyFromBuff16,
 //   S2_CopyFromBuff32
