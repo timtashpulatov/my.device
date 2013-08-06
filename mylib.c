@@ -123,7 +123,7 @@ struct MyDataInit {                     /* do not change */
 
 
 
-struct MyBase *MyBase;
+//struct MyBase *MyBase;
 
 
 /* ----------------------------------------------------------------------------------------
