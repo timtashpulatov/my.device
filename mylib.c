@@ -392,67 +392,6 @@ struct Opener *opener;
 
 
 
-__saveds APTR DevExpunge (__reg ("a6") struct MyBase *base) {
-APTR seg_list;
-
-   if (base->device.dd_Library.lib_OpenCnt == 0) {
-      seg_list = base->my_SegList;
-      Remove ((APTR)base);
-      DeleteDevice (base);
-   }
-   else {
-      base->device.dd_Library.lib_Flags |= LIBF_DELEXP;
-      seg_list = NULL;
-   }
-
-   return seg_list;
-}
-
-
-/* ----------------------------------------------------------------------------------------
-   ! ExpungeLib:
-   !
-   ! This one is enclosed within a Forbid/Permit pair by Exec V37-40. Since a Wait() call
-   ! would break this Forbid/Permit(), you are not allowed to start any operations that
-   ! may cause a Wait() during their processing. It's possible, that future OS versions
-   ! won't turn the multi-tasking off, but instead use semaphore protection for this
-   ! function.
-   !
-   ! Currently you only could bypass this restriction by supplying your own semaphore
-   ! mechanism - but since expunging can't be done twice, one should avoid it here.
-   ---------------------------------------------------------------------------------------- */
-
-__saveds APTR ExpungeLib (__reg ("a6") struct MyBase *my) {
- MyBase_t *MyBase = my;
- APTR seglist;
-
- if (!MyBase->device.dd_Library.lib_OpenCnt)
-  {
-   ULONG negsize, possize, fullsize;
-   UBYTE *negptr = (UBYTE *) MyBase;
-
-   seglist = MyBase->my_SegList;
-
-   Remove((struct Node *)MyBase);
-
-   L_CloseLibs();
-
-   negsize  = MyBase->device.dd_Library.lib_NegSize;
-   possize  = MyBase->device.dd_Library.lib_PosSize;
-   fullsize = negsize + possize;
-   negptr  -= negsize;
-
-   FreeMem (negptr, fullsize);
-
-
-   return (seglist);
-  }
-
- MyBase->device.dd_Library.lib_Flags |= LIBF_DELEXP;
-
- return(NULL);
-}
-
 
 /*****************************************************************************
  *
