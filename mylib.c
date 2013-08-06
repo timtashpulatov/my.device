@@ -648,6 +648,8 @@ struct DevUnit *unit;
                 Debug ("\n CMD???");
                 break;
         }    
+        
+	Flush (base->log);
           
    if (AttemptSemaphore (&unit->access_lock))
       ServiceRequest (iorq, base);
@@ -666,6 +668,9 @@ struct DevUnit *unit;
  *****************************************************************************/
 __saveds void AbortIO (struct IOSana2Req *iorq, __reg ("a6") MyBase_t *base) {
 struct DevUnit *unit;
+
+	Debug ("\n- AbortIO");
+	Flush (base->log);
 
    unit = (APTR)iorq->ios2_Req.io_Unit;
 
