@@ -192,24 +192,21 @@ static BOOL CmdInvalid(struct IOSana2Req *request,struct MyBase *base)
 }
 
 
-static BOOL CmdRead(struct IOSana2Req *request,struct MyBase *base)
-{
-   struct DevUnit *unit;
-   struct Opener *opener;
-   BOOL complete=FALSE;
+static BOOL CmdRead (struct IOSana2Req *request, struct MyBase *base) {
+struct DevUnit *unit;
+struct Opener *opener;
+BOOL complete = FALSE;
 
-   unit=(APTR)request->ios2_Req.io_Unit;
+   unit = (APTR)request->ios2_Req.io_Unit;
 
-   if((unit->flags&UNITF_ONLINE)!=0)
-   {
-      opener=request->ios2_BufferManagement;
-      PutRequest(&opener->read_port,(APTR)request,base);
+   if ((unit->flags & UNITF_ONLINE) != 0) {
+      opener = request->ios2_BufferManagement;
+      PutRequest (&opener->read_port, (APTR)request, base);
    }
-   else
-   {
-      request->ios2_Req.io_Error=S2ERR_OUTOFSERVICE;
-      request->ios2_WireError=S2WERR_UNIT_OFFLINE;
-      complete=TRUE;
+   else {
+      request->ios2_Req.io_Error = S2ERR_OUTOFSERVICE;
+      request->ios2_WireError = S2WERR_UNIT_OFFLINE;
+      complete = TRUE;
    }
 
    /* Return */
