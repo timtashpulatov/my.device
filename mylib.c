@@ -55,8 +55,6 @@ __saveds BYTE DevOpen ( __reg ("a6") MyBase_t *my,
                         __reg ("d0") ULONG unit_num
 	);
 __saveds BYTE DevOpenNew ( __reg ("a6") MyBase_t *my, __reg ("a1") struct IOSana2Req *iorq, __reg ("d1") ULONG flags, __reg ("d0") ULONG unit_num);
-__saveds APTR CloseLib (__reg ("a6") struct MyBase *my);
-__saveds APTR ExpungeLib (__reg ("a6") struct MyBase *my);
 __saveds APTR DevExpunge (__reg ("a6") struct MyBase *base);
 __saveds APTR DevClose (__reg ("a1") struct IOSana2Req *request, __reg ("a6") struct MyBase *base);
 __saveds void DeleteDevice (struct MyBase *base);
@@ -171,7 +169,7 @@ static const ULONG tx_tags[]=
 APTR FuncTab [] = {
 	(APTR) DevOpenNew, 
  	(APTR) DevClose, 	//(APTR) CloseLib,
- 	(APTR) ExpungeLib,
+ 	(APTR) DevExpunge,	// (APTR) ExpungeLib,
 	(APTR) ExtFuncLib,
 
 	(APTR) BeginIO,
@@ -190,61 +188,6 @@ __saveds __stdargs ULONG L_OpenLibs (MyBase_t *MyBase);
 __saveds __stdargs void L_CloseLibs (void);
 
 
-/* ----------------------------------------------------------------------------------------
-   ! InitLib:
-   !
-   ! This one is single-threaded by the Ramlib process. Theoretically you can do, what
-   ! you like here, since you have full exclusive control over all the library code and data.
-   ! But due to some bugs in Ramlib V37-40, you can easily cause a deadlock when opening
-   ! certain libraries here (which open other libraries, that open other libraries, that...)
-   !
-   ---------------------------------------------------------------------------------------- */
-
-__saveds struct MyBase * InitLib (__reg ("a6") struct ExecBase  *sysbase,
-                                  __reg ("a0") APTR seglist,
-                                  __reg ("d0") struct MyBase 	*my) 
-{
-
-
- MyBase = my;
-
- MyBase->my_SysBase = sysbase;
- MyBase->my_SegList = seglist;
-
- MyBase->log = NULL;
- 
- NewList ((APTR)(&MyBase->units));
-
- if (L_OpenLibs (MyBase)) 
-	return (MyBase);
-
-
-
- L_CloseLibs ();
-
-  {
-   ULONG negsize, possize, fullsize;
-   UBYTE *negptr = (UBYTE *) MyBase;
-
-   negsize  = MyBase->device.dd_Library.lib_NegSize;
-   possize  = MyBase->device.dd_Library.lib_PosSize;
-   fullsize = negsize + possize;
-   negptr  -= negsize;
-
-   FreeMem (negptr, fullsize);
-
-  }
-
- return (NULL);
-}
-
-
-
-/*
-static BYTE DevOpen(ULONG unit_num REG("d0"),
-   struct IOSana2Req *request REG("a1"),ULONG flags REG("d1"),
-   struct DevBase *base REG(BASE_REG))
-*/
 
 
 
@@ -619,6 +562,28 @@ __saveds __stdargs void L_CloseLibs (void)
 
 
 
+/*****************************************************************************
+ *
+ * DevExpunge
+ *
+ *****************************************************************************/
+__saveds APTR DevExpunge (__reg("a6") struct DevBase *base) {
+APTR seg_list;
+
+   if (base->device.dd_Library.lib_OpenCnt == 0) {
+      seg_list = base->seg_list;
+      Remove ((APTR)base);
+      DeleteDevice (base);
+   }
+   else {
+      base->device.dd_Library.lib_Flags |= LIBF_DELEXP;
+      seg_list = NULL;
+   }
+
+   return seg_list;
+}
+
+
 
 /*****************************************************************************
  *
@@ -731,7 +696,11 @@ struct DevUnit *unit;
 
 
 
-
+/*****************************************************************************
+ *
+ * DeleteDevice
+ *
+ *****************************************************************************/
 __saveds void DeleteDevice (struct MyBase *base) {
 UWORD neg_size, pos_size;
 
