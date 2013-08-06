@@ -34,7 +34,7 @@ enum {
 };
 
 
-typedef struct MyBase {
+struct MyBase {
  	struct Device            device;
  	APTR                      my_SegList;
  	struct ExecBase           *my_SysBase;
