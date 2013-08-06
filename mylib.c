@@ -279,6 +279,33 @@ __saveds struct MyBase * InitLib (__reg ("a6") struct ExecBase  *sysbase,
 
 
 
+__saveds struct MyBase *DevInit (__reg("d0") struct MyBase *dev_base,
+   				__reg("a0") APTR seg_list,
+   				__reg("a6") struct MyBase *base) {
+BOOL success = TRUE;
+
+	dev_base->sys_base = (APTR)base;
+	base = dev_base;
+	base->my_SegList = seg_list;
+
+//base->card_base = OpenResource(card_name);
+//base->utility_base=(APTR)OpenLibrary(utility_name,UTILITY_VERSION);
+//base->pccard_base=OpenLibrary(pccard_name,PCCARD_VERSION);
+
+
+   	NewList ((APTR)(&dev_base->units));
+
+   	if (!success) {
+      		DeleteDevice (base);
+      		base = NULL;
+   	}
+
+   return base;
+}
+
+
+
+
 
 /*****************************************************************************
  *
