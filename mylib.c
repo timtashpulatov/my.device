@@ -499,7 +499,7 @@ ULONG ExtFuncLib (void) {
    ! opened once (when using global library bases).
    ---------------------------------------------------------------------------------------- */
 
-__saveds __stdargs ULONG L_OpenLibs (MyBase_t *MyBase)
+__saveds __stdargs ULONG L_OpenLibs (struct MyBase *MyBase)
 {
 	SysBase = (*((struct ExecBase **) 4));
 	DOSBase = (struct DOSBase *) OpenLibrary ("dos.library", 37);
