@@ -99,7 +99,7 @@ extern APTR EndResident; /* below */
  	&InitTab [0]
 };
 
-APTR EndResident;
+
 
 
 
@@ -146,7 +146,7 @@ struct InitTable {                       /* do not change */
  	(ULONG)               sizeof(struct MyBase),
  	(APTR              *) &FuncTab [0],
  	(struct MyDataInit *) &DataTab,
- 	(APTR)                InitLib		// see DevInit
+ 	(APTR)                DevInit // InitLib		// see DevInit
 };
 
 static const ULONG rx_tags [] = {
@@ -178,6 +178,8 @@ APTR FuncTab [] = {
 };
 
 
+
+APTR EndResident;
 
 
 
@@ -240,14 +242,14 @@ register UBYTE i;
  * InitLib
  *
  *****************************************************************************/
-__saveds struct MyBase * InitLib (__reg ("a6") struct ExecBase  *sysbase,
-                                  __reg ("a0") APTR 			seglist,
+__saveds struct MyBase * InitLib (__reg ("a6") struct ExecBase  *base,
+                                  __reg ("a0") APTR 		seglist,
                                   __reg ("d0") struct MyBase 	*my) {
 
 
  	MyBase = my;
 
- 	MyBase->my_SysBase = sysbase;
+ 	MyBase->my_SysBase = base;
  	MyBase->my_SegList = seglist;
 
  	MyBase->log = NULL;
@@ -285,12 +287,15 @@ __saveds struct MyBase * InitLib (__reg ("a6") struct ExecBase  *sysbase,
  *****************************************************************************/
 __saveds struct MyBase *DevInit (__reg("d0") struct MyBase *dev_base,
    				__reg("a0") APTR seg_list,
-   				__reg("a6") struct MyBase *base) {
+   				__reg("a6") struct ExecBase *base) {
 BOOL success = TRUE;
 
 	dev_base->my_SysBase = (APTR)base;
 	base = dev_base;
 	base->my_SegList = seg_list;
+	base->my_UtilityBase = (APTR)OpenLibrary ("utility.library", 37);
+	if (base->my_UtilityBase == NULL)
+		success = FALSE;
 
 //base->card_base = OpenResource(card_name);
 //base->utility_base=(APTR)OpenLibrary(utility_name,UTILITY_VERSION);
@@ -306,6 +311,7 @@ BOOL success = TRUE;
 
    return base;
 }
+
 
 
 
