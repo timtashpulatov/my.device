@@ -447,6 +447,8 @@ struct Opener *opener;
 
    /* Free buffer-management resources */
 
+/*
+
    opener = (APTR)request->ios2_BufferManagement;
    if (opener != NULL) {
       Disable ();
@@ -455,17 +457,22 @@ struct Opener *opener;
       FreeVec (opener);
    }
 
-   /* Delete the unit if it's no longer in use */
+   // Delete the unit if it's no longer in use 
 
    unit = (APTR)request->ios2_Req.io_Unit;
    if (unit != NULL) {
+        
+        
+        
       if ((--unit->open_count) == 0) {
          Remove ((APTR)unit);
          DeleteUnit (unit, base);
       }
+      
+      
    }
 
-   /* Expunge the device if a delayed expunge is pending */
+   // Expunge the device if a delayed expunge is pending 
 
    seg_list = NULL;
 
@@ -474,6 +481,14 @@ struct Opener *opener;
          seg_list = DevExpunge (base);
    }
 
+*/
+
+    // --- HAHAHACK
+    if (base->device.dd_Library.lib_OpenCnt > 0) {
+        base->device.dd_Library.lib_OpenCnt --;
+    }
+    seg_list = NULL;
+    // --- HAHAHACK
 
    Flush (base->log);
 
@@ -568,6 +583,9 @@ __saveds __stdargs void L_CloseLibs (void)
  *****************************************************************************/
 __saveds APTR DevExpunge (__reg("a6") struct MyBase *base) {
 APTR seg_list;
+
+    Debug ("\n- DevExpunge");
+    Flush (base->log);
 
    if (base->device.dd_Library.lib_OpenCnt == 0) {
       seg_list = base->my_SegList;
