@@ -444,6 +444,7 @@ struct Opener *opener;
 
     Debug ("\n- DevClose");
 
+
    /* Free buffer-management resources */
 
    opener = (APTR)request->ios2_BufferManagement;
@@ -458,7 +459,7 @@ struct Opener *opener;
 
    unit = (APTR)request->ios2_Req.io_Unit;
    if (unit != NULL) {
-      if ((-- unit->open_count) == 0) {
+      if ((--unit->open_count) == 0) {
          Remove ((APTR)unit);
          DeleteUnit (unit, base);
       }
@@ -472,6 +473,10 @@ struct Opener *opener;
       if ((base->device.dd_Library.lib_Flags & LIBF_DELEXP) != 0)
          seg_list = DevExpunge (base);
    }
+
+
+   Flush (base->log);
+
 
    return seg_list;
 }
