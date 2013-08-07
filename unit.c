@@ -994,20 +994,20 @@ ULONG signals,
     general_port_signal, 
     timer_port_signal;
 
-   /* Get parameters */
+    /* Get parameters */
 
-   task = AbsExecBase->ThisTask;
-   unit = task->tc_UserData;
-   base = unit->device;
+    task = AbsExecBase->ThisTask;
+    unit = task->tc_UserData;
+    base = unit->device;
 
 
-   /* Activate general request port */
+    /* Activate general request port */
 
-   general_port = unit->request_ports [GENERAL_QUEUE];
-   general_port->mp_SigTask = task;
-   general_port->mp_SigBit = AllocSignal (-1);
-   general_port_signal = 1 << general_port->mp_SigBit;
-   general_port->mp_Flags = PA_SIGNAL;
+    general_port = unit->request_ports [GENERAL_QUEUE];
+    general_port->mp_SigTask = task;
+    general_port->mp_SigBit = AllocSignal (-1);
+    general_port_signal = 1 << general_port->mp_SigBit;
+    general_port->mp_Flags = PA_SIGNAL;
 
 
     // Timer port
@@ -1015,7 +1015,7 @@ ULONG signals,
     timer_port->mp_SigTask = task;
     timer_port->mp_SigBit = AllocSignal (-1);
     timer_port_signal = 1 << timer_port->mp_SigBit;
-    general_port->mp_Flags = PA_SIGNAL;
+    timer_port->mp_Flags = PA_SIGNAL;
     
     TimerIO = (struct timerequest *) CreateExtIO (timer_port, sizeof (struct timerequest));  
 
