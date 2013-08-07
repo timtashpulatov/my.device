@@ -52,15 +52,15 @@ struct DevUnit *unit;
 
     if (unit == NULL) {
         Debug ("\n Unit not found, creating new");
-        unit = CreateUnit (unit_num, base);
-    }
+        unit = CreateUnit (unit_num, base);    
     
-    if (unit != NULL) {
-        Debug ("\n Unit created, adding to unit list" );
-        AddTail ((APTR)&(base->units), (APTR)unit);
+        if (unit != NULL) {
+            Debug ("\n Adding unit to base->units list" );
+            AddTail ((APTR)&(base->units), (APTR)unit);
+        }
     }
    
-   Flush (base->log);
+
 
    return unit;
 }
@@ -107,7 +107,7 @@ APTR stack;
 //   struct Interrupt *card_removed_int,*card_inserted_int,*card_status_int;
 
 
-    Debug ("\n CreateUnit");
+    Debug ("\n  CreateUnit");
     Flush (base->log);
 
     unit = (APTR) AllocMem (sizeof (struct DevUnit), MEMF_CLEAR);
@@ -205,7 +205,7 @@ APTR stack;
 
    if (success) {
       task->tc_UserData = unit;
-      Debug ("\n AddTask () success");
+      Debug ("\n  AddTask () success");
    }
 
    if (!success) {

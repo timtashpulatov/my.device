@@ -53,7 +53,15 @@ __saveds struct MyBase *DevInit (__reg("d0") struct MyBase *dev_base,
    				__reg("a6") struct MyBase *base);
 
 
-__saveds BYTE DevOpenNew ( __reg ("a6") struct MyBase *my, __reg ("a1") struct IOSana2Req *iorq, __reg ("d1") ULONG flags, __reg ("d0") ULONG unit_num);
+
+__saveds BYTE DevOpenNew (	__reg ("d0") ULONG unit_num,
+                     		__reg ("a1") struct IOSana2Req *request,
+                     		__reg ("d1") ULONG flags,
+                     		__reg ("a6") struct MyBase *base);
+
+
+
+//__saveds BYTE DevOpenNew ( __reg ("a6") struct MyBase *my, __reg ("a1") struct IOSana2Req *iorq, __reg ("d1") ULONG flags, __reg ("d0") ULONG unit_num);
 __saveds APTR DevExpunge (__reg ("a6") struct MyBase *base);
 __saveds APTR DevClose (__reg ("a1") struct IOSana2Req *request, __reg ("a6") struct MyBase *base);
 __saveds void DeleteDevice (struct MyBase *base);
@@ -82,10 +90,10 @@ __saveds void AbortIO (struct IOSana2Req *iorq, __reg ("a6") struct MyBase *base
    ! it must not be placed in a different SECTION.
    ---------------------------------------------------------------------------------------- */
 
-extern APTR InitTab [];
+extern const APTR InitTable [];
 extern APTR EndResident; /* below */
 
-/* __aligned */ struct Resident ROMTag =     /* do not change */
+struct Resident ROMTag =     /* do not change */
 {
 	RTC_MATCHWORD,
 	&ROMTag,
@@ -94,9 +102,9 @@ extern APTR EndResident; /* below */
  	VERSION,
  	NT_DEVICE,	
  	0,
- 	&device_name [0],
- 	&MyLibID [0],
- 	&InitTab [0]
+ 	(STRPTR)device_name,
+ 	(STRPTR)MyLibID,
+ 	(APTR)InitTable
 };
 
 
@@ -134,20 +142,16 @@ static struct MyBase *MyBase;
    ! but it depends on whether you would like to keep the "version" stuff separately.
    ---------------------------------------------------------------------------------------- */
 
-extern APTR FuncTab [];
-//extern struct MyDataInit * DataTab;
+extern const APTR FuncTab [];
 
-struct InitTable {                       /* do not change */
-	ULONG              LibBaseSize;
-	APTR              *FunctionTable;
- 	struct MyDataInit *DataTable;
- 	APTR               InitLibTable;
-} InitTab = {
- 	(ULONG)               sizeof(struct MyBase),
- 	(APTR              *) &FuncTab [0],
- 	(struct MyDataInit *) &DataTab,
- 	(APTR)                DevInit // InitLib		// see DevInit
+
+const APTR InitTable [] = {
+   	(APTR)    sizeof (struct MyBase),
+ 	(APTR)    FuncTab,
+ 	(APTR)    &DataTab,
+ 	(APTR)    InitLib     // &DevInit
 };
+
 
 static const ULONG rx_tags [] = {
    S2_CopyToBuff,
@@ -163,7 +167,7 @@ static const ULONG tx_tags [] = {
 
 
 
-APTR FuncTab [] = {
+const APTR FuncTab [] = {
 	(APTR) DevOpenNew, 
  	(APTR) DevClose, 	//(APTR) CloseLib,
  	(APTR) DevExpunge,	// (APTR) ExpungeLib,
@@ -286,16 +290,16 @@ __saveds struct MyBase * InitLib (__reg ("a6") struct ExecBase  *base,
  *
  *****************************************************************************/
 __saveds struct MyBase *DevInit (__reg("d0") struct MyBase *dev_base,
-   				__reg("a0") APTR seg_list,
-   				__reg("a6") struct MyBase *base) {
+   				                 __reg("a0") APTR seg_list,
+   				                 __reg("a6") struct MyBase *base) {
 BOOL success = TRUE;
 
 	dev_base->my_SysBase = (APTR)base;
 	base = dev_base;
 	base->my_SegList = seg_list;
-	base->my_UtilityBase = (APTR)OpenLibrary ("utility.library", 37);
-	if (base->my_UtilityBase == NULL)
-		success = FALSE;
+//	base->my_UtilityBase = (APTR)OpenLibrary ("utility.library", 37);
+//	if (base->my_UtilityBase == NULL)
+//		success = FALSE;
 
 //base->card_base = OpenResource(card_name);
 //base->utility_base=(APTR)OpenLibrary(utility_name,UTILITY_VERSION);
@@ -344,6 +348,8 @@ UWORD i;
 		DebugHex (unit_num);
 		Debug (", flags ");
 		DebugHex32 (flags);
+		
+		Flush (base->log);
         };
 
 
@@ -361,6 +367,7 @@ UWORD i;
 
    	if (error == 0) {
       	request->ios2_Req.io_Unit = unit = GetUnit (unit_num, base);
+
       	if (unit == NULL)
          	error = IOERR_OPENFAIL;
    	}
@@ -704,8 +711,8 @@ UWORD neg_size, pos_size;
 
    /* Close libraries */
 
-   if (base->my_UtilityBase != NULL)
-      CloseLibrary ((APTR)base->my_UtilityBase);
+//   if (base->my_UtilityBase != NULL)
+//      CloseLibrary ((APTR)base->my_UtilityBase);
 
    /* Free device's memory */
 
