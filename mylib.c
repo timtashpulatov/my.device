@@ -287,7 +287,7 @@ __saveds struct MyBase * InitLib (__reg ("a6") struct ExecBase  *base,
  *****************************************************************************/
 __saveds struct MyBase *DevInit (__reg("d0") struct MyBase *dev_base,
    				__reg("a0") APTR seg_list,
-   				__reg("a6") struct ExecBase *base) {
+   				__reg("a6") struct MyBase *base) {
 BOOL success = TRUE;
 
 	dev_base->my_SysBase = (APTR)base;
