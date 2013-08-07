@@ -226,32 +226,33 @@ VOID DeleteUnit (struct DevUnit *unit, struct MyBase *base) {
 UBYTE i;
 struct Task *task;
 
-   if (unit != NULL) {
-      task = unit->task;
-      if (task != NULL) {
-         if (task->tc_SPLower != NULL) {
-            RemTask (task);
-            FreeMem (task->tc_SPLower, STACK_SIZE);
-         }
-         FreeMem(task,sizeof(struct Task));
-      }
+    Debug ("\n  DeleteUnit");
 
-      for(i=0;i<REQUEST_QUEUE_COUNT;i++)
-      {
-         if(unit->request_ports[i]!=NULL)
-            FreeMem(unit->request_ports[i],sizeof(struct MsgPort));
-      }
+    if (unit != NULL) {
+        task = unit->task;
+        if (task != NULL) {
+            if (task->tc_SPLower != NULL) {
+                RemTask (task);
+                FreeMem (task->tc_SPLower, STACK_SIZE);
+            }
+            FreeMem (task, sizeof (struct Task));
+        }
+
+        for (i = 0; i < REQUEST_QUEUE_COUNT; i ++) {
+            if (unit->request_ports [i] != NULL)
+                FreeMem (unit->request_ports [i], sizeof (struct MsgPort));
+        }
 
 //      FreeVec(unit->tuple_buffer);
 
 
-      FreeVec (unit->tx_buffer);
-      FreeVec (unit->rx_buffer);
+        FreeVec (unit->tx_buffer);
+        FreeVec (unit->rx_buffer);
 
-      FreeMem (unit,sizeof(struct DevUnit));
-   }
+        FreeMem (unit, sizeof (struct DevUnit));
+    }
 
-   return;
+    return;
 }
 
 

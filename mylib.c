@@ -366,7 +366,7 @@ UWORD i;
    	/* Get the requested unit */
 
    	if (error == 0) {
-      	request->ios2_Req.io_Unit = unit = GetUnit (unit_num, base);
+      	request->ios2_Req.io_Unit = unit = (APTR)GetUnit (unit_num, base);
 
       	if (unit == NULL)
          	error = IOERR_OPENFAIL;
@@ -374,9 +374,9 @@ UWORD i;
 
    	/* Handle device sharing */
 
-   	if (error == 0) {
-      	if ((unit->open_count != 0) && (((unit->flags & UNITF_SHARED) == 0) ||
-         	((flags & SANA2OPF_MINE) !=0)))
+    if (error == 0) {
+        if ((unit->open_count != 0) && (((unit->flags & UNITF_SHARED) == 0) ||
+         	((flags & SANA2OPF_MINE) != 0)))
          	error = IOERR_UNITBUSY;
          	
       	unit->open_count ++;
@@ -440,6 +440,9 @@ __saveds APTR DevClose (__reg ("a1") struct IOSana2Req *request, __reg ("a6") st
 struct DevUnit *unit;
 APTR seg_list;
 struct Opener *opener;
+
+
+    Debug ("\n- DevClose");
 
    /* Free buffer-management resources */
 
