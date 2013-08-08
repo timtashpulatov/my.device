@@ -680,49 +680,50 @@ UWORD i;
 
    /* Check request is valid */
 
-   unit = (APTR)request->ios2_Req.io_Unit;
-   if ((unit->flags & UNITF_CONFIGURED) == 0) {
-      error = S2ERR_BAD_STATE;
-      wire_error = S2WERR_NOT_CONFIGURED;
-   }
+    unit = (APTR)request->ios2_Req.io_Unit;
 
-   /* Clear global and special stats and put adapter back online */
+    if ((unit->flags & UNITF_CONFIGURED) == 0) {
+        error = S2ERR_BAD_STATE;
+        wire_error = S2WERR_NOT_CONFIGURED;
+    }
 
-   if ((error == 0) && ((unit->flags & UNITF_ONLINE) == 0)) {
-      unit->stats.PacketsReceived = 0;
-      unit->stats.PacketsSent = 0;
-      unit->stats.BadData = 0;
-      unit->stats.Overruns = 0;
-      unit->stats.UnknownTypesReceived = 0;
-      unit->stats.Reconfigurations = 0;
+    /* Clear global and special stats and put adapter back online */
 
-      for (i = 0; i < STAT_COUNT; i ++)
-         unit->special_stats [i] = 0;
+    if ((error == 0) && ((unit->flags & UNITF_ONLINE) == 0)) {
+        unit->stats.PacketsReceived = 0;
+        unit->stats.PacketsSent = 0;
+        unit->stats.BadData = 0;
+        unit->stats.Overruns = 0;
+        unit->stats.UnknownTypesReceived = 0;
+        unit->stats.Reconfigurations = 0;
 
-      GoOnline (unit, base);
-   }
+        for (i = 0; i < STAT_COUNT; i ++)
+            unit->special_stats [i] = 0;
 
-   /* Return */
+        GoOnline (unit, base);
+    }
 
-   request->ios2_Req.io_Error = error;
-   request->ios2_WireError = wire_error;
-   return TRUE;
+    /* Return */
+
+    request->ios2_Req.io_Error = error;
+    request->ios2_WireError = wire_error;
+    return TRUE;
 }
 
 
-static BOOL CmdOffline(struct IOSana2Req *request,struct MyBase *base)
-{
-   struct DevUnit *unit;
+static BOOL CmdOffline (struct IOSana2Req *request, struct MyBase *base) {
+struct DevUnit *unit;
 
-   /* Put adapter offline */
+    /* Put adapter offline */
 
-   unit=(APTR)request->ios2_Req.io_Unit;
-   if((unit->flags&UNITF_ONLINE)!=0)
-      GoOffline(unit,base);
+    unit = (APTR)request->ios2_Req.io_Unit;
+    
+    if ((unit->flags & UNITF_ONLINE) != 0)
+        GoOffline (unit, base);
 
-   /* Return */
+    /* Return */
 
-   return TRUE;
+    return TRUE;
 }
 
 
@@ -756,8 +757,7 @@ static BOOL CmdOffline(struct IOSana2Req *request,struct MyBase *base)
 *
 */
 
-static BOOL CmdDeviceQuery (struct IOStdReq *request, struct MyBase *base)
-{
+static BOOL CmdDeviceQuery (struct IOStdReq *request, struct MyBase *base) {
 /*
    struct NSDeviceQueryResult *info;
 
