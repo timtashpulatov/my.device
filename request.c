@@ -390,43 +390,39 @@ BYTE error = 0;
 
 
 
-static BOOL CmdUntrackType(struct IOSana2Req *request, struct MyBase *base) {
-   struct DevUnit *unit;
-   struct Opener *opener;
-   ULONG packet_type;
-   struct TypeTracker *tracker;
-   struct TypeStats *initial_stats;
+static BOOL CmdUntrackType (struct IOSana2Req *request, struct MyBase *base) {
+struct DevUnit *unit;
+struct Opener *opener;
+ULONG packet_type;
+struct TypeTracker *tracker;
+struct TypeStats *initial_stats;
 
-   unit=(APTR)request->ios2_Req.io_Unit;
-   packet_type=request->ios2_PacketType;
+   unit = (APTR)request->ios2_Req.io_Unit;
+   packet_type = request->ios2_PacketType;
 
    /* Get global tracker and initial figures */
 
-   tracker=(struct TypeTracker *)
-      FindTypeStats(unit,&unit->type_trackers,packet_type,base);
-   opener=request->ios2_BufferManagement;
-   initial_stats=FindTypeStats(unit,&opener->initial_stats,packet_type,
-      base);
+   tracker = (struct TypeTracker *)
+      FindTypeStats (unit, &unit->type_trackers, packet_type, base);
+   opener = request->ios2_BufferManagement;
+   initial_stats = FindTypeStats (unit, &opener->initial_stats, packet_type, base);
 
    /* Decrement tracker usage and free unused structures */
 
-   if(initial_stats!=NULL)
-   {
-      if((--tracker->user_count)==0)
-      {
-         Disable();
-         Remove((APTR)tracker);
-         Enable();
-         FreeMem(tracker,sizeof(struct TypeTracker));
+   if (initial_stats != NULL) {
+      if ((--tracker->user_count) == 0) {
+         Disable ();
+         Remove ((APTR)tracker);
+         Enable ();
+         FreeMem (tracker, sizeof (struct TypeTracker));
       }
 
-      Remove((APTR)initial_stats);
-      FreeMem(initial_stats,sizeof(struct TypeStats));
+      Remove ((APTR)initial_stats);
+      FreeMem (initial_stats, sizeof(struct TypeStats));
    }
-   else
-   {
-      request->ios2_Req.io_Error=S2ERR_BAD_STATE;
-      request->ios2_WireError=S2WERR_NOT_TRACKED;
+   else {
+      request->ios2_Req.io_Error = S2ERR_BAD_STATE;
+      request->ios2_WireError = S2WERR_NOT_TRACKED;
    }
 
    /* Return */
@@ -438,40 +434,36 @@ static BOOL CmdUntrackType(struct IOSana2Req *request, struct MyBase *base) {
 
 
 
-static BOOL CmdGetTypeStats(struct IOSana2Req *request, struct MyBase *base)
-{
-   struct DevUnit *unit;
-   struct Opener *opener;
-   ULONG packet_type;
-   struct TypeStats *initial_stats,*tracker;
-   struct Sana2PacketTypeStats *stats;
+static BOOL CmdGetTypeStats (struct IOSana2Req *request, struct MyBase *base) {
+struct DevUnit *unit;
+struct Opener *opener;
+ULONG packet_type;
+struct TypeStats *initial_stats, *tracker;
+struct Sana2PacketTypeStats *stats;
 
-   unit=(APTR)request->ios2_Req.io_Unit;
-   packet_type=request->ios2_PacketType;
+   unit = (APTR)request->ios2_Req.io_Unit;
+   packet_type = request->ios2_PacketType;
 
    /* Get global tracker and initial figures */
 
-   tracker=FindTypeStats(unit,&unit->type_trackers,packet_type,base);
-   opener=request->ios2_BufferManagement;
-   initial_stats = FindTypeStats(unit,&opener->initial_stats,packet_type,
-      base);
+   tracker = FindTypeStats (unit, &unit->type_trackers, packet_type, base);
+   opener = request->ios2_BufferManagement;
+   initial_stats = FindTypeStats (unit, &opener->initial_stats, packet_type, base);
 
    /* Copy and adjust figures */
 
-   if(initial_stats!=NULL)
-   {
-      stats=request->ios2_StatData;
-      CopyMem(&tracker->stats,stats,sizeof(struct Sana2PacketTypeStats));
-      stats->PacketsSent-=initial_stats->stats.PacketsSent;
-      stats->PacketsReceived-=initial_stats->stats.PacketsReceived;
-      stats->BytesSent-=initial_stats->stats.BytesSent;
-      stats->BytesReceived-=initial_stats->stats.BytesReceived;
-      stats->PacketsDropped-=initial_stats->stats.PacketsDropped;
+   if (initial_stats != NULL) {
+      stats = request->ios2_StatData;
+      CopyMem (&tracker->stats, stats, sizeof (struct Sana2PacketTypeStats));
+      stats->PacketsSent -= initial_stats->stats.PacketsSent;
+      stats->PacketsReceived -= initial_stats->stats.PacketsReceived;
+      stats->BytesSent -= initial_stats->stats.BytesSent;
+      stats->BytesReceived -= initial_stats->stats.BytesReceived;
+      stats->PacketsDropped -= initial_stats->stats.PacketsDropped;
    }
-   else
-   {
-      request->ios2_Req.io_Error=S2ERR_BAD_STATE;
-      request->ios2_WireError=S2WERR_NOT_TRACKED;
+   else {
+      request->ios2_Req.io_Error = S2ERR_BAD_STATE;
+      request->ios2_WireError = S2WERR_NOT_TRACKED;
    }
 
    /* Return */
@@ -507,33 +499,30 @@ static BOOL CmdGetTypeStats(struct IOSana2Req *request, struct MyBase *base)
 *
 */
 
-static BOOL CmdGetSpecialStats(struct IOSana2Req *request,
-   struct MyBase *base)
-{
-   struct DevUnit *unit;
-   UWORD i,stat_count;
-   struct Sana2SpecialStatHeader *header;
-   struct Sana2SpecialStatRecord *record;
+static BOOL CmdGetSpecialStats(struct IOSana2Req *request, struct MyBase *base) {
+struct DevUnit *unit;
+UWORD i, stat_count;
+struct Sana2SpecialStatHeader *header;
+struct Sana2SpecialStatRecord *record;
 
    /* Fill in stats */
 
-   unit=(APTR)request->ios2_Req.io_Unit;
-   header=request->ios2_StatData;
-   record=(APTR)(header+1);
+   unit = (APTR)request->ios2_Req.io_Unit;
+   header = request->ios2_StatData;
+   record = (APTR)(header + 1);
 
-   stat_count=header->RecordCountMax;
-   if(stat_count>STAT_COUNT)
-      stat_count=STAT_COUNT;
+   stat_count = header->RecordCountMax;
+   if (stat_count > STAT_COUNT)
+      stat_count = STAT_COUNT;
 
-   for(i=0;i<stat_count;i++)
-   {
-      record->Type=(S2WireType_Ethernet<<16)+i;
-      record->Count=unit->special_stats[i];
-      record->String=(TEXT *)&unit->openers.mlh_Tail;
+   for (i = 0; i < stat_count; i ++) {
+      record->Type = (S2WireType_Ethernet << 16) + i;
+      record->Count = unit->special_stats [i];
+      record->String = (TEXT *)&unit->openers.mlh_Tail;
       record++;
    }
 
-   header->RecordCountSupplied=stat_count;
+   header->RecordCountSupplied = stat_count;
 
    /* Return */
 
@@ -568,16 +557,13 @@ static BOOL CmdGetSpecialStats(struct IOSana2Req *request,
 *
 */
 
-static BOOL CmdGetGlobalStats(struct IOSana2Req *request,
-   struct MyBase *base)
-{
-   struct DevUnit *unit;
+static BOOL CmdGetGlobalStats(struct IOSana2Req *request, struct MyBase *base) {
+struct DevUnit *unit;
 
    /* Copy stats */
 
-   unit=(APTR)request->ios2_Req.io_Unit;
-   CopyMem(&unit->stats,request->ios2_StatData,
-      sizeof(struct Sana2DeviceStats));
+   unit = (APTR)request->ios2_Req.io_Unit;
+   CopyMem (&unit->stats, request->ios2_StatData, sizeof (struct Sana2DeviceStats));
 
    /* Return */
 
@@ -612,40 +598,36 @@ static BOOL CmdGetGlobalStats(struct IOSana2Req *request,
 *
 */
 
-static BOOL CmdOnEvent(struct IOSana2Req *request,struct MyBase *base)
-{
-   struct DevUnit *unit;
-   ULONG events,wanted_events;
-   BOOL complete=FALSE;
+static BOOL CmdOnEvent (struct IOSana2Req *request, struct MyBase *base) {
+struct DevUnit *unit;
+ULONG events, wanted_events;
+BOOL complete = FALSE;
 
    /* Check if we understand the event types */
 
-   unit=(APTR)request->ios2_Req.io_Unit;
-   wanted_events=request->ios2_WireError;
-   if((wanted_events&~KNOWN_EVENTS)!=0)
-   {
-      request->ios2_Req.io_Error=S2ERR_NOT_SUPPORTED;
-      events=S2WERR_BAD_EVENT;
+   unit = (APTR)request->ios2_Req.io_Unit;
+   wanted_events = request->ios2_WireError;
+   if ((wanted_events & ~KNOWN_EVENTS) != 0) {
+      request->ios2_Req.io_Error = S2ERR_NOT_SUPPORTED;
+      events = S2WERR_BAD_EVENT;
    }
-   else
-   {
-      if((unit->flags&UNITF_ONLINE)!=0)
-         events=S2EVENT_ONLINE;
+   else {
+      if ((unit->flags & UNITF_ONLINE) != 0)
+         events = S2EVENT_ONLINE;
       else
-         events=S2EVENT_OFFLINE;
+         events = S2EVENT_OFFLINE;
 
-      events&=wanted_events;
+      events &= wanted_events;
    }
 
    /* Reply request if a wanted event has already occurred */
 
-   if(events!=0)
-   {
-      request->ios2_WireError=events;
-      complete=TRUE;
+   if (events != 0) {
+      request->ios2_WireError = events;
+      complete = TRUE;
    }
    else
-      PutRequest(unit->request_ports[EVENT_QUEUE],(APTR)request,base);
+      PutRequest (unit->request_ports [EVENT_QUEUE], (APTR)request, base);
 
    /* Return */
 
