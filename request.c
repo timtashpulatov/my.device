@@ -685,12 +685,6 @@ UWORD i;
       error = S2ERR_BAD_STATE;
       wire_error = S2WERR_NOT_CONFIGURED;
    }
-//   if((unit->flags&UNITF_HAVEADAPTER)==0)
-    if (0)
-   {
-      error=S2ERR_OUTOFSERVICE;
-      wire_error=S2WERR_RCVREL_HDW_ERR;
-   }
 
    /* Clear global and special stats and put adapter back online */
 
