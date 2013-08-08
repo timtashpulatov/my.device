@@ -55,7 +55,7 @@ struct DevUnit *unit;
         unit = CreateUnit (unit_num, base);    
     
         if (unit != NULL) {
-            Debug ("\n Adding unit to base->units list" );
+            Debug ("\n Adding unit to base->units list");
             AddTail ((APTR)&(base->units), (APTR)unit);
         }
     }
@@ -288,10 +288,11 @@ UWORD transceiver;
  *
  *****************************************************************************/
 VOID GoOffline (struct DevUnit *unit, struct MyBase *base) {
-   volatile UBYTE *io_base;
+//   volatile UBYTE *io_base;
 
-   io_base = unit->io_base;
-   unit->flags &= ~UNITF_ONLINE;
+//   io_base = unit->io_base;
+  
+  unit->flags &= ~UNITF_ONLINE;
 
 //   if((unit->flags&UNITF_HAVEADAPTER)!=0)
     if (1)
@@ -321,17 +322,15 @@ VOID GoOffline (struct DevUnit *unit, struct MyBase *base) {
 
 
 struct TypeStats *FindTypeStats (struct DevUnit *unit, struct MinList *list,
-   ULONG packet_type, struct MyBase *base)
-{
-   struct TypeStats *stats, *tail;
-   BOOL found;
+   ULONG packet_type, struct MyBase *base) {
+struct TypeStats *stats, *tail;
+BOOL found;
 
    stats = (APTR)list->mlh_Head;
    tail = (APTR)&list->mlh_Tail;
    found = FALSE;
 
-   while ((stats != tail) && !found)
-   {
+   while ((stats != tail) && !found) {
       if(stats->packet_type == packet_type)
          found = TRUE;
       else
@@ -345,51 +344,45 @@ struct TypeStats *FindTypeStats (struct DevUnit *unit, struct MinList *list,
 }
 
 
-VOID FlushUnit (struct DevUnit *unit, UBYTE last_queue, BYTE error, struct MyBase *base)
-{
-   struct IORequest *request;
-   UBYTE i;
-   struct Opener *opener, *tail;
+VOID FlushUnit (struct DevUnit *unit, UBYTE last_queue, BYTE error, struct MyBase *base) {
+struct IORequest *request;
+UBYTE i;
+struct Opener *opener, *tail;
 
-   /* Abort queued requests */
+    /* Abort queued requests */
 
-   for (i = 0; i <= last_queue; i++)
-   {
-      while((request=(APTR)GetMsg(unit->request_ports[i]))!=NULL)
-      {
-         request->io_Error = IOERR_ABORTED;
-         ReplyMsg ((APTR)request);
-      }
-   }
+    for (i = 0; i <= last_queue; i++) {
+        while ((request = (APTR)GetMsg (unit->request_ports [i])) != NULL) {
+            request->io_Error = IOERR_ABORTED;
+            ReplyMsg ((APTR)request);
+        }
+    }
 
 #if 1
-   opener=(APTR)unit->openers.mlh_Head;
-   tail=(APTR)&unit->openers.mlh_Tail;
+    opener = (APTR)unit->openers.mlh_Head;
+    tail = (APTR)&unit->openers.mlh_Tail;
 
-   /* Flush every opener's read queue */
+    /* Flush every opener's read queue */
 
-   while(opener!=tail)
-   {
-      while((request=(APTR)GetMsg(&opener->read_port))!=NULL)
-      {
-         request->io_Error=error;
-         ReplyMsg((APTR)request);
-      }
-      opener=(APTR)opener->node.mln_Succ;
-   }
+    while (opener != tail) {
+        while ((request = (APTR)GetMsg (&opener->read_port)) != NULL) {
+            request->io_Error = error;
+            ReplyMsg ((APTR)request);
+        }
+        opener = (APTR)opener->node.mln_Succ;
+    }
 
 #else
-   opener=request->ios2_BufferManagement;
-   while((request=(APTR)GetMsg(&opener->read_port))!=NULL)
-   {
-      request->io_Error=IOERR_ABORTED;
-      ReplyMsg((APTR)request);
-   }
+    opener = request->ios2_BufferManagement;
+    while ((request = (APTR)GetMsg (&opener->read_port)) != NULL) {
+        request->io_Error = IOERR_ABORTED;
+        ReplyMsg ((APTR)request);
+    }
 #endif
 
-   /* Return */
+    /* Return */
 
-   return;
+    return;
 }
 
 
@@ -573,11 +566,11 @@ UBYTE *p, *end;
 //   io_base=unit->io_base;
    buffer = unit->rx_buffer;
    request->ios2_Req.io_Flags &= ~(SANA2IOF_BCAST | SANA2IOF_MCAST);    // clear bcast and mcast flags
-   if((*((ULONG *)(buffer + PACKET_DEST)) == 0xffffffff) &&
-      (*((UWORD *)(buffer + PACKET_DEST + 4)) == 0xffff))
-      request->ios2_Req.io_Flags |= SANA2IOF_BCAST;
+   if ((*((ULONG *)(buffer + PACKET_DEST)) == 0xffffffff) &&
+       (*((UWORD *)(buffer + PACKET_DEST + 4)) == 0xffff))
+        request->ios2_Req.io_Flags |= SANA2IOF_BCAST;
    else if ((buffer [PACKET_DEST] & 0x1) != 0)
-      request->ios2_Req.io_Flags |= SANA2IOF_MCAST;
+        request->ios2_Req.io_Flags |= SANA2IOF_MCAST;
 
    /* Set source and destination addresses and packet type */
    CopyMem (buffer + PACKET_SOURCE, request->ios2_SrcAddr, ADDRESS_SIZE);
@@ -609,7 +602,7 @@ UBYTE *p, *end;
    }
 #ifdef USE_HACKS
    else
-      packet_size+=4;   /* Needed for Shapeshifter & Fusion */
+      packet_size += 4;   /* Needed for Shapeshifter & Fusion */
 #endif
 
    request->ios2_DataLength = packet_size;
@@ -863,12 +856,11 @@ struct TypeStats *tracker;
 
 
 
-static VOID TxError(struct DevUnit *unit, struct MyBase *base)
-{
-   volatile UBYTE *io_base;
-   UBYTE tx_status,flags=0;
+static VOID TxError (struct DevUnit *unit, struct MyBase *base) {
+volatile UBYTE *io_base;
+UBYTE tx_status, flags = 0;
 
-   io_base=unit->io_base;
+   io_base = unit->io_base;
 
    /* Gather all errors */
 
@@ -896,34 +888,31 @@ static VOID TxError(struct DevUnit *unit, struct MyBase *base)
 }
 
 
-static VOID ReportEvents (struct DevUnit *unit, ULONG events, struct MyBase *base)
-{
-   struct IOSana2Req *request,*tail,*next_request;
-   struct List *list;
+static VOID ReportEvents (struct DevUnit *unit, ULONG events, struct MyBase *base) {
+struct IOSana2Req *request, *tail, *next_request;
+struct List *list;
 
-   list=&unit->request_ports[EVENT_QUEUE]->mp_MsgList;
-   next_request=(APTR)list->lh_Head;
-   tail=(APTR)&list->lh_Tail;
+   list = &unit->request_ports [EVENT_QUEUE]->mp_MsgList;
+   next_request = (APTR)list->lh_Head;
+   tail = (APTR)&list->lh_Tail;
 
-   Disable();
-   while(next_request!=tail)
-   {
-      request=next_request;
-      next_request=(APTR)request->ios2_Req.io_Message.mn_Node.ln_Succ;
+   Disable ();
+   while (next_request != tail) {
+      request = next_request;
+      next_request = (APTR)request->ios2_Req.io_Message.mn_Node.ln_Succ;
 
-      if((request->ios2_WireError&events)!=0)
-      {
-         request->ios2_WireError=events;
-         Remove((APTR)request);
-         ReplyMsg((APTR)request);
-      }
-   }
-   Enable();
+        if ((request->ios2_WireError & events) != 0) {
+            request->ios2_WireError = events;
+            Remove ((APTR)request);
+            ReplyMsg ((APTR)request);
+        }
+    }
+    Enable ();
 
    return;
 }
 
-UBYTE fakeMAC [6] = {0x22, 0x44, 0x66, 0x88, 0xaa, 0xcc};
+UBYTE fakeMAC [6] = {0x00, 0x44, 0x66, 0x88, 0xaa, 0xcc};
 
 /*****************************************************************************
  *
@@ -973,7 +962,7 @@ UBYTE i;
    return;
 }
 
-#define INTERVAL_MICROSECONDS 1000
+#define INTERVAL_MICROSECONDS 20000
 
 /*****************************************************************************
  *
