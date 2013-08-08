@@ -48,8 +48,7 @@ static BOOL CmdDeviceQuery(struct IOStdReq *request, struct MyBase *base);
 
 VOID PutRequest (struct MsgPort *port, struct IORequest *request, struct MyBase *base);
 
-static const UWORD supported_commands[]=
-{
+static const UWORD supported_commands [] = {
    CMD_READ,
    CMD_WRITE,
    CMD_FLUSH,
@@ -76,13 +75,12 @@ static const UWORD supported_commands[]=
 };
 
 
-struct Sana2DeviceQuery sana2_info=
-{
+struct Sana2DeviceQuery sana2_info = {
    0,
    0,
    0,
    0,
-   ADDRESS_SIZE*8,
+   ADDRESS_SIZE * 8,
    MTU,
    10000000,
    S2WireType_Ethernet
@@ -97,7 +95,7 @@ struct Sana2DeviceQuery sana2_info=
 VOID ServiceRequest (struct IOSana2Req *request, struct MyBase *base) {
 BOOL complete;
 
-   switch(request->ios2_Req.io_Command) {
+   switch (request->ios2_Req.io_Command) {
    case CMD_READ:
       complete = CmdRead (request, base);
       break;
@@ -105,10 +103,10 @@ BOOL complete;
       complete = CmdWrite (request, base);
       break;
    case CMD_FLUSH:
-      complete=CmdFlush((APTR)request,base);
+      complete = CmdFlush ((APTR)request, base);
       break;
    case S2_DEVICEQUERY:
-      complete=CmdS2DeviceQuery((APTR)request,base);
+      complete = CmdS2DeviceQuery ((APTR)request, base);
       break;
    case S2_GETSTATIONADDRESS:
       complete = CmdGetStationAddress ((APTR)request, base);
@@ -125,39 +123,39 @@ BOOL complete;
       break;
 */      
    case S2_MULTICAST:
-      complete=CmdWrite((APTR)request,base);
+      complete = CmdWrite ((APTR)request, base);
       break;
    case S2_BROADCAST:
-      complete=CmdBroadcast((APTR)request,base);
+      complete = CmdBroadcast ((APTR)request, base);
       break;
    case S2_TRACKTYPE:
-      complete=CmdTrackType((APTR)request,base);
+      complete = CmdTrackType ((APTR)request, base);
       break;
    case S2_UNTRACKTYPE:
-      complete=CmdUntrackType((APTR)request,base);
+      complete = CmdUntrackType ((APTR)request, base);
       break;
    case S2_GETTYPESTATS:
-      complete=CmdGetTypeStats((APTR)request,base);
+      complete = CmdGetTypeStats ((APTR)request, base);
       break;
    case S2_GETSPECIALSTATS:
-      complete=CmdGetSpecialStats((APTR)request,base);
+      complete = CmdGetSpecialStats ((APTR)request, base);
       break;
    case S2_GETGLOBALSTATS:
-      complete=CmdGetGlobalStats((APTR)request,base);
+      complete = CmdGetGlobalStats ((APTR)request, base);
       break;
    case S2_ONEVENT:
-      complete=CmdOnEvent((APTR)request,base);
+      complete = CmdOnEvent ((APTR)request, base);
       break;
       
    case S2_READORPHAN:
-      complete = CmdReadOrphan((APTR)request, base);
+      complete = CmdReadOrphan ((APTR)request, base);
       break;
       
    case S2_ONLINE:
       complete = CmdOnline ((APTR)request, base);
       break;
    case S2_OFFLINE:
-      complete=CmdOffline((APTR)request,base);
+      complete = CmdOffline ((APTR)request, base);
       break;
 /*
    case NSCMD_DEVICEQUERY:
@@ -171,22 +169,20 @@ BOOL complete;
       break;
 */
    default:
-      complete=CmdInvalid((APTR)request,base);
+      complete = CmdInvalid ((APTR)request, base);
    }
 
    if (complete && ((request->ios2_Req.io_Flags & IOF_QUICK) == 0))
       ReplyMsg ((APTR)request);
 
-   ReleaseSemaphore (&((struct DevUnit *)request->ios2_Req.io_Unit)->
-      access_lock);
+   ReleaseSemaphore (&((struct DevUnit *)request->ios2_Req.io_Unit)->access_lock);
    return;
 }
 
 
-static BOOL CmdInvalid(struct IOSana2Req *request,struct MyBase *base)
-{
-   request->ios2_Req.io_Error=IOERR_NOCMD;
-   request->ios2_WireError=S2WERR_GENERIC_ERROR;
+static BOOL CmdInvalid (struct IOSana2Req *request, struct MyBase *base) {
+   request->ios2_Req.io_Error = IOERR_NOCMD;
+   request->ios2_WireError = S2WERR_GENERIC_ERROR;
 
    return TRUE;
 }
@@ -228,10 +224,9 @@ BOOL complete = FALSE;
       wire_error = S2WERR_UNIT_OFFLINE;
    }
    else if ((request->ios2_Req.io_Command == S2_MULTICAST) &&
-      ((request->ios2_DstAddr [0] & 0x1) == 0))
-   {
-      error = S2ERR_BAD_ADDRESS;
-      wire_error = S2WERR_BAD_MULTICAST;
+      ((request->ios2_DstAddr [0] & 0x1) == 0)) {
+            error = S2ERR_BAD_ADDRESS;
+            wire_error = S2WERR_BAD_MULTICAST;
    }
 
    /* Queue request for sending */
@@ -250,29 +245,29 @@ BOOL complete = FALSE;
 }
 
 
-static BOOL CmdFlush(struct IORequest *request,struct MyBase *base) {
-   FlushUnit((APTR)request->io_Unit,EVENT_QUEUE,IOERR_ABORTED,base);
+static BOOL CmdFlush (struct IORequest *request,struct MyBase *base) {
+   FlushUnit ((APTR)request->io_Unit, EVENT_QUEUE, IOERR_ABORTED, base);
    return TRUE;
 }
 
 
-static BOOL CmdS2DeviceQuery(struct IOSana2Req *request, struct MyBase *base) {
-   struct DevUnit *unit;
-   struct Sana2DeviceQuery *info;
-   ULONG size_available,size;
+static BOOL CmdS2DeviceQuery (struct IOSana2Req *request, struct MyBase *base) {
+struct DevUnit *unit;
+struct Sana2DeviceQuery *info;
+ULONG size_available, size;
 
    /* Copy device info */
 
-   unit=(APTR)request->ios2_Req.io_Unit;
-   info=request->ios2_StatData;
-   size=size_available=info->SizeAvailable;
-   if(size>sizeof(struct Sana2DeviceQuery))
-      size=sizeof(struct Sana2DeviceQuery);
+   unit = (APTR)request->ios2_Req.io_Unit;
+   info = request->ios2_StatData;
+   size = size_available = info->SizeAvailable;
+   if (size > sizeof (struct Sana2DeviceQuery))
+      size = sizeof (struct Sana2DeviceQuery);
 
-   CopyMem(&sana2_info,info,size);
+   CopyMem (&sana2_info, info, size);
   
-   info->SizeAvailable=size_available;
-   info->SizeSupplied=size;
+   info->SizeAvailable = size_available;
+   info->SizeSupplied = size;
 
    /* Return */
 
@@ -281,7 +276,7 @@ static BOOL CmdS2DeviceQuery(struct IOSana2Req *request, struct MyBase *base) {
 
 
 
-static BOOL CmdGetStationAddress(struct IOSana2Req *request, struct MyBase *base) {
+static BOOL CmdGetStationAddress (struct IOSana2Req *request, struct MyBase *base) {
 struct DevUnit *unit;
 
    unit = (APTR)request->ios2_Req.io_Unit;
@@ -299,14 +294,13 @@ struct DevUnit *unit;
    /* Configure adapter */
 
    unit = (APTR)request->ios2_Req.io_Unit;
-   if((unit->flags & UNITF_CONFIGURED) == 0) {
+   if ((unit->flags & UNITF_CONFIGURED) == 0) {
       CopyMem (request->ios2_SrcAddr, unit->address, ADDRESS_SIZE);
   
   //       ConfigureAdapter(unit,base);
       unit->flags |= UNITF_CONFIGURED;
    }
-   else
-   {
+   else {
       request->ios2_Req.io_Error = S2ERR_BAD_STATE;
       request->ios2_WireError = S2WERR_IS_CONFIGURED;
    }
@@ -319,12 +313,11 @@ struct DevUnit *unit;
 
 
 
-static BOOL CmdBroadcast(struct IOSana2Req *request, struct MyBase *base)
-{
+static BOOL CmdBroadcast (struct IOSana2Req *request, struct MyBase *base) {
    /* Fill in the broadcast address as destination */
 
-   *((ULONG *)request->ios2_DstAddr)=0xffffffff;
-   *((UWORD *)(request->ios2_DstAddr+4))=0xffff;
+   *((ULONG *)request->ios2_DstAddr) = 0xffffffff;
+   *((UWORD *)(request->ios2_DstAddr + 4)) = 0xffff;
 
    /* Queue the write as normal */
 
@@ -332,36 +325,33 @@ static BOOL CmdBroadcast(struct IOSana2Req *request, struct MyBase *base)
 }
 
 
-static BOOL CmdTrackType(struct IOSana2Req *request, struct MyBase *base)
-{
-   struct DevUnit *unit;
-   struct Opener *opener;
-   ULONG packet_type,wire_error;
-   struct TypeTracker *tracker;
-   struct TypeStats *initial_stats;
-   BYTE error=0;
+static BOOL CmdTrackType (struct IOSana2Req *request, struct MyBase *base) {
+struct DevUnit *unit;
+struct Opener *opener;
+ULONG packet_type, wire_error;
+struct TypeTracker *tracker;
+struct TypeStats *initial_stats;
+BYTE error = 0;
 
-   unit=(APTR)request->ios2_Req.io_Unit;
-   packet_type=request->ios2_PacketType;
+   unit = (APTR)request->ios2_Req.io_Unit;
+   packet_type = request->ios2_PacketType;
 
    /* Get global tracker */
 
-   tracker=(struct TypeTracker *)
-      FindTypeStats(unit,&unit->type_trackers,packet_type,base);
+   tracker = (struct TypeTracker *)
+      FindTypeStats (unit, &unit->type_trackers, packet_type, base);
 
-   if(tracker!=NULL)
-      tracker->user_count++;
-   else
-   {
+   if (tracker != NULL)
+      tracker->user_count ++;
+   else {
       tracker = (APTR)AllocMem (sizeof (struct TypeTracker), MEMF_PUBLIC | MEMF_CLEAR);
-      if(tracker!=NULL)
-      {
-         tracker->packet_type=packet_type;
-         tracker->user_count=1;
+      if (tracker != NULL) {
+         tracker->packet_type = packet_type;
+         tracker->user_count = 1;
 
-         Disable();
-         AddTail((APTR)&unit->type_trackers,(APTR)tracker);
-         Enable();
+         Disable ();
+         AddTail ((APTR)&unit->type_trackers, (APTR)tracker);
+         Enable ();
       }
    }
 
@@ -371,26 +361,22 @@ static BOOL CmdTrackType(struct IOSana2Req *request, struct MyBase *base)
    initial_stats = FindTypeStats (unit, &opener->initial_stats, packet_type,
       base);
 
-   if(initial_stats!=NULL)
-   {
-      error=S2ERR_BAD_STATE;
-      wire_error=S2WERR_ALREADY_TRACKED;
+   if (initial_stats != NULL) {
+      error = S2ERR_BAD_STATE;
+      wire_error = S2WERR_ALREADY_TRACKED;
    }
 
-   if(error==0)
-   {
+   if (error == 0) {
       initial_stats = (APTR)AllocMem (sizeof (struct TypeStats), MEMF_PUBLIC);
-      if (initial_stats == NULL)
-      {
+      if (initial_stats == NULL) {
          error = S2ERR_NO_RESOURCES;
          wire_error = S2WERR_GENERIC_ERROR;
       }
    }
 
-   if(error==0)
-   {
-      CopyMem(tracker,initial_stats,sizeof(struct TypeStats));
-      AddTail((APTR)&opener->initial_stats,(APTR)initial_stats);
+   if (error == 0) {
+      CopyMem (tracker, initial_stats, sizeof (struct TypeStats));
+      AddTail ((APTR)&opener->initial_stats, (APTR)initial_stats);
    }
 
    /* Return */
