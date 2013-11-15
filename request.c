@@ -31,7 +31,7 @@ static BOOL CmdWrite(struct IOSana2Req *request, struct MyBase *base);
 static BOOL CmdFlush(struct IORequest *request,struct MyBase *base);
 static BOOL CmdS2DeviceQuery(struct IOSana2Req *request,   struct MyBase *base);
 static BOOL CmdGetStationAddress(struct IOSana2Req *request,   struct MyBase *base);
-static BOOL CmdConfigInterface(struct IOSana2Req *request,   struct MyBase *base);
+static BOOL CmdConfigInterface (struct IOSana2Req *request,   struct MyBase *base);
 static BOOL CmdBroadcast(struct IOSana2Req *request,   struct MyBase *base);
 static BOOL CmdTrackType(struct IOSana2Req *request,   struct MyBase *base);
 static BOOL CmdUntrackType(struct IOSana2Req *request,   struct MyBase *base);
@@ -269,6 +269,8 @@ ULONG size_available, size;
    if (size > sizeof (struct Sana2DeviceQuery))
       size = sizeof (struct Sana2DeviceQuery);
 
+
+
    CopyMem (&sana2_info, info, size);
   
    info->SizeAvailable = size_available;
@@ -301,7 +303,7 @@ struct DevUnit *unit;
  * CmdConfigInterface
  *
  *****************************************************************************/
-static BOOL CmdConfigInterface(struct IOSana2Req *request, struct MyBase *base) {
+static BOOL CmdConfigInterface (struct IOSana2Req *request, struct MyBase *base) {
 struct DevUnit *unit;
 
    /* Configure adapter */

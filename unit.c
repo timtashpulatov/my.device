@@ -66,21 +66,56 @@ struct ConfigDev *myCD;
     }
 
     if (myCD) {
-        Debug ("     Found card at 0x\n");
+        Debug ("     Found card\n");
+
+        
         unit->io_base = (UBYTE *)myCD->cd_BoardAddr;
         
         base->io_base = (LONG)myCD->cd_BoardAddr;
         
+        // Set drive current strength
+        dm9k_write (base->io_base, BUSCR, 0x40);
+                
+        dm9k_phy_reset (base->io_base);      // (1) PHY RESET
+        dm9k_phy_down (base->io_base);       // (2) PHY POWER_DOWN
+                                // (3)
+        dm9k_reset (base->io_base);          // (4) Software RESET
+        dm9k_phy_up (base->io_base);         // (5) PHY ENABLE
+
+        // Set registers
+        dm9k_write (base->io_base, NCR, 0);                                    // normal mode
+        dm9k_write (base->io_base, TCR, 0);                                    // TX polling clear
+        dm9k_set_bits (base->io_base, RCR, RCR_DIS_CRC);                       // discard RX CRC Error Packet
+        dm9k_set_bits (base->io_base, FCR, FCR_FLCE);                          // Flow Control FLCE bit ON
+                                                                // WUCR    LINK WAKE_UP bits ON or not
+        dm9k_write (base->io_base, NSR, NSR_WAKEST | NSR_TX2END | NSR_TX1END); // clear Network Status latched bits
+        dm9k_write (base->io_base, ISR, ISR_ROO | ISR_ROS | ISR_PT | ISR_PR);  // clear Interrupt Status latched bits
+
+        // MAC Node Address and FILTER Hash Table
+        // dm9000_hash_table(dev); /* map HASH Table (see ch.3-1 & ch.6 ) */
+
+        // Activate DM9000
+        dm9k_set_bits (base->io_base, RCR, RCR_RXEN | RCR_PRMSC | RCR_ALL);    // RXCR.0 RXEN bit ON Enable
+        dm9k_write (base->io_base, IMR, IMR_PAR | IMR_PTI | IMR_PRI);          // IMR.7 PAR bit ON and TX & RX INT MASK ON        
+
+
+
         
         // Hack: use register 34H to control LEDs via GPIO
         dm9k_write (base->io_base, LEDCR, 0x02);
         dm9k_write (base->io_base, GPCR, 0x06);        // GP2..GP1 for output
         dm9k_write (base->io_base, GPR, 0x06);         // GP2..GP1 set to 1
+
+
+
+        
         
     }
     else {
         Debug ("     No card\n");
     }
+
+
 
 
     // Get default MAC address
@@ -340,7 +375,10 @@ UWORD transceiver;
     unit->flags |= UNITF_ONLINE;
 
     // Enable RX and TX
-//    ppPoke (PP_LineCTL, PP_LineCTL_Rx | PP_LineCTL_Tx);
+
+    dm9k_set_bits (base->io_base, RCR, RCR_RXEN | RCR_PRMSC | RCR_ALL);
+    
+
 
    /* Record start time and report Online event */
 
@@ -505,49 +543,26 @@ BOOL emulate = FALSE;
 
     rx_status = 0;  // hack
 
-    if (0) {
-//    do {
-    
-//   ((rx_status=LEWordIn(io_base+EL3REG_RXSTATUS))
- //     &EL3REG_RXSTATUSF_INCOMPLETE)==0
+    do {    
+        r = dm9k_read (unit->io_base, MRCMDX);  // dummy read        
+        r = dm9k_read (unit->io_base, MRCMDX);
 
-//        r = ppPeek (PP_RER);
-
-//        if (r & 0x0004) {
-//            // CS8900 present, PP_RER should read xxx4
-//            emulate = FALSE;
-//        }
-
-//        if ((r & PP_RER_RxOK) || emulate) {
-    
-        if (1) {
+        if (r == 0x01) {
 
             /* Read packet header */
 
             is_orphan = TRUE;
-            if (emulate)
-                packet_size = 64;  // rx_status /*& EL3REG_RXSTATUS_SIZEMASK */;
-            else {
-                // Read status and packet size
+     
+            // Read status and packet size
                 
-     //           status = peek (0x44000001);
-     //           status += peek (0x44000000) << 8;
+            rx_status = dm9k_read_w (unit->io_base, MRCMD);
+            packet_size = dm9k_read_w (unit->io_base, MRCMD);     
               
-     //           packet_size = peek (0x44000000);
-     //           packet_size += peek (0x44000001) << 8;
-            }
-              
-            p = (UBYTE *)buffer;
-
-            r = 0; // use r var as an index
+            p = buffer;
          
-            while (p < end)
-                if (emulate)
-                    *p++ = emulated_packet [r++]; //LongIn(io_base+EL3REG_DATA0);
-                else {
-       //             *p++ = peek (0x44000000);
-       //             *p++ = peek (0x44000001);
-                }
+            while (p < end)           
+                (*(UWORD *)p) ++ = ntohw (dm9k_read_w (unit->io_base, MRCMD)); 
+
 
          if (AddressFilter (unit, buffer + PACKET_DEST, base)) {
             packet_type = BEWord (*((UWORD *)(buffer + PACKET_TYPE)));
@@ -616,7 +631,7 @@ BOOL emulate = FALSE;
    //   while((LEWordIn(io_base+EL3REG_STATUS)&
     //     EL3REG_STATUSF_CMDINPROGRESS)!=0);
 //      Enable();
-    } //while (ppPeek (PP_RER != 0x0004));
+    }               //while (ppPeek (PP_RER != 0x0004));
 
    /* Return */
 
@@ -951,7 +966,11 @@ UBYTE tx_status, flags = 0;
    return;
 }
 
-
+/*****************************************************************************
+ *
+ * ReportEvents
+ *
+ *****************************************************************************/
 static VOID ReportEvents (struct DevUnit *unit, ULONG events, struct MyBase *base) {
 struct IOSana2Req *request, *tail, *next_request;
 struct List *list;
@@ -1018,7 +1037,7 @@ UBYTE i;
 
 
 
-#define INTERVAL_MICROSECONDS 20000
+#define INTERVAL_MICROSECONDS 500000
 
 /*****************************************************************************
  *
@@ -1038,6 +1057,7 @@ ULONG signals,
     wait_signals, 
     general_port_signal, 
     timer_port_signal;
+UBYTE rxbyte;
 
     /* Get parameters */
 
@@ -1102,10 +1122,10 @@ ULONG signals,
 
             SendIO ((struct IORequest *)TimerIO);
 
-            
-            // Check RxEvent (will be cleared!)
-   //         if (ppPeek (PP_RER) & PP_RER_RxOK)
-            if (1)
+            rxbyte = dm9k_read (MRCMDX);    // dummy read
+            rxbyte = dm9k_read (MRCMDX);
+      
+            if (rxbyte == 0x01)
                 Cause (&unit->rx_int);      // Cause soft interrupt on RX
         }
 
