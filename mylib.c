@@ -28,9 +28,9 @@
 #define UNIT_COUNT 1
 
 char device_name [] = "dm9000.device";
-char MyLibID   [] = "37.01 (25.07.2013)";
+char MyLibID   [] = "37.01 (15.11.2013)";
 
-char VERSTRING [] = "\0$VER: my 37.01 (25.07.2013)";
+char VERSTRING [] = "\0$VER: dm9k 37.01 (15.11.2013)";
 
 
 struct ExecBase 	*SysBase  		= NULL;

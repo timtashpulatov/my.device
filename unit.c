@@ -320,7 +320,11 @@ VOID GoOffline (struct DevUnit *unit, struct MyBase *base) {
 
 
 
-
+/*****************************************************************************
+ *
+ * FindTypeStats
+ *
+ *****************************************************************************/
 struct TypeStats *FindTypeStats (struct DevUnit *unit, struct MinList *list,
    ULONG packet_type, struct MyBase *base) {
 struct TypeStats *stats, *tail;
@@ -344,6 +348,11 @@ BOOL found;
 }
 
 
+/*****************************************************************************
+ *
+ * FlushUnit
+ *
+ *****************************************************************************/
 VOID FlushUnit (struct DevUnit *unit, UBYTE last_queue, BYTE error, struct MyBase *base) {
 struct IORequest *request;
 UBYTE i;
@@ -427,7 +436,7 @@ BOOL emulate = FALSE;
 
     rx_status = 0;  // hack
 
-    if (1) {
+    if (0) {
 //    do {
     
 //   ((rx_status=LEWordIn(io_base+EL3REG_RXSTATUS))
@@ -930,6 +939,8 @@ UBYTE i;
     for (i = 0; i < ADDRESS_SIZE; i += 2)
 //      ByteOut (io_base+EL3REG_ADDRESS0+i,unit->address[i]);
    //     ppPoke (PP_IA + i, unit->address [i] + (unit->address [i + 1] << 8));
+
+    ;
 
    /* Decide on promiscuous mode */
 

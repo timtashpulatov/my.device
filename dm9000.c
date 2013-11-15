@@ -2,7 +2,8 @@
 
 #include "dm9000.h"
 
-
+static ULONG base_index;
+static ULONG base_data;
 
 /************************************************************
  * peek
@@ -46,7 +47,7 @@ UBYTE *ptr;
 UBYTE dummy;
 
     // Dummy read
-    ptr = (ULONG *)0x40000000;
+    ptr = (UBYTE *)0x40000000;
     dummy = *ptr;
 
 
@@ -178,7 +179,7 @@ void dm9k_phy_up () {
 }
 
 
-inline UWORD ntohw (UWORD val) {
+UWORD ntohw (UWORD val) {
     return ((val >> 8) & 0x00ff) | ((val << 8) & 0xff00);
 }
 
