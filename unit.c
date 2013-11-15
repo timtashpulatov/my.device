@@ -13,7 +13,7 @@
 #include "devices/sana2specialstats.h"
 
 #include "device.h"
-#include "cs8900.h"
+#include "dm9000.h"
 
 #define TASK_PRIORITY 0
 #define STACK_SIZE 4096
@@ -271,7 +271,7 @@ UWORD transceiver;
     unit->flags |= UNITF_ONLINE;
 
     // Enable RX and TX
-    ppPoke (PP_LineCTL, PP_LineCTL_Rx | PP_LineCTL_Tx);
+//    ppPoke (PP_LineCTL, PP_LineCTL_Rx | PP_LineCTL_Tx);
 
    /* Record start time and report Online event */
 
@@ -301,7 +301,7 @@ VOID GoOffline (struct DevUnit *unit, struct MyBase *base) {
 
 
       /* Stop transmission and reception */
-      ppPoke (PP_LineCTL, ppPeek (PP_LineCTL) & ~(PP_LineCTL_Rx | PP_LineCTL_Tx));
+  //    ppPoke (PP_LineCTL, ppPeek (PP_LineCTL) & ~(PP_LineCTL_Rx | PP_LineCTL_Tx));
 
 
       /* Turn off media functions */
@@ -452,11 +452,11 @@ BOOL emulate = FALSE;
             else {
                 // Read status and packet size
                 
-                status = peek (0x44000001);
-                status += peek (0x44000000) << 8;
+     //           status = peek (0x44000001);
+     //           status += peek (0x44000000) << 8;
               
-                packet_size = peek (0x44000000);
-                packet_size += peek (0x44000001) << 8;
+     //           packet_size = peek (0x44000000);
+     //           packet_size += peek (0x44000001) << 8;
             }
               
             p = (UBYTE *)buffer;
@@ -467,8 +467,8 @@ BOOL emulate = FALSE;
                 if (emulate)
                     *p++ = emulated_packet [r++]; //LongIn(io_base+EL3REG_DATA0);
                 else {
-                    *p++ = peek (0x44000000);
-                    *p++ = peek (0x44000001);
+       //             *p++ = peek (0x44000000);
+       //             *p++ = peek (0x44000001);
                 }
 
          if (AddressFilter (unit, buffer + PACKET_DEST, base)) {
@@ -591,8 +591,8 @@ UBYTE *p, *end;
         if (emulate)
             *p++ = emulated_packet [i];  //LongIn(io_base+EL3REG_DATA0);
         else {
-            *p++ = peek (0x44000000);
-            *p++ = peek (0x44000001);
+ //           *p++ = peek (0x44000000);
+ //           *p++ = peek (0x44000001);
         }
    }
 
@@ -717,11 +717,9 @@ struct TypeStats *tracker;
             // to the TxCMD port and the length to TxLength port then checking
             // the BusSt register
         
-            ppPoke (PP_TxCommand, PP_TxCmd_TxStart_Full);
-            ppPoke (PP_TxLength, packet_size);
         
-           // if (ppPeek (PP_BusStat) & PP_BusStat_TxRDY) {
-             while ((ppPeek (PP_BusStat) & PP_BusStat_TxRDY) == 0);
+    
+    //         while ((ppPeek (PP_BusStat) & PP_BusStat_TxRDY) == 0);
              
             if (1) {
 
@@ -737,15 +735,8 @@ struct TypeStats *tracker;
             send_size = (packet_size + 1) & (~0x1);
 
             if ((request->ios2_Req.io_Flags & SANA2IOF_RAW) == 0) {
-                /*
-                LongToTxDataPort0 (*((ULONG *)request->ios2_DstAddr));
-                WordToTxDataPort0 (*((UWORD *)(request->ios2_DstAddr + 4)));
-
-                WordToTxDataPort0 (*((UWORD *)unit->address));
-                LongToTxDataPort0 (*((ULONG *)(unit->address + 2)));
-        
-                WordToTxDataPort0 (request->ios2_PacketType);
-                */
+     
+    /* 
                 
                 poke (0x44000000, request->ios2_DstAddr [0]);
                 poke (0x44000001, request->ios2_DstAddr [1]);
@@ -763,13 +754,8 @@ struct TypeStats *tracker;
                 
                 poke (0x44000000, (request->ios2_PacketType >> 8) & 0xff);      // Big-endian
                 poke (0x44000001, request->ios2_PacketType & 0xff);
-                
+*/                
 
-   //           LongOut(io_base+EL3REG_DATA0,*((ULONG *)request->ios2_DstAddr));
-   //           WordOut(io_base+EL3REG_DATA0,*((UWORD *)(request->ios2_DstAddr+4)));
-   //           WordOut(io_base+EL3REG_DATA0,*((UWORD *)unit->address));
-   //           LongOut(io_base+EL3REG_DATA0,*((ULONG *)(unit->address+2)));
-   //           BEWordOut(io_base+EL3REG_DATA0,request->ios2_PacketType);
                      
                 send_size -= PACKET_DATA;
             }
@@ -802,16 +788,16 @@ struct TypeStats *tracker;
                     // LongOut(io_base+EL3REG_DATA0,*buffer++);
                     //WordToTxDataPort0 (*((UWORD *)buffer));
                     
-                    poke (0x44000000, *buffer++);
-                    poke (0x44000001, *buffer++);
+              //      poke (0x44000000, *buffer++);
+              //      poke (0x44000001, *buffer++);
                     
 
                 }
 
                 if ((send_size & 0x1) != 0) {
                  //   WordToTxDataPort0 (*((UWORD *)buffer));
-                    poke (0x44000000, *buffer++);
-                    poke (0x44000001, *buffer++);
+             //       poke (0x44000000, *buffer++);
+             //       poke (0x44000001, *buffer++);
 
                 }
 
@@ -1048,7 +1034,8 @@ ULONG signals,
 
             
             // Check RxEvent (will be cleared!)
-            if (ppPeek (PP_RER) & PP_RER_RxOK)
+   //         if (ppPeek (PP_RER) & PP_RER_RxOK)
+            if (1)
                 Cause (&unit->rx_int);      // Cause soft interrupt on RX
         }
 
