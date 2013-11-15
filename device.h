@@ -45,6 +45,9 @@ struct MyBase {
 	BPTR                      log;
 	struct MinList             units;
 //	struct timerequest     *timer_request;
+
+    ULONG                    io_base;        // for dm9k_ routines
+
 };
 
 struct DevUnit {

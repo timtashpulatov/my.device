@@ -33,9 +33,10 @@ char MyLibID   [] = "37.01 (15.11.2013)";
 char VERSTRING [] = "\0$VER: dm9k 37.01 (15.11.2013)";
 
 
-struct ExecBase 	*SysBase  		= NULL;
-struct DOSBase		*DOSBase 		= NULL;
-struct UtilityBase	*UtilityBase 	= NULL;
+struct ExecBase 	*SysBase  		   = NULL;
+struct DOSBase		*DOSBase 		   = NULL;
+struct UtilityBase	*UtilityBase 	   = NULL;
+struct ExpansionBase   *ExpansionBase  = NULL;
 
 
 LONG LibStart (void) {
@@ -544,6 +545,9 @@ __saveds __stdargs ULONG L_OpenLibs (struct MyBase *MyBase)
     UtilityBase = (APTR)OpenLibrary ("utility.library", 37);
     if (!UtilityBase) return (FALSE);
 
+    ExpansionBase = (APTR)OpenLibrary ("expansion.library", 37);
+    if (!ExpansionBase) return (FALSE);
+
 //    OpenDevice (TIMERNAME, UNIT_VBLANK, (APTR)&MyBase->timer_request, 0);
 	
     MyBase->my_UtilityBase = UtilityBase;
@@ -572,6 +576,7 @@ __saveds __stdargs void L_CloseLibs (void)
 // if(IntuitionBase) CloseLibrary((struct Library *) IntuitionBase);
 	if (DOSBase) CloseLibrary ((struct Library *) DOSBase);
 	if (UtilityBase) CloseLibrary ((struct Library *) UtilityBase);
+    if (ExpansionBase) CloseLibrary ((struct Library *) ExpansionBase);
 }
 
 

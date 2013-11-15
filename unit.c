@@ -7,6 +7,8 @@
 #include <exec/semaphores.h>
 #include <dos/dos.h>
 #include <libraries/dos.h>
+#include <libraries/expansion.h>
+#include <libraries/expansionbase.h>
 #include <devices/timer.h>
 
 #include "devices/sana2.h"
@@ -38,6 +40,62 @@ struct TypeStats *FindTypeStats (struct DevUnit *unit, struct MinList *list, ULO
 VOID FlushUnit (struct DevUnit *unit, UBYTE last_queue, BYTE error, struct MyBase *base);
 void InitialiseCard (struct DevUnit *unit, struct MyBase *base);
 VOID ConfigureCard (struct DevUnit *unit, struct MyBase *base);
+
+
+
+UBYTE fakeMAC [6] = {0x00, 0x44, 0x66, 0x88, 0xaa, 0xcc};
+
+/*****************************************************************************
+ *
+ * InitialiseCard
+ *
+ *****************************************************************************/
+void InitialiseCard (struct DevUnit *unit, struct MyBase *base) {
+UBYTE *p, i;
+struct ConfigDev *myCD;
+
+
+    Debug ("\n     Searching for card\n");
+
+    myCD = NULL;
+
+    // search for all ConfigDevs
+    while (myCD = (struct ConfigDev *)FindConfigDev (myCD, 5030, 24)) {     // TODO put some defines
+        Debug ("     FindConfigDev success\n");
+        break;
+    }
+
+    if (myCD) {
+        Debug ("     Found card at 0x\n");
+        unit->io_base = (UBYTE *)myCD->cd_BoardAddr;
+        
+        base->io_base = (LONG)myCD->cd_BoardAddr;
+        
+        
+        // Hack: use register 34H to control LEDs via GPIO
+        dm9k_write (base->io_base, LEDCR, 0x02);
+        dm9k_write (base->io_base, GPCR, 0x06);        // GP2..GP1 for output
+        dm9k_write (base->io_base, GPR, 0x06);         // GP2..GP1 set to 1
+        
+    }
+    else {
+        Debug ("     No card\n");
+    }
+
+
+    // Get default MAC address
+    p = unit->default_address;
+
+    for (i = 0; i < ADDRESS_SIZE; i ++) {
+        *p++ = fakeMAC [i];
+    }
+
+
+    Flush (base->log);
+
+}
+
+
 
 
 /*****************************************************************************
@@ -167,11 +225,20 @@ APTR stack;
         unit->request_ports [WRITE_QUEUE]->mp_Flags = PA_SOFTINT;
     }
 
+
     if (success) {
+        
+        /* Find card and obtain its io_base address */
+        
+        unit->io_base = NULL;
         
         InitialiseCard (unit, base);
         
-        ConfigureCard (unit, base);
+        if (unit->io_base == NULL)
+            success = FALSE;
+    }
+    
+    if (success) {
         
         /* Create a new task */
 
@@ -212,6 +279,8 @@ APTR stack;
       DeleteUnit (unit, base);
       unit = NULL;
    }
+
+    Flush (base->log);
 
    return unit;
 }
@@ -907,23 +976,6 @@ struct List *list;
    return;
 }
 
-UBYTE fakeMAC [6] = {0x00, 0x44, 0x66, 0x88, 0xaa, 0xcc};
-
-/*****************************************************************************
- *
- * InitialiseCard
- *
- *****************************************************************************/
-void InitialiseCard (struct DevUnit *unit, struct MyBase *base) {
-UBYTE *p, i;
-    
-    // Get default MAC address
-    p = unit->default_address;
-
-    for (i = 0; i < ADDRESS_SIZE; i ++) {
-        *p++ = fakeMAC [i];
-    }    
-}
 
 /*****************************************************************************
  *
@@ -962,6 +1014,9 @@ UBYTE i;
 
    return;
 }
+
+
+
 
 #define INTERVAL_MICROSECONDS 20000
 

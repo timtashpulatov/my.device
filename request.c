@@ -251,6 +251,11 @@ static BOOL CmdFlush (struct IORequest *request,struct MyBase *base) {
 }
 
 
+/*****************************************************************************
+ *
+ * CmdS2DeviceQuery
+ *
+ *****************************************************************************/
 static BOOL CmdS2DeviceQuery (struct IOSana2Req *request, struct MyBase *base) {
 struct DevUnit *unit;
 struct Sana2DeviceQuery *info;
@@ -275,7 +280,11 @@ ULONG size_available, size;
 }
 
 
-
+/*****************************************************************************
+ *
+ * CmdGetStationAddress
+ *
+ *****************************************************************************/
 static BOOL CmdGetStationAddress (struct IOSana2Req *request, struct MyBase *base) {
 struct DevUnit *unit;
 
@@ -287,7 +296,11 @@ struct DevUnit *unit;
 }
 
 
-
+/*****************************************************************************
+ *
+ * CmdConfigInterface
+ *
+ *****************************************************************************/
 static BOOL CmdConfigInterface(struct IOSana2Req *request, struct MyBase *base) {
 struct DevUnit *unit;
 
