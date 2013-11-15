@@ -27,7 +27,7 @@
 
 #define UNIT_COUNT 1
 
-char device_name [] = "my.device";
+char device_name [] = "dm9000.device";
 char MyLibID   [] = "37.01 (25.07.2013)";
 
 char VERSTRING [] = "\0$VER: my 37.01 (25.07.2013)";
