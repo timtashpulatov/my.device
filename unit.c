@@ -543,13 +543,13 @@ BOOL emulate = FALSE;
 
     rx_status = 0;  // hack
 
-    do {    
+//    do {    
         r = dm9k_read (unit->io_base, MRCMDX);  // dummy read        
         r = dm9k_read (unit->io_base, MRCMDX);
 
         if (r == 0x01) {
 
-            /* Read packet header */
+            // Read packet header
 
             is_orphan = TRUE;
      
@@ -561,7 +561,7 @@ BOOL emulate = FALSE;
             p = buffer;
          
             while (p < end)           
-                (*(UWORD *)p) ++ = ntohw (dm9k_read_w (unit->io_base, MRCMD)); 
+                *p ++ = ntohw (dm9k_read_w (unit->io_base, MRCMD)); 
 
 
          if (AddressFilter (unit, buffer + PACKET_DEST, base)) {
@@ -631,9 +631,11 @@ BOOL emulate = FALSE;
    //   while((LEWordIn(io_base+EL3REG_STATUS)&
     //     EL3REG_STATUSF_CMDINPROGRESS)!=0);
 //      Enable();
-    }               //while (ppPeek (PP_RER != 0x0004));
 
-   /* Return */
+
+//    }               //while (ppPeek (PP_RER != 0x0004));
+
+
 
 //   LEWordOut(io_base+EL3REG_COMMAND,EL3CMD_SETINTMASK|INT_MASK);
    return;
@@ -648,7 +650,7 @@ BOOL emulate = FALSE;
 static VOID CopyPacket (struct DevUnit *unit, struct IOSana2Req *request,
    UWORD packet_size, UWORD packet_type, BOOL all_read, struct MyBase *base,
    BOOL emulate) {
-//volatile UBYTE *io_base;
+volatile UBYTE *io_base;
 struct Opener *opener;
 UBYTE *buffer;
 BOOL filtered = FALSE;
@@ -656,9 +658,10 @@ UBYTE *p, *end;
 
    /* Set multicast and broadcast flags */
 
-//   io_base=unit->io_base;
+   io_base=unit->io_base;
    buffer = unit->rx_buffer;
    request->ios2_Req.io_Flags &= ~(SANA2IOF_BCAST | SANA2IOF_MCAST);    // clear bcast and mcast flags
+
    if ((*((ULONG *)(buffer + PACKET_DEST)) == 0xffffffff) &&
        (*((UWORD *)(buffer + PACKET_DEST + 4)) == 0xffff))
         request->ios2_Req.io_Flags |= SANA2IOF_BCAST;
@@ -683,10 +686,9 @@ UBYTE *p, *end;
       while (p < end)
         if (emulate)
             *p++ = emulated_packet [i];  //LongIn(io_base+EL3REG_DATA0);
-        else {
- //           *p++ = peek (0x44000000);
- //           *p++ = peek (0x44000001);
-        }
+        else
+            *p++ = dm9k_read (io_base, MRCMD);
+
    }
 
    if ((request->ios2_Req.io_Flags & SANA2IOF_RAW) == 0) {
