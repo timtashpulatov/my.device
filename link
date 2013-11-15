@@ -1,2 +1,2 @@
-vc -vv -nostdlib -lamiga -o my.device mylib.o unit.o request.o cs8900.o
+vc -vv -nostdlib -lamiga -o my.device mylib.o unit.o request.o dm9000.o
 

@@ -929,15 +929,19 @@ UBYTE i;
 
     for (i = 0; i < ADDRESS_SIZE; i += 2)
 //      ByteOut (io_base+EL3REG_ADDRESS0+i,unit->address[i]);
-        ppPoke (PP_IA + i, unit->address [i] + (unit->address [i + 1] << 8));
+   //     ppPoke (PP_IA + i, unit->address [i] + (unit->address [i + 1] << 8));
 
    /* Decide on promiscuous mode */
 
     if ((unit->flags & UNITF_PROM) != 0)
-        ppPoke (PP_RxCTL, PP_RxCTL_Promiscuous | PP_RxCTL_RxOK /*| PP_RxCTL_RUNT */);
+    
+    ;
+    
+     //   ppPoke (PP_RxCTL, PP_RxCTL_Promiscuous | PP_RxCTL_RxOK /*| PP_RxCTL_RUNT */);
     else
-        ppPoke (PP_RxCTL, PP_RxCTL_IA | PP_RxCTL_Broadcast | PP_RxCTL_RxOK);
+     //   ppPoke (PP_RxCTL, PP_RxCTL_IA | PP_RxCTL_Broadcast | PP_RxCTL_RxOK);
 
+    ;
 
    /* Go online */
 
