@@ -936,7 +936,11 @@ struct TypeStats *tracker;
 }
 
 
-
+/*****************************************************************************
+ *
+ * TxError
+ *
+ *****************************************************************************/
 static VOID TxError (struct DevUnit *unit, struct MyBase *base) {
 volatile UBYTE *io_base;
 UBYTE tx_status, flags = 0;
@@ -967,6 +971,7 @@ UBYTE tx_status, flags = 0;
 
    return;
 }
+
 
 /*****************************************************************************
  *
