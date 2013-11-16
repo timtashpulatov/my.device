@@ -70,6 +70,16 @@ UWORD dm9k_read_w (ULONG io_addr, UBYTE reg) {
 }
 
 /************************************************************
+ * dm9k_read_block
+ ************************************************************/
+void dm9k_read_block (ULONG io_addr, UBYTE reg, UBYTE *dst, UWORD len) {
+    poke (io_addr, reg);
+    while (len --)
+        *dst ++ = peek (io_addr + 4);
+}
+
+
+/************************************************************
  * dm9k_write
  ************************************************************/
 void dm9k_write (ULONG io_addr, UBYTE reg, UBYTE value) {
@@ -81,7 +91,13 @@ void dm9k_write (ULONG io_addr, UBYTE reg, UBYTE value) {
  * dm9k_set_bits
  ************************************************************/
 void dm9k_set_bits (ULONG io_addr, UBYTE reg, UBYTE value) {
-    dm9k_write (io_addr, reg, dm9k_read (io_addr, reg) | value);
+UBYTE tmp;
+
+    poke (io_addr, reg);
+    tmp = peek (io_addr + 4) | value;
+    poke (io_addr + 4, tmp);
+    
+    // dm9k_write (io_addr, reg, dm9k_read (io_addr, reg) | value);
 }
 
 
