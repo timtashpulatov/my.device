@@ -20,13 +20,13 @@
 #define TSR2        0x04    // TX Status Register II
 
 #define RCR         0x05    // RX Control Register
-#define RCR_WTDIS    0x40    // Watchdog Timer Disable. When set, the Watchdog Timer (2048 bytes) is disabled. Otherwise it is enabled
-#define RCR_DIS_LONG 0x20    // Discard Long Packet (Packet length is over 1522 bytes)
-#define RCR_DIS_CRC  0x10    // Discard CRC Error Packet
-#define RCR_ALL      0x08    // Pass All Multicast
-#define RCR_RUNT     0x04    // Pass Runt Packet
-#define RCR_PRMSC    0x02    // Promiscuous Mode
-#define RCR_RXEN     0x01    // RX Enable
+#define 	RCR_WTDIS    0x40    // Watchdog Timer Disable. When set, the Watchdog Timer (2048 bytes) is disabled. Otherwise it is enabled
+#define 	RCR_DIS_LONG 0x20    // Discard Long Packet (Packet length is over 1522 bytes)
+#define 	RCR_DIS_CRC  0x10    // Discard CRC Error Packet
+#define 	RCR_ALL      0x08    // Pass All Multicast
+#define 	RCR_RUNT     0x04    // Pass Runt Packet
+#define 	RCR_PRMSC    0x02    // Promiscuous Mode
+#define 	RCR_RXEN     0x01    // RX Enable
 
 #define RSR         0x06    // RX Status Register
 #define ROCR        0x07    // Receive Overflow Counter Register
@@ -38,7 +38,7 @@
 #define     FCR_TXPF     0x40    // TX Pause packet. Auto clears after pause packet transmission completion. Set to TX pause packet with time = FFFFH
 #define     FCR_TXPEN    0x20    // Force TX Pause Packet Enable. Enables the pause packet for high/low water threshold control
 #define     FCR_BKPA     0x10    // Back Pressure Mode. This mode is for half duplex mode only. It generates a jam pattern when any packet comes and RX SRAM is over BPHW of register 8.
-#define     FCR_BKPM     0x08    // Back Pressure Mode. This mode is for half duplex mode only. It generates a jam pattern when a packet’s DA matches and RX SRAM is over BPHW of register 8.
+#define     FCR_BKPM     0x08    // Back Pressure Mode. This mode is for half duplex mode only. It generates a jam pattern when a packetï¿½s DA matches and RX SRAM is over BPHW of register 8.
 #define     FCR_RXPS     0x04    // RX Pause Packet Status, latch and read clearly
 #define     FCR_RXPCS    0x02    // RX Pause Packet Current Status
 #define     FCR_FLCE     0x01    // Flow Control Enable. Set to enable the flow control mode (i.e. can disable DM9000B TX function)
@@ -73,7 +73,7 @@
 #define     GPR_PHYPD   0x01    // PHY Power Down Control 
                                 //      1: power down PHY 
                                 //      0: power up PHY
-                                // If this bit is updated from ‘1’ to ‘0’, the whole MAC Registers can not be accessed within 1ms.
+                                // If this bit is updated from ï¿½1ï¿½ to ï¿½0ï¿½, the whole MAC Registers can not be accessed within 1ms.
 
 #define VIDL        0x28    // Vendor ID
 #define VIDH        0x29
@@ -95,26 +95,27 @@
 #define MRCMD       0xf2    // Memory Data Read Command with Address Increment Register
 
 #define ISR         0xfe    // Interrupt Status Register
-#define ISR_IOMODE   0x80    // 0 : 16-bit mode 1: 8-bit mode
-#define ISR_RSVD     0x40
-#define ISR_LNKCHG   0x20    // Link Status Change
-#define ISR_UDRUN    0x10    // Transmit Under-run
-#define ISR_ROO      0x08    // Receive Overflow Counter Overflow
-#define ISR_ROS      0x04    // Receive Overflow
-#define ISR_PT       0x02    // Packet Transmitted
-#define ISR_PR       0x01    // Packet Received
+#define 	ISR_IOMODE   0x80    // 0 : 16-bit mode 1: 8-bit mode
+#define 	ISR_RSVD     0x40
+#define 	ISR_LNKCHG   0x20    // Link Status Change
+#define 	ISR_UDRUN    0x10    // Transmit Under-run
+#define 	ISR_ROO      0x08    // Receive Overflow Counter Overflow
+#define 	ISR_ROS      0x04    // Receive Overflow
+#define 	ISR_PT       0x02    // Packet Transmitted
+#define 	ISR_PR       0x01    // Packet Received
 
 #define IMR         0xff    // Interrupt Mask Register
-#define IMR_PAR      0x80    // Enable the SRAM read/write pointer to automatically return to the start address when pointer addresses are over the SRAM size. 
+#define 	IMR_PAR      0x80    // Enable the SRAM read/write pointer to automatically return to the start address when pointer addresses are over the SRAM size. 
                              // When driver sets this bit, REG_F5 will set to 0Ch automatically
 #define IMR_RSVD     0x40
-#define IMR_LNKCHGI  0x20    // Enable Link Status Change Interrupt
-#define IMR_UDRUNI   0x10    // Enable Transmit Under-run Interrupt
-#define IMR_ROOI     0x08    // Enable Receive Overflow Counter Overflow Interrupt
-#define IMR_ROI      0x04    // Enable Receive Overflow Interrupt
-#define IMR_PTI      0x02    // Enable Packet Transmitted Interrupt
-#define IMR_PRI      0x01    // Enable Packet Received Interrupt
+#define 	IMR_LNKCHGI  0x20    // Enable Link Status Change Interrupt
+#define 	IMR_UDRUNI   0x10    // Enable Transmit Under-run Interrupt
+#define 	IMR_ROOI     0x08    // Enable Receive Overflow Counter Overflow Interrupt
+#define 	IMR_ROI      0x04    // Enable Receive Overflow Interrupt
+#define 	IMR_PTI      0x02    // Enable Packet Transmitted Interrupt
+#define 	IMR_PRI      0x01    // Enable Packet Received Interrupt
 
+/* Phy Registers */
 
 #define PHY_CONTROL 0x00
 #define PHY_STATUS  0x01
