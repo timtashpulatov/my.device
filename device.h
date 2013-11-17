@@ -46,7 +46,7 @@ struct MyBase {
 	struct MinList             units;
 //	struct timerequest     *timer_request;
 
-    ULONG                    io_base;        // for dm9k_ routines
+    APTR                    io_base;        // for dm9k_ routines
 
 };
 

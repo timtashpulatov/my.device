@@ -71,7 +71,7 @@ struct ConfigDev *myCD;
         
         unit->io_base = (UBYTE *)myCD->cd_BoardAddr;
         
-        base->io_base = (LONG)myCD->cd_BoardAddr;
+        base->io_base = (APTR)myCD->cd_BoardAddr;
         
         // Set drive current strength
         dm9k_write (base->io_base, BUSCR, 0x40);
