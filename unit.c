@@ -550,10 +550,14 @@ BOOL emulate = FALSE;
     rx_status = 0;  // hack
 
 //    do {    
+    
+    /*
         r = dm9k_read (unit->io_base, MRCMDX);  // dummy read        
         r = dm9k_read (unit->io_base, MRCMDX);
 
         if (r == 0x01) {
+*/
+        if (dm9000_packet_ready (unit->io_base)) {
 
             // Read packet header
 
@@ -1149,10 +1153,13 @@ UBYTE rxbyte;
 
             SendIO ((struct IORequest *)TimerIO);
 
+
             rxbyte = dm9k_read (unit->io_base, MRCMDX);    // dummy read
             rxbyte = dm9k_read (unit->io_base, MRCMDX);
       
-            if (rxbyte == 0x01)
+//            if (rxbyte == 0x01)
+
+//            if (dm9000_packet_ready (unit->io_base))     // TODO better replace it with RX interrupt check
                 Cause (&unit->rx_int);      // Cause soft interrupt on RX
         }
 

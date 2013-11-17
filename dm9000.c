@@ -192,6 +192,13 @@ void dm9k_phy_up (APTR io_addr) {
     dm9k_write (io_addr, GPR, 0);
 }
 
+/************************************************************
+ * dm9000_packet_ready
+ ************************************************************/
+UBYTE dm9000_packet_ready (APTR io_addr) {
+    return (dm9k_read (io_addr, MRCMDX) == 0x01);
+}
+
 
 UWORD ntohw (UWORD val) {
     return ((val >> 8) & 0x00ff) | ((val << 8) & 0xff00);
