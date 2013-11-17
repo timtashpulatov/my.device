@@ -675,14 +675,14 @@ static VOID CopyPacket (struct DevUnit *unit, struct IOSana2Req *request,
    BOOL emulate) {
 volatile UBYTE *io_base;
 struct Opener *opener;
-UBYTE *buffer;
+UWORD *buffer;
 BOOL filtered = FALSE;
-UBYTE *p, *end;
+UWORD *p, *end;
 
    /* Set multicast and broadcast flags */
 
-   io_base=unit->io_base;
-   buffer = unit->rx_buffer;
+   io_base = unit->io_base;
+   buffer = (UWORD *)unit->rx_buffer;
    request->ios2_Req.io_Flags &= ~(SANA2IOF_BCAST | SANA2IOF_MCAST);    // clear bcast and mcast flags
 
    if ((*((ULONG *)(buffer + PACKET_DEST)) == 0xffffffff) &&
@@ -692,8 +692,8 @@ UBYTE *p, *end;
         request->ios2_Req.io_Flags |= SANA2IOF_MCAST;
 
    /* Set source and destination addresses and packet type */
-   CopyMem (buffer + PACKET_SOURCE, request->ios2_SrcAddr, ADDRESS_SIZE);
-   CopyMem (buffer + PACKET_DEST, request->ios2_DstAddr, ADDRESS_SIZE);
+   CopyMem ((UBYTE *)buffer + PACKET_SOURCE, request->ios2_SrcAddr, ADDRESS_SIZE);
+   CopyMem ((UBYTE *)buffer + PACKET_DEST, request->ios2_DstAddr, ADDRESS_SIZE);
    request->ios2_PacketType = packet_type;
 
    /* Read rest of packet */
@@ -702,22 +702,19 @@ UBYTE *p, *end;
     if (1) {  // HAHAHACK
     UWORD i;
     
-      p = (UBYTE *)(buffer + ((PACKET_DATA + 1) & ~1));              // p=(ULONG *)(buffer+((PACKET_DATA+3)&~3));
-      end = (UBYTE *)(buffer + packet_size);
+        p = (UWORD *)((UBYTE *)buffer + ((PACKET_DATA + 1) & ~1));              // p=(ULONG *)(buffer+((PACKET_DATA+3)&~3));
+        end = (UWORD *)((UBYTE *)buffer + packet_size);
       
-      i = 0;
-      while (p < end)
-        if (emulate)
-            *p++ = emulated_packet [i];  //LongIn(io_base+EL3REG_DATA0);
-        else
-            *(UWORD *)p ++ = dm9k_read_w (io_base, MRCMD);
+        while (p < end)
+            *p ++ = dm9k_read_w (io_base, MRCMD);
 
-   }
+    }
 
-   if ((request->ios2_Req.io_Flags & SANA2IOF_RAW) == 0) {
-      packet_size -= PACKET_DATA;
-      buffer += PACKET_DATA;
-   }
+    if ((request->ios2_Req.io_Flags & SANA2IOF_RAW) == 0) {
+        packet_size -= PACKET_DATA;
+        buffer += PACKET_DATA;
+    }
+
 #ifdef USE_HACKS
    else
       packet_size += 4;   /* Needed for Shapeshifter & Fusion */
