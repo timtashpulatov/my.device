@@ -196,7 +196,10 @@ void dm9k_phy_up (APTR io_addr) {
  * dm9000_packet_ready
  ************************************************************/
 UBYTE dm9000_packet_ready (APTR io_addr) {
-    return (dm9k_read (io_addr, MRCMDX) == 0x01);
+UBYTE tmp;
+    tmp = dm9k_read (io_addr, MRCMDX);  // dummy read
+    tmp = dm9k_read (io_addr, MRCMDX);
+    return (tmp == 0x01);
 }
 
 
