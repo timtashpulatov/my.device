@@ -533,13 +533,19 @@ struct IOSana2Req *request, *request_tail;
 struct Opener *opener, *opener_tail;
 struct TypeStats *tracker;
 
-UWORD r;
+UBYTE r;
 BOOL emulate = FALSE;
+
 
 
     base = unit->device;
     buffer = unit->rx_buffer;
-    end = (UBYTE *)(buffer + HEADER_SIZE);
+    end = (buffer + HEADER_SIZE);
+
+
+    /* LED FUN */
+    dm9k_write (base->io_base, GPR, 0x02);         // GP2..GP1 set to 01
+
 
     rx_status = 0;  // hack
 
@@ -561,14 +567,15 @@ BOOL emulate = FALSE;
             p = buffer;
          
             while (p < end)           
-                *p ++ = ntohw (dm9k_read_w (unit->io_base, MRCMD)); 
+                *(UWORD *)p ++ = /* ntohw */ (dm9k_read_w (unit->io_base, MRCMD)); 
 
 
-         if (AddressFilter (unit, buffer + PACKET_DEST, base)) {
-            packet_type = BEWord (*((UWORD *)(buffer + PACKET_TYPE)));
+            if (AddressFilter (unit, buffer + PACKET_DEST, base)) {
+                
+                packet_type = BEWord (*((UWORD *)(buffer + PACKET_TYPE)));
 
-            opener = (APTR)unit->openers.mlh_Head;
-            opener_tail = (APTR)&unit->openers.mlh_Tail;
+                opener = (APTR)unit->openers.mlh_Head;
+                opener_tail = (APTR)&unit->openers.mlh_Tail;
 
                 /* Offer packet to every opener */
 
@@ -587,6 +594,7 @@ BOOL emulate = FALSE;
 
                             CopyPacket (unit, request, packet_size, packet_type,
                                 !is_orphan, base, emulate);
+                                
                             accepted = TRUE;
                         }
                         request = (APTR)request->ios2_Req.io_Message.mn_Node.ln_Succ;
@@ -602,6 +610,7 @@ BOOL emulate = FALSE;
                 if (is_orphan) {
                     unit->stats.UnknownTypesReceived ++;
                     if (!IsMsgPortEmpty (unit->request_ports [ADOPT_QUEUE])) {
+                        
                         CopyPacket (unit, (APTR)unit->request_ports [ADOPT_QUEUE]->mp_MsgList.lh_Head, 
                                 packet_size, packet_type,
                                 TRUE /* FALSE */, base, emulate);
@@ -617,6 +626,13 @@ BOOL emulate = FALSE;
                     tracker->stats.PacketsReceived ++;
                     tracker->stats.BytesReceived += packet_size;
                 }
+                
+                
+                    /* LED FUN */
+                    dm9k_write (base->io_base, GPR, 0x04);         // GP2..GP1 set to 10
+
+                
+                
             }
         }
         else {
@@ -633,7 +649,7 @@ BOOL emulate = FALSE;
 //      Enable();
 
 
-//    }               //while (ppPeek (PP_RER != 0x0004));
+//    } while (dm9k_read (unit->io_base, MRCMDX) == 0x01);              //while (ppPeek (PP_RER != 0x0004));
 
 
 
@@ -687,7 +703,7 @@ UBYTE *p, *end;
         if (emulate)
             *p++ = emulated_packet [i];  //LongIn(io_base+EL3REG_DATA0);
         else
-            *p++ = dm9k_read (io_base, MRCMD);
+            *(UWORD *)p ++ = dm9k_read_w (io_base, MRCMD);
 
    }
 
@@ -1044,7 +1060,7 @@ UBYTE i;
 
 
 
-#define INTERVAL_MICROSECONDS 500000
+#define INTERVAL_MICROSECONDS 200000
 
 /*****************************************************************************
  *
@@ -1120,6 +1136,10 @@ UBYTE rxbyte;
 
         if ((signals & timer_port_signal) != 0) {
             UWORD r;
+
+
+    /* LED FUN */
+    dm9k_write (unit->io_base, GPR, 0x00);         // GP2..GP1 set to 00
             
             // Setup next timer signal
             
@@ -1129,8 +1149,8 @@ UBYTE rxbyte;
 
             SendIO ((struct IORequest *)TimerIO);
 
-            rxbyte = dm9k_read (MRCMDX);    // dummy read
-            rxbyte = dm9k_read (MRCMDX);
+            rxbyte = dm9k_read (unit->io_base, MRCMDX);    // dummy read
+            rxbyte = dm9k_read (unit->io_base, MRCMDX);
       
             if (rxbyte == 0x01)
                 Cause (&unit->rx_int);      // Cause soft interrupt on RX
