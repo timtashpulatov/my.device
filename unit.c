@@ -399,16 +399,19 @@ VOID GoOffline (struct DevUnit *unit, struct MyBase *base) {
 
 //   io_base = unit->io_base;
   
-  unit->flags &= ~UNITF_ONLINE;
+    unit->flags &= ~UNITF_ONLINE;
 
-//   if((unit->flags&UNITF_HAVEADAPTER)!=0)
-    if (1)
+
    {
       /* Stop interrupts */
+
+    dm9lk_write (IMR, 0);   // disable all interrupts
 
 
       /* Stop transmission and reception */
   //    ppPoke (PP_LineCTL, ppPeek (PP_LineCTL) & ~(PP_LineCTL_Rx | PP_LineCTL_Tx));
+    
+    dm9k_write (RCR, 0);    // stop RX
 
 
       /* Turn off media functions */
