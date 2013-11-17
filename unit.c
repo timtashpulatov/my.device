@@ -530,8 +530,8 @@ struct MyBase *base;
 BOOL is_orphan, accepted;
 ULONG packet_type;
 UWORD status;
-UBYTE *p, *end;
-UBYTE *buffer;
+UWORD *p, *end;
+UWORD *buffer;
 struct IOSana2Req *request, *request_tail;
 struct Opener *opener, *opener_tail;
 struct TypeStats *tracker;
@@ -542,8 +542,8 @@ BOOL emulate = FALSE;
 
 
     base = unit->device;
-    buffer = unit->rx_buffer;
-    end = (buffer + HEADER_SIZE);
+    buffer = (UWORD *)unit->rx_buffer;
+    end = (buffer + (HEADER_SIZE / 2));
 
 
     /* LED FUN */
@@ -574,7 +574,7 @@ BOOL emulate = FALSE;
             p = buffer;
          
             while (p < end)           
-                *(UWORD *)p ++ = /* ntohw */ (dm9k_read_w (unit->io_base, MRCMD)); 
+                *p++ = /* ntohw */ (dm9k_read_w (unit->io_base, MRCMD)); 
 
 
             if (AddressFilter (unit, buffer + PACKET_DEST, base)) {
