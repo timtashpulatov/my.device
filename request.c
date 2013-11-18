@@ -327,7 +327,11 @@ struct DevUnit *unit;
 
 
 
-
+/*****************************************************************************
+ *
+ * CmdBroadcast
+ *
+ *****************************************************************************/
 static BOOL CmdBroadcast (struct IOSana2Req *request, struct MyBase *base) {
    /* Fill in the broadcast address as destination */
 

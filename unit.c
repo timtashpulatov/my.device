@@ -43,7 +43,8 @@ VOID ConfigureCard (struct DevUnit *unit, struct MyBase *base);
 
 
 
-UBYTE fakeMAC [6] = {0x00, 0x44, 0x66, 0x88, 0xaa, 0xcc};
+//UBYTE fakeMAC [6] = {0x00, 0x44, 0x66, 0x88, 0xaa, 0xcc};
+UBYTE fakeMAC [6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
 /*****************************************************************************
  *
@@ -73,39 +74,52 @@ struct ConfigDev *myCD;
         
         base->io_base = (APTR)myCD->cd_BoardAddr;
         
+
         // Set drive current strength
         dm9k_write (base->io_base, BUSCR, 0x40);
                 
-        dm9k_phy_reset (base->io_base);      // (1) PHY RESET
-        dm9k_phy_down (base->io_base);       // (2) PHY POWER_DOWN
-                                // (3)
-        dm9k_reset (base->io_base);          // (4) Software RESET
-        dm9k_phy_up (base->io_base);         // (5) PHY ENABLE
-
-        // Set registers
-        dm9k_write (base->io_base, NCR, 0);                                    // normal mode
-        dm9k_write (base->io_base, TCR, 0);                                    // TX polling clear
-        dm9k_set_bits (base->io_base, RCR, RCR_DIS_CRC);                       // discard RX CRC Error Packet
-        dm9k_set_bits (base->io_base, FCR, FCR_FLCE);                          // Flow Control FLCE bit ON
-                                                                // WUCR    LINK WAKE_UP bits ON or not
-        dm9k_write (base->io_base, NSR, NSR_WAKEST | NSR_TX2END | NSR_TX1END); // clear Network Status latched bits
-        dm9k_write (base->io_base, ISR, ISR_ROO | ISR_ROS | ISR_PT | ISR_PR);  // clear Interrupt Status latched bits
-
-        // MAC Node Address and FILTER Hash Table
-        // dm9000_hash_table(dev); /* map HASH Table (see ch.3-1 & ch.6 ) */
-
-        // Activate DM9000
-        dm9k_set_bits (base->io_base, RCR, RCR_RXEN | RCR_PRMSC | RCR_ALL);    // RXCR.0 RXEN bit ON Enable
-        dm9k_write (base->io_base, IMR, IMR_PAR | IMR_PTI | IMR_PRI);          // IMR.7 PAR bit ON and TX & RX INT MASK ON        
 
 
-
+        dm9k_phy_reset (base->io_base);     // (1) PHY RESET
+        Delay (2);
+        dm9k_phy_down (base->io_base);      // (2) PHY POWER_DOWN
+        Delay (2);
+                                            // (3)
+        dm9k_reset (base->io_base);         // (4) Software RESET  - wait 20 us
         
+        Delay (2);
+        
+        dm9k_phy_up (base->io_base);         // (5) PHY ENABLE      - wait 64 us
+
+        Delay (2);
+
+
+// Set registers
+    dm9k_write (base->io_base, NCR, 0);                                    // normal mode
+    dm9k_write (base->io_base, TCR, 0);                                    // TX polling clear
+    dm9k_set_bits (base->io_base, RCR, RCR_DIS_CRC);                       // discard RX CRC Error Packet
+    dm9k_set_bits (base->io_base, FCR, FCR_FLCE);                          // Flow Control FLCE bit ON
+                                                                // WUCR    LINK WAKE_UP bits ON or not
+    dm9k_write (base->io_base, NSR, NSR_WAKEST | NSR_TX2END | NSR_TX1END); // clear Network Status latched bits
+    dm9k_write (base->io_base, ISR, ISR_ROO | ISR_ROS | ISR_PT | ISR_PR);  // clear Interrupt Status latched bits
+
+    // MAC Node Address and FILTER Hash Table
+    // dm9000_hash_table(dev); /* map HASH Table (see ch.3-1 & ch.6 ) */
+
+    // Activate DM9000
+    dm9k_set_bits (base->io_base, RCR, RCR_RXEN | RCR_PRMSC | RCR_ALL);    // RXCR.0 RXEN bit ON Enable
+    dm9k_write (base->io_base, IMR, IMR_PAR | IMR_PTI | IMR_PRI);          // IMR.7 PAR bit ON and TX & RX INT MASK ON
+
+
+
+
+
+/*        
         // Hack: use register 34H to control LEDs via GPIO
         dm9k_write (base->io_base, LEDCR, 0x02);
         dm9k_write (base->io_base, GPCR, 0x06);        // GP2..GP1 for output
         dm9k_write (base->io_base, GPR, 0x06);         // GP2..GP1 set to 1
-
+*/
 
 
         
@@ -369,15 +383,21 @@ struct Task *task;
  *****************************************************************************/
 VOID GoOnline (struct DevUnit *unit, struct MyBase *base) {
 //volatile UBYTE *io_base;
-UWORD transceiver;
+
+
+    // LEDs on
+//    dm9k_write (base->io_base, GPR, 0x06);
+
 
     /* Choose interrupts */
     unit->flags |= UNITF_ONLINE;
 
+
+
     // Enable RX and TX
 
-    dm9k_set_bits (base->io_base, RCR, RCR_RXEN | RCR_PRMSC | RCR_ALL);
-    
+    dm9k_write (base->io_base, RCR, RCR_RXEN | RCR_PRMSC | RCR_ALL);
+    dm9k_write (base->io_base, IMR, IMR_PAR | IMR_PTI | IMR_PRI);          // IMR.7 PAR bit ON and TX & RX INT MASK ON        
 
 
    /* Record start time and report Online event */
@@ -403,15 +423,21 @@ VOID GoOffline (struct DevUnit *unit, struct MyBase *base) {
 
 
    {
+        
+    // LEDs off
+//    dm9k_write (unit->io_base, GPR, 0x00);
+    
+        
+        
       /* Stop interrupts */
 
-    dm9lk_write (IMR, 0);   // disable all interrupts
+    dm9k_write (unit->io_base, IMR, 0);   // disable all interrupts
 
 
       /* Stop transmission and reception */
   //    ppPoke (PP_LineCTL, ppPeek (PP_LineCTL) & ~(PP_LineCTL_Rx | PP_LineCTL_Tx));
     
-    dm9k_write (RCR, 0);    // stop RX
+    dm9k_write (unit->io_base, RCR, 0);    // stop RX
 
 
       /* Turn off media functions */
@@ -546,21 +572,17 @@ BOOL emulate = FALSE;
     end = (buffer + (HEADER_SIZE / 2));
 
 
-    /* LED FUN */
-    dm9k_write (base->io_base, GPR, 0x02);         // GP2..GP1 set to 01
-
-
-    rx_status = 0;  // hack
-
 //    do {    
     
-    /*
+    
         r = dm9k_read (unit->io_base, MRCMDX);  // dummy read        
         r = dm9k_read (unit->io_base, MRCMDX);
 
         if (r == 0x01) {
-*/
-        if (dm9000_packet_ready (unit->io_base)) {
+
+//        if (dm9000_packet_ready (unit->io_base)) {
+
+
 
             // Read packet header
 
@@ -577,7 +599,7 @@ BOOL emulate = FALSE;
                 *p++ = /* ntohw */ (dm9k_read_w (unit->io_base, MRCMD)); 
 
 
-            if (AddressFilter (unit, buffer + PACKET_DEST, base)) {
+            if (AddressFilter (unit, (UBYTE *)buffer + PACKET_DEST, base)) {
                 
                 packet_type = BEWord (*((UWORD *)(buffer + PACKET_TYPE)));
 
@@ -632,14 +654,7 @@ BOOL emulate = FALSE;
                 if (tracker != NULL) {
                     tracker->stats.PacketsReceived ++;
                     tracker->stats.BytesReceived += packet_size;
-                }
-                
-                
-                    /* LED FUN */
-                    dm9k_write (base->io_base, GPR, 0x04);         // GP2..GP1 set to 10
-
-                
-                
+                }                                              
             }
         }
         else {
@@ -1064,7 +1079,7 @@ UBYTE i;
 
 
 
-#define INTERVAL_MICROSECONDS 200000
+#define INTERVAL_MICROSECONDS 100000
 
 /*****************************************************************************
  *
@@ -1139,12 +1154,8 @@ UBYTE rxbyte;
       signals = Wait (wait_signals);
 
         if ((signals & timer_port_signal) != 0) {
-            UWORD r;
+            UWORD r;            
 
-
-    /* LED FUN */
-    dm9k_write (unit->io_base, GPR, 0x00);         // GP2..GP1 set to 00
-            
             // Setup next timer signal
             
             TimerIO->tr_node.io_Command = TR_ADDREQUEST;
@@ -1154,12 +1165,15 @@ UBYTE rxbyte;
             SendIO ((struct IORequest *)TimerIO);
 
 
-            rxbyte = dm9k_read (unit->io_base, MRCMDX);    // dummy read
-            rxbyte = dm9k_read (unit->io_base, MRCMDX);
+            // See if RX packet is ready
+
+            rxbyte = dm9k_read (base->io_base, MRCMDX);    // dummy read
+            rxbyte = dm9k_read (base->io_base, MRCMDX);
       
-//            if (rxbyte == 0x01)
+            if (rxbyte == 0x01)
 
 //            if (dm9000_packet_ready (unit->io_base))     // TODO better replace it with RX interrupt check
+
                 Cause (&unit->rx_int);      // Cause soft interrupt on RX
         }
 
