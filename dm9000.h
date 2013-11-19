@@ -105,8 +105,8 @@
 #define 	ISR_PR       0x01    // Packet Received
 
 #define IMR         0xff    // Interrupt Mask Register
-#define 	IMR_PAR      0x80    // Enable the SRAM read/write pointer to automatically return to the start address when pointer addresses are over the SRAM size. 
-                             // When driver sets this bit, REG_F5 will set to 0Ch automatically
+#define 	IMR_PAR      0x80  // Enable the SRAM read/write pointer to automatically return to the start address when pointer addresses are over the SRAM size. 
+                               // When driver sets this bit, REG_F5 will set to 0Ch automatically
 #define IMR_RSVD     0x40
 #define 	IMR_LNKCHGI  0x20    // Enable Link Status Change Interrupt
 #define 	IMR_UDRUNI   0x10    // Enable Transmit Under-run Interrupt

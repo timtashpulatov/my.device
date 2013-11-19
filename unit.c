@@ -38,6 +38,7 @@ struct DevUnit *FindUnit (ULONG unit_num, struct MyBase *base);
 struct DevUnit *CreateUnit (ULONG unit_num, struct MyBase *base);
 struct TypeStats *FindTypeStats (struct DevUnit *unit, struct MinList *list, ULONG packet_type, struct MyBase *base);
 VOID FlushUnit (struct DevUnit *unit, UBYTE last_queue, BYTE error, struct MyBase *base);
+void FindCard (struct DevUnit *unit, struct MyBase *base);
 void InitialiseCard (struct DevUnit *unit, struct MyBase *base);
 VOID ConfigureCard (struct DevUnit *unit, struct MyBase *base);
 
@@ -48,13 +49,12 @@ UBYTE fakeMAC [6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
 /*****************************************************************************
  *
- * InitialiseCard
+ * FindCard
  *
  *****************************************************************************/
-void InitialiseCard (struct DevUnit *unit, struct MyBase *base) {
+void FindCard (struct DevUnit *unit, struct MyBase *base) {
 UBYTE *p, i;
 struct ConfigDev *myCD;
-
 
     Debug ("\n     Searching for card\n");
 
@@ -68,68 +68,67 @@ struct ConfigDev *myCD;
 
     if (myCD) {
         Debug ("     Found card\n");
-
         
         unit->io_base = (UBYTE *)myCD->cd_BoardAddr;
         
         base->io_base = (APTR)myCD->cd_BoardAddr;
         
-
         // Set drive current strength
-        dm9k_write (base->io_base, BUSCR, 0x40);
-                
-
-
-        dm9k_phy_reset (base->io_base);     // (1) PHY RESET
-        Delay (2);
-        dm9k_phy_down (base->io_base);      // (2) PHY POWER_DOWN
-        Delay (2);
-                                            // (3)
-        dm9k_reset (base->io_base);         // (4) Software RESET  - wait 20 us
-        
-        Delay (2);
-        
-        dm9k_phy_up (base->io_base);         // (5) PHY ENABLE      - wait 64 us
-
-        Delay (2);
-
-
-// Set registers
-    dm9k_write (base->io_base, NCR, 0);                                    // normal mode
-    dm9k_write (base->io_base, TCR, 0);                                    // TX polling clear
-    dm9k_set_bits (base->io_base, RCR, RCR_DIS_CRC);                       // discard RX CRC Error Packet
-    dm9k_set_bits (base->io_base, FCR, FCR_FLCE);                          // Flow Control FLCE bit ON
-                                                                // WUCR    LINK WAKE_UP bits ON or not
-    dm9k_write (base->io_base, NSR, NSR_WAKEST | NSR_TX2END | NSR_TX1END); // clear Network Status latched bits
-    dm9k_write (base->io_base, ISR, ISR_ROO | ISR_ROS | ISR_PT | ISR_PR);  // clear Interrupt Status latched bits
-
-    // MAC Node Address and FILTER Hash Table
-    // dm9000_hash_table(dev); /* map HASH Table (see ch.3-1 & ch.6 ) */
-
-    // Activate DM9000
-    dm9k_set_bits (base->io_base, RCR, RCR_RXEN | RCR_PRMSC | RCR_ALL);    // RXCR.0 RXEN bit ON Enable
-    dm9k_write (base->io_base, IMR, IMR_PAR | IMR_PTI | IMR_PRI);          // IMR.7 PAR bit ON and TX & RX INT MASK ON
-
-
-
-
-
-/*        
-        // Hack: use register 34H to control LEDs via GPIO
-        dm9k_write (base->io_base, LEDCR, 0x02);
-        dm9k_write (base->io_base, GPCR, 0x06);        // GP2..GP1 for output
-        dm9k_write (base->io_base, GPR, 0x06);         // GP2..GP1 set to 1
-*/
-
-
-        
-        
+        dm9k_write (base->io_base, BUSCR, 0x40);        
     }
     else {
         Debug ("     No card\n");
     }
 
+    Flush (base->log);
+}
 
+
+/*****************************************************************************
+ *
+ * InitialiseCard
+ *
+ *****************************************************************************/
+void InitialiseCard (struct DevUnit *unit, struct MyBase *base) {
+UBYTE *p, i;
+
+    // Set drive current strength
+    //dm9k_write (base->io_base, BUSCR, 0x40);
+
+    dm9k_phy_up (unit->io_base);         // (5) PHY ENABLE      - wait 64 us
+    Delay (1);
+
+    dm9k_phy_reset (unit->io_base);     // (1) PHY RESET
+    Delay (1);
+
+    dm9k_reset (unit->io_base);         // (4) Software RESET  - wait 20 us
+    Delay (1);
+
+    dm9k_reset (unit->io_base);         // (4) Software RESET  - wait 20 us
+    Delay (1);
+
+    // Set registers
+    dm9k_write (unit->io_base, NCR, 0);                                    // normal mode
+    dm9k_write (unit->io_base, TCR, 0);                                    // TX polling clear
+    dm9k_set_bits (unit->io_base, RCR, RCR_DIS_CRC);                       // discard RX CRC Error Packet
+    dm9k_set_bits (unit->io_base, FCR, FCR_FLCE);                          // Flow Control FLCE bit ON
+
+    dm9k_write (unit->io_base, NSR, NSR_WAKEST | NSR_TX2END | NSR_TX1END); // clear Network Status latched bits
+    dm9k_write (unit->io_base, ISR, ISR_ROO | ISR_ROS | ISR_PT | ISR_PR);  // clear Interrupt Status latched bits
+
+    // MAC Node Address and FILTER Hash Table
+    // dm9000_hash_table(dev); /* map HASH Table (see ch.3-1 & ch.6 ) */
+
+    // Activate DM9000
+//        dm9k_set_bits (base->io_base, RCR, RCR_RXEN | RCR_PRMSC | RCR_ALL);    // RXCR.0 RXEN bit ON Enable
+//        dm9k_write (base->io_base, IMR, IMR_PAR | IMR_PTI | IMR_PRI);          // IMR.7 PAR bit ON and TX & RX INT MASK ON
+
+/*
+        // Hack: use register 34H to control LEDs via GPIO
+        dm9k_write (base->io_base, LEDCR, 0x02);
+        dm9k_write (base->io_base, GPCR, 0x06);        // GP2..GP1 for output
+        dm9k_write (base->io_base, GPR, 0x06);         // GP2..GP1 set to 1
+*/
 
 
     // Get default MAC address
@@ -139,10 +138,8 @@ struct ConfigDev *myCD;
         *p++ = fakeMAC [i];
     }
 
-
-    Flush (base->log);
-
 }
+
 
 
 
@@ -281,7 +278,7 @@ APTR stack;
         
         unit->io_base = NULL;
         
-        InitialiseCard (unit, base);
+        FindCard (unit, base);
         
         if (unit->io_base == NULL)
             success = FALSE;
@@ -388,6 +385,9 @@ VOID GoOnline (struct DevUnit *unit, struct MyBase *base) {
     // LEDs on
 //    dm9k_write (base->io_base, GPR, 0x06);
 
+    // Init dm9000
+    InitialiseCard (unit, base);
+
 
     /* Choose interrupts */
     unit->flags |= UNITF_ONLINE;
@@ -400,10 +400,10 @@ VOID GoOnline (struct DevUnit *unit, struct MyBase *base) {
     dm9k_write (base->io_base, IMR, IMR_PAR | IMR_PTI | IMR_PRI);          // IMR.7 PAR bit ON and TX & RX INT MASK ON        
 
 
-   /* Record start time and report Online event */
+    /* Record start time and report Online event */
 
-  // GetSysTime (&unit->stats.LastStart);
-   ReportEvents (unit, S2EVENT_ONLINE, base);
+    // GetSysTime (&unit->stats.LastStart);
+    ReportEvents (unit, S2EVENT_ONLINE, base);
 
    return;
 }
@@ -1148,6 +1148,8 @@ UBYTE rxbyte;
 
    Signal (task, general_port_signal);
 
+
+
    /* Infinite loop to service requests and signals */
 
    while (TRUE) {
@@ -1170,21 +1172,32 @@ UBYTE rxbyte;
             rxbyte = dm9k_read (base->io_base, MRCMDX);    // dummy read
             rxbyte = dm9k_read (base->io_base, MRCMDX);
       
-            if (rxbyte == 0x01)
+            if (rxbyte == 0x01) {
 
 //            if (dm9000_packet_ready (unit->io_base))     // TODO better replace it with RX interrupt check
 
+
+                // for debug on INT pin, clear whatever inerrupts there have been
+     //           dm9k_write (base->io_base, ISR, 0x3f);
+
+
                 Cause (&unit->rx_int);      // Cause soft interrupt on RX
+                
+            }
         }
 
-      if ((signals & general_port_signal) != 0) {
-         while ((request = (APTR)GetMsg (general_port)) != NULL) {
-            /* Service the request as soon as the unit is free */
 
-            ObtainSemaphore (&unit->access_lock);
-            ServiceRequest ((APTR)request, base);
-         }
-      }
+        if ((signals & general_port_signal) != 0) {
+            while ((request = (APTR)GetMsg (general_port)) != NULL) {
+                
+                /* Service the request as soon as the unit is free */
+
+                ObtainSemaphore (&unit->access_lock);
+                ServiceRequest ((APTR)request, base);
+            }
+        }
+
+
    }
 }
 
