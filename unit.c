@@ -557,7 +557,8 @@ struct MyBase *base;
 BOOL is_orphan, accepted;
 ULONG packet_type;
 UWORD status;
-UWORD *p, *end;
+UWORD *p;
+UBYTE *end;
 UWORD *buffer;
 struct IOSana2Req *request, *request_tail;
 struct Opener *opener, *opener_tail;
@@ -568,7 +569,7 @@ UBYTE r;
 
     base = unit->device;
     buffer = (UWORD *)unit->rx_buffer;
-    end = buffer + HEADER_SIZE;
+    end = (UBYTE *)buffer + HEADER_SIZE;
 
 
 //    do {    
@@ -593,13 +594,13 @@ UBYTE r;
               
             p = buffer;
          
-            while (p < end)           
+            while (p < (UWORD *)end)
                 *p++ = /* ntohw  */ (dm9k_read_w (unit->io_base, MRCMD)); 
 
 
             if (AddressFilter (unit, (UBYTE *)buffer + PACKET_DEST, base)) {
                 
-                packet_type = BEWord (*((UWORD *)(buffer + PACKET_TYPE)));
+                packet_type = BEWord (*((UWORD *)((UBYTE *)buffer + PACKET_TYPE)));
 
                 opener = (APTR)unit->openers.mlh_Head;
                 opener_tail = (APTR)&unit->openers.mlh_Tail;
@@ -698,8 +699,8 @@ UWORD *p, *end;
    buffer = (UWORD *)unit->rx_buffer;
    request->ios2_Req.io_Flags &= ~(SANA2IOF_BCAST | SANA2IOF_MCAST);    // clear bcast and mcast flags
 
-   if ((*((ULONG *)(buffer + PACKET_DEST)) == 0xffffffff) &&
-       (*((UWORD *)(buffer + PACKET_DEST + 4)) == 0xffff))
+   if ((*((ULONG *)((UBYTE *)buffer + PACKET_DEST)) == 0xffffffff) &&
+       (*((UWORD *)((UBYTE *)buffer + PACKET_DEST + 4)) == 0xffff))
         request->ios2_Req.io_Flags |= SANA2IOF_BCAST;
    else if ((buffer [PACKET_DEST] & 0x1) != 0)
         request->ios2_Req.io_Flags |= SANA2IOF_MCAST;
@@ -715,17 +716,17 @@ UWORD *p, *end;
     if (1) {  // HAHAHACK
     UWORD i;
     
-        p = (UWORD *)((UBYTE *)buffer + ((PACKET_DATA + 1) & ~1));              // p=(ULONG *)(buffer+((PACKET_DATA+3)&~3));
+        p = (UWORD *)((UBYTE *)buffer + PACKET_DATA);              // p=(ULONG *)(buffer+((PACKET_DATA+3)&~3));
         end = (UWORD *)((UBYTE *)buffer + packet_size);
       
         while (p < end)
-            *p ++ = ntohw (dm9k_read_w (io_base, MRCMD));
+            *p ++ = /* ntohw */ (dm9k_read_w (io_base, MRCMD));
 
     }
 
     if ((request->ios2_Req.io_Flags & SANA2IOF_RAW) == 0) {
         packet_size -= PACKET_DATA;
-        buffer += PACKET_DATA;
+        buffer += PACKET_DATA / 2;
     }
 
 #ifdef USE_HACKS
