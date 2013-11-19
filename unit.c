@@ -27,7 +27,7 @@ IMPORT struct ExecBase *AbsExecBase;
 
 //static struct AddressRange *FindMulticastRange(struct DevUnit *unit,  ULONG lower_bound_left, UWORD lower_bound_right, ULONG upper_bound_left,   UWORD upper_bound_right, struct DevBase *base);
 static VOID RxInt (__reg("a1") struct DevUnit *unit);
-static VOID CopyPacket (struct DevUnit *unit, struct IOSana2Req *request, UWORD packet_size, UWORD packet_type, BOOL all_read, struct MyBase *base, BOOL emulate);
+static VOID CopyPacket (struct DevUnit *unit, struct IOSana2Req *request, UWORD packet_size, UWORD packet_type, BOOL all_read, struct MyBase *base);
 static BOOL AddressFilter (struct DevUnit *unit, UBYTE *address, struct MyBase *base);
 static VOID TxInt (__reg("a1") struct DevUnit *unit);
 static VOID TxError (struct DevUnit *unit, struct MyBase *base);
@@ -75,6 +75,14 @@ struct ConfigDev *myCD;
         
         // Set drive current strength
         dm9k_write (base->io_base, BUSCR, 0x40);        
+
+        // Get default MAC address
+        p = unit->default_address;
+
+        for (i = 0; i < ADDRESS_SIZE; i ++) {
+            *p++ = fakeMAC [i];
+        }   
+
     }
     else {
         Debug ("     No card\n");
@@ -131,12 +139,6 @@ UBYTE *p, i;
 */
 
 
-    // Get default MAC address
-    p = unit->default_address;
-
-    for (i = 0; i < ADDRESS_SIZE; i ++) {
-        *p++ = fakeMAC [i];
-    }
 
 }
 
@@ -393,7 +395,6 @@ VOID GoOnline (struct DevUnit *unit, struct MyBase *base) {
     unit->flags |= UNITF_ONLINE;
 
 
-
     // Enable RX and TX
 
     dm9k_write (base->io_base, RCR, RCR_RXEN | RCR_PRMSC | RCR_ALL);
@@ -563,13 +564,11 @@ struct Opener *opener, *opener_tail;
 struct TypeStats *tracker;
 
 UBYTE r;
-BOOL emulate = FALSE;
-
 
 
     base = unit->device;
     buffer = (UWORD *)unit->rx_buffer;
-    end = (buffer + (HEADER_SIZE / 2));
+    end = buffer + HEADER_SIZE;
 
 
 //    do {    
@@ -581,7 +580,6 @@ BOOL emulate = FALSE;
         if (r == 0x01) {
 
 //        if (dm9000_packet_ready (unit->io_base)) {
-
 
 
             // Read packet header
@@ -596,7 +594,7 @@ BOOL emulate = FALSE;
             p = buffer;
          
             while (p < end)           
-                *p++ = /* ntohw */ (dm9k_read_w (unit->io_base, MRCMD)); 
+                *p++ = /* ntohw  */ (dm9k_read_w (unit->io_base, MRCMD)); 
 
 
             if (AddressFilter (unit, (UBYTE *)buffer + PACKET_DEST, base)) {
@@ -622,7 +620,7 @@ BOOL emulate = FALSE;
                             && packet_type <= MTU) {
 
                             CopyPacket (unit, request, packet_size, packet_type,
-                                !is_orphan, base, emulate);
+                                !is_orphan, base);
                                 
                             accepted = TRUE;
                         }
@@ -642,7 +640,7 @@ BOOL emulate = FALSE;
                         
                         CopyPacket (unit, (APTR)unit->request_ports [ADOPT_QUEUE]->mp_MsgList.lh_Head, 
                                 packet_size, packet_type,
-                                TRUE /* FALSE */, base, emulate);
+                                TRUE /* FALSE */, base);
                     }
                 }
 
@@ -651,6 +649,7 @@ BOOL emulate = FALSE;
                 unit->stats.PacketsReceived ++;
 
                 tracker = FindTypeStats (unit, &unit->type_trackers, packet_type, base);
+                
                 if (tracker != NULL) {
                     tracker->stats.PacketsReceived ++;
                     tracker->stats.BytesReceived += packet_size;
@@ -686,8 +685,7 @@ BOOL emulate = FALSE;
  *
  *****************************************************************************/
 static VOID CopyPacket (struct DevUnit *unit, struct IOSana2Req *request,
-   UWORD packet_size, UWORD packet_type, BOOL all_read, struct MyBase *base,
-   BOOL emulate) {
+   UWORD packet_size, UWORD packet_type, BOOL all_read, struct MyBase *base) {
 volatile UBYTE *io_base;
 struct Opener *opener;
 UWORD *buffer;
@@ -721,7 +719,7 @@ UWORD *p, *end;
         end = (UWORD *)((UBYTE *)buffer + packet_size);
       
         while (p < end)
-            *p ++ = dm9k_read_w (io_base, MRCMD);
+            *p ++ = ntohw (dm9k_read_w (io_base, MRCMD));
 
     }
 
@@ -1079,7 +1077,7 @@ UBYTE i;
 
 
 
-#define INTERVAL_MICROSECONDS 100000
+#define INTERVAL_MICROSECONDS 250000
 
 /*****************************************************************************
  *
