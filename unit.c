@@ -10,6 +10,7 @@
 #include <libraries/expansion.h>
 #include <libraries/expansionbase.h>
 #include <devices/timer.h>
+#include <hardware/intbits.h>
 
 #include "devices/sana2.h"
 #include "devices/sana2specialstats.h"
@@ -41,6 +42,9 @@ VOID FlushUnit (struct DevUnit *unit, UBYTE last_queue, BYTE error, struct MyBas
 void FindCard (struct DevUnit *unit, struct MyBase *base);
 void InitialiseCard (struct DevUnit *unit, struct MyBase *base);
 VOID ConfigureCard (struct DevUnit *unit, struct MyBase *base);
+
+
+
 
 
 
@@ -646,7 +650,7 @@ _DebugHex (base, dm9k_read (unit->io_base, IMR));
             p = buffer;
          
             while (p < (UWORD *)end)
-                *p++ = /* ntohw  */ (dm9k_read_w (unit->io_base, MRCMD)); 
+                *p++ = /* ntohw */ (dm9k_read_w (unit->io_base, MRCMD)); 
 
 
             if (AddressFilter (unit, (UBYTE *)buffer + PACKET_DEST, base)) {
@@ -774,7 +778,7 @@ UWORD *p, *end;
         end = (UWORD *)(buffer + packet_size);
       
         while (p < end)
-            *p ++ = /* ntohw */ (dm9k_read_w (io_base, MRCMD));
+            *p ++ = ntohw (dm9k_read_w (io_base, MRCMD));
 
     }
 
@@ -1131,6 +1135,21 @@ UBYTE i;
 
 
 
+/************************************************************
+ * InterruptServer
+ ************************************************************/
+__saveds void InterruptServer (__reg("a1") struct Task *task) {
+struct DevUnit *unit;
+
+    unit = task->tc_UserData;
+
+    // for now, only clear interrupts
+    dm9k_write (unit->io_base, ISR, 0x3f);
+
+}
+
+
+
 
 #define INTERVAL_MICROSECONDS 500000
 
@@ -1148,6 +1167,8 @@ struct DOSBase *DOSBase;
 struct MsgPort *general_port;
 struct MsgPort *timer_port;
 struct timerequest *TimerIO;
+struct Interrupt *myInt;
+
 ULONG signals, 
     wait_signals, 
     general_port_signal, 
@@ -1170,6 +1191,8 @@ UBYTE rxbyte;
     general_port->mp_Flags = PA_SIGNAL;
 
 
+
+
     // Timer port
     timer_port = (APTR) AllocMem (sizeof (struct MsgPort), MEMF_PUBLIC | MEMF_CLEAR);
     timer_port->mp_SigTask = task;
@@ -1187,12 +1210,22 @@ UBYTE rxbyte;
     
     SendIO ((struct IORequest *)TimerIO);
     
-    
 
-//   wait_signals = (1 << general_port->mp_SigBit) || (1 << timer_port->mp_SigBit);
 
     wait_signals = general_port_signal | timer_port_signal;
 
+
+    // Install interrupt handler        NB perhaps we should do this when creating Unit
+
+    myInt = (struct Interrupt *)AllocVec (sizeof (struct Interrupt), MEMF_PUBLIC | MEMF_CLEAR);
+    if (myInt) {
+        myInt->is_Node.ln_Name = "dm9000";      // TODO
+        myInt->is_Node.ln_Pri = 16;
+        myInt->is_Code = InterruptServer;
+        myInt->is_Data = task;
+
+        AddIntServer (INTB_PORTS, myInt);
+    }
 
 
 
@@ -1211,6 +1244,7 @@ UBYTE rxbyte;
         if ((signals & timer_port_signal) != 0) {
             UWORD r;            
 
+/*
             // Setup next timer signal
             
             TimerIO->tr_node.io_Command = TR_ADDREQUEST;
@@ -1218,7 +1252,7 @@ UBYTE rxbyte;
             TimerIO->tr_time.tv_micro = INTERVAL_MICROSECONDS;
 
             SendIO ((struct IORequest *)TimerIO);
-
+*/
 
             // See if RX packet is ready
 
