@@ -74,7 +74,7 @@ struct ConfigDev *myCD;
         base->io_base = (APTR)myCD->cd_BoardAddr;
         
         // Set drive current strength
-        dm9k_write (base->io_base, BUSCR, 0x40);        
+        dm9k_write (base->io_base, BUSCR, 0x60);
 
         // Get default MAC address
         p = unit->default_address;
@@ -546,6 +546,42 @@ UBYTE emulated_packet [] = {
 
 
 
+/***********************************************************************************/
+
+
+void _Debug (struct MyBase *base, char *s) {
+	FPuts (base->log, s);
+}
+
+void _DebugHex (struct MyBase *base, UBYTE b) {
+register UBYTE nibble;
+	nibble = b >> 4;
+	FPutC (base->log, (nibble < 10) ? '0' + nibble : 'A' - 10 + nibble);
+	nibble = b & 0x0f;
+	FPutC (base->log, (nibble < 10) ? '0' + nibble : 'A' - 10 + nibble);
+	FPutC (base->log, 0x20);
+//	Flush (MyBase->log);
+
+}
+
+void _DebugHex16 (struct MyBase *base, UWORD w) {
+register UBYTE nibble;
+register UBYTE i;
+
+	for (i = 0; i < 4; i ++) {
+		nibble = (w >> (12 - i * 4)) & 0x0f;
+		FPutC (base->log, (nibble < 10) ? '0' + nibble : 'A' - 10 + nibble);
+	}
+
+	FPutC (base->log, 0x20);
+
+//	Flush (base->log);
+}
+
+
+
+
+
 /*****************************************************************************
  *
  * RxInt
@@ -556,7 +592,7 @@ UWORD rx_status, packet_size;
 struct MyBase *base;
 BOOL is_orphan, accepted;
 ULONG packet_type;
-UWORD status;
+//UWORD status;
 UWORD *p;
 UBYTE *end;
 UWORD *buffer;
@@ -571,6 +607,10 @@ UBYTE r;
     buffer = (UWORD *)unit->rx_buffer;
     end = (UBYTE *)buffer + HEADER_SIZE;
 
+
+    //FPuts (base->log, "\nRxInt ");
+    _Debug (base, "\nRxInt ");
+    
 
 //    do {    
     
@@ -592,6 +632,17 @@ UBYTE r;
             rx_status = dm9k_read_w (unit->io_base, MRCMD);
             packet_size = dm9k_read_w (unit->io_base, MRCMD);     
               
+              
+_Debug (base, "status: ");
+_DebugHex16 (base, rx_status);
+_Debug (base, "length: ");
+_DebugHex16 (base, packet_size);
+_Debug (base, "ISR: ");
+_DebugHex (base, dm9k_read (unit->io_base, ISR));
+_Debug (base, "IMR: ");
+_DebugHex (base, dm9k_read (unit->io_base, IMR));
+              
+
             p = buffer;
          
             while (p < (UWORD *)end)
@@ -676,6 +727,9 @@ UBYTE r;
 
 
 //   LEWordOut(io_base+EL3REG_COMMAND,EL3CMD_SETINTMASK|INT_MASK);
+
+    Flush (base->log);
+
    return;
 }
 
@@ -689,25 +743,25 @@ static VOID CopyPacket (struct DevUnit *unit, struct IOSana2Req *request,
    UWORD packet_size, UWORD packet_type, BOOL all_read, struct MyBase *base) {
 volatile UBYTE *io_base;
 struct Opener *opener;
-UWORD *buffer;
+UBYTE *buffer;
 BOOL filtered = FALSE;
 UWORD *p, *end;
 
    /* Set multicast and broadcast flags */
 
    io_base = unit->io_base;
-   buffer = (UWORD *)unit->rx_buffer;
+   buffer = unit->rx_buffer;
    request->ios2_Req.io_Flags &= ~(SANA2IOF_BCAST | SANA2IOF_MCAST);    // clear bcast and mcast flags
 
-   if ((*((ULONG *)((UBYTE *)buffer + PACKET_DEST)) == 0xffffffff) &&
-       (*((UWORD *)((UBYTE *)buffer + PACKET_DEST + 4)) == 0xffff))
+   if ((*((ULONG *)(buffer + PACKET_DEST)) == 0xffffffff) &&
+       (*((UWORD *)(buffer + PACKET_DEST + 4)) == 0xffff))
         request->ios2_Req.io_Flags |= SANA2IOF_BCAST;
    else if ((buffer [PACKET_DEST] & 0x1) != 0)
         request->ios2_Req.io_Flags |= SANA2IOF_MCAST;
 
    /* Set source and destination addresses and packet type */
-   CopyMem ((UBYTE *)buffer + PACKET_SOURCE, request->ios2_SrcAddr, ADDRESS_SIZE);
-   CopyMem ((UBYTE *)buffer + PACKET_DEST, request->ios2_DstAddr, ADDRESS_SIZE);
+   CopyMem (buffer + PACKET_SOURCE, request->ios2_SrcAddr, ADDRESS_SIZE);
+   CopyMem (buffer + PACKET_DEST, request->ios2_DstAddr, ADDRESS_SIZE);
    request->ios2_PacketType = packet_type;
 
    /* Read rest of packet */
@@ -716,8 +770,8 @@ UWORD *p, *end;
     if (1) {  // HAHAHACK
     UWORD i;
     
-        p = (UWORD *)((UBYTE *)buffer + PACKET_DATA);              // p=(ULONG *)(buffer+((PACKET_DATA+3)&~3));
-        end = (UWORD *)((UBYTE *)buffer + packet_size);
+        p = (UWORD *)(buffer + PACKET_DATA);              // p=(ULONG *)(buffer+((PACKET_DATA+3)&~3));
+        end = (UWORD *)(buffer + packet_size);
       
         while (p < end)
             *p ++ = /* ntohw */ (dm9k_read_w (io_base, MRCMD));
@@ -1078,7 +1132,7 @@ UBYTE i;
 
 
 
-#define INTERVAL_MICROSECONDS 250000
+#define INTERVAL_MICROSECONDS 500000
 
 /*****************************************************************************
  *
@@ -1176,8 +1230,6 @@ UBYTE rxbyte;
 //            if (dm9000_packet_ready (unit->io_base))     // TODO better replace it with RX interrupt check
 
 
-                // for debug on INT pin, clear whatever inerrupts there have been
-     //           dm9k_write (base->io_base, ISR, 0x3f);
 
 
                 Cause (&unit->rx_int);      // Cause soft interrupt on RX

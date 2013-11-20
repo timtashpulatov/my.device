@@ -6,13 +6,13 @@
 /************************************************************
  * peek
  ************************************************************/
-UBYTE peek (ULONG io_addr) {
+UBYTE peek (APTR io_addr) {
 ULONG *ptr;
 ULONG value;
 
     // Dummy read
-    ptr = (ULONG *)0x40000000;
-    value = *ptr;
+//    ptr = (ULONG *)0x40000000;
+//    value = *ptr;
 
     ptr = (ULONG *)io_addr;
     value = *ptr;
@@ -23,13 +23,13 @@ ULONG value;
 /************************************************************
  * peek_w
  ************************************************************/
-UWORD peek_w (ULONG io_addr) {
+UWORD peek_w (APTR io_addr) {
 ULONG *ptr;
 ULONG value;
 
     // Dummy read
-    ptr = (ULONG *)0x40000000;
-    value = *ptr;
+//    ptr = (ULONG *)0x40000000;
+//    value = *ptr;
 
     ptr = (ULONG *)io_addr;
     value = *ptr;
@@ -40,16 +40,16 @@ ULONG value;
 /************************************************************
  * poke
  ************************************************************/
-void poke (ULONG io_addr, UBYTE value) {
+void poke (APTR io_addr, UBYTE value) {
 UBYTE *ptr;
 UBYTE dummy;
 
     // Dummy read
-    ptr = (UBYTE *)0x40000000;
-    dummy = *ptr;
+//    ptr = (UBYTE *)0x40000000;
+//    dummy = *ptr;
 
 
-    ptr = (BYTE *) io_addr;
+    ptr = (BYTE *) io_addr + 16;        // anti caching hack
     *ptr = value;
 }
 
@@ -57,25 +57,25 @@ UBYTE dummy;
  * dm9k_read
  ************************************************************/
 UBYTE dm9k_read (APTR io_addr, UBYTE reg) {
-    poke ((ULONG)io_addr, reg);
-    return peek ((ULONG)io_addr + 4);
+    poke (io_addr, reg);
+    return peek ((UBYTE *)io_addr + 4);
 }
 
 /************************************************************
  * dm9k_read_w
  ************************************************************/
 UWORD dm9k_read_w (APTR io_addr, UBYTE reg) {
-    poke ((ULONG)io_addr, reg);
-    return peek_w ((ULONG)io_addr + 4);
+    poke (io_addr, reg);
+    return peek_w ((UBYTE *)io_addr + 4);
 }
 
 /************************************************************
  * dm9k_read_block
  ************************************************************/
 void dm9k_read_block (APTR io_addr, UBYTE reg, UBYTE *dst, UWORD len) {
-    poke ((ULONG)io_addr, reg);
+    poke (io_addr, reg);
     while (len --)
-        *dst ++ = peek ((ULONG)io_addr + 4);
+        *dst ++ = peek ((UBYTE *)io_addr + 4);
 }
 
 
@@ -83,8 +83,8 @@ void dm9k_read_block (APTR io_addr, UBYTE reg, UBYTE *dst, UWORD len) {
  * dm9k_write
  ************************************************************/
 void dm9k_write (APTR io_addr, UBYTE reg, UBYTE value) {
-    poke ((ULONG)io_addr, reg);
-    poke ((ULONG)io_addr + 4, value);
+    poke ((UBYTE *)io_addr, reg);
+    poke ((UBYTE *)io_addr + 4, value);
 }
 
 /************************************************************
@@ -93,9 +93,9 @@ void dm9k_write (APTR io_addr, UBYTE reg, UBYTE value) {
 void dm9k_set_bits (APTR io_addr, UBYTE reg, UBYTE value) {
 UBYTE tmp;
 
-    poke ((ULONG)io_addr, reg);
-    tmp = peek ((ULONG)io_addr + 4) | value;
-    poke ((ULONG)io_addr + 4, tmp);
+    poke (io_addr, reg);
+    tmp = peek ((UBYTE *)io_addr + 4) | value;
+    poke ((UBYTE *)io_addr + 4, tmp);
     
     // dm9k_write (io_addr, reg, dm9k_read (io_addr, reg) | value);
 }
@@ -199,8 +199,8 @@ UBYTE dm9000_packet_ready (APTR io_addr) {
 UBYTE tmp;
 
 //    poke ((ULONG)io_addr, MRCMDX);
-    peek ((ULONG)io_addr + 4);  // dummy read
-    tmp = peek ((ULONG)io_addr + 4);
+    peek ((UBYTE *)io_addr + 4);  // dummy read
+    tmp = peek ((UBYTE *)io_addr + 4);
 
 //    tmp = dm9k_read (io_addr, MRCMDX);  // dummy read
 //    tmp = dm9k_read (io_addr, MRCMDX);
