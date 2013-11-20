@@ -616,7 +616,7 @@ UBYTE r;
     _Debug (base, "\nRxInt ");
     
 
-//    do {    
+    while (1) {    
     
     
         r = dm9k_read (unit->io_base, MRCMDX);  // dummy read        
@@ -715,6 +715,8 @@ _DebugHex (base, dm9k_read (unit->io_base, IMR));
         else {
             unit->stats.BadData ++;
             ReportEvents (unit, S2EVENT_ERROR | S2EVENT_HARDWARE | S2EVENT_RX, base);
+            
+            break;
         }
 
       /* Discard packet */
@@ -726,13 +728,15 @@ _DebugHex (base, dm9k_read (unit->io_base, IMR));
 //      Enable();
 
 
-//    } while (dm9k_read (unit->io_base, MRCMDX) == 0x01);              //while (ppPeek (PP_RER != 0x0004));
+        
+
+    } //while (dm9k_read (unit->io_base, MRCMDX) == 0x01);              //while (ppPeek (PP_RER != 0x0004));
 
 
 
 //   LEWordOut(io_base+EL3REG_COMMAND,EL3CMD_SETINTMASK|INT_MASK);
 
-    Flush (base->log);
+//    Flush (base->log);
 
    return;
 }
