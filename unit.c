@@ -1143,8 +1143,13 @@ struct DevUnit *unit;
 
     unit = task->tc_UserData;
 
+    // Banzai!
+    Signal (task, task->tc_SigAlloc);
+
     // for now, only clear interrupts
     dm9k_write (unit->io_base, ISR, 0x3f);
+    
+    
 
 }
 
