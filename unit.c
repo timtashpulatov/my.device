@@ -392,7 +392,7 @@ VOID GoOnline (struct DevUnit *unit, struct MyBase *base) {
 //    dm9k_write (base->io_base, GPR, 0x06);
 
     // Init dm9000
-    InitialiseCard (unit, base);
+    InitialiseCard (unit, base);        // TODO ?
 
 
     /* Choose interrupts */
@@ -401,7 +401,7 @@ VOID GoOnline (struct DevUnit *unit, struct MyBase *base) {
 
     // Enable RX and TX
 
-    dm9k_write (base->io_base, IMR, IMR_PAR | IMR_PTI | IMR_PRI);          // IMR.7 PAR bit ON and TX & RX INT MASK ON        
+    dm9k_write (base->io_base, IMR, IMR_PAR /* | IMR_PTI */ | IMR_PRI);          // IMR.7 PAR bit ON and TX & RX INT MASK ON        
     dm9k_write (base->io_base, RCR, RCR_DIS_CRC | RCR_DIS_LONG | RCR_RXEN);
 
     /* Record start time and report Online event */
@@ -603,7 +603,7 @@ struct IOSana2Req *request, *request_tail;
 struct Opener *opener, *opener_tail;
 struct TypeStats *tracker;
 
-UBYTE r;
+volatile UBYTE r;
 
     base = unit->device;
     buffer = (UWORD *)unit->rx_buffer;
@@ -706,6 +706,33 @@ UBYTE r;
         else {
             unit->stats.BadData ++;
             ReportEvents (unit, S2EVENT_ERROR | S2EVENT_HARDWARE | S2EVENT_RX, base);
+
+            // ------------------- Forge fake packet for debugging -----------------
+            packet_size = 32;
+            packet_type = 77;
+            
+            
+            // dump registers
+            {
+                register UBYTE i;
+                UBYTE *p = unit->rx_buffer;
+                
+                for (i = 0; i < 32; i++)
+                    p [i] = 0;
+                    
+                p [0] = dm9k_read (unit->io_base, MRCMDX);
+                    
+                    
+            }
+
+            
+            if (!IsMsgPortEmpty (unit->request_ports [ADOPT_QUEUE]))
+                CopyPacket (unit, (APTR)unit->request_ports [ADOPT_QUEUE]->mp_MsgList.lh_Head,
+                                packet_size, packet_type,
+                                TRUE /* FALSE */, base);
+            // ---------------------------------------------------------------------
+
+
         }
 
       /* Discard packet */
@@ -1136,21 +1163,19 @@ UBYTE i;
  ************************************************************/
 __saveds void InterruptServer (__reg("a1") struct Task *task) {
 struct DevUnit *unit;
-register UBYTE i;
+register UBYTE isr;
 
     unit = task->tc_UserData;
+
+    dm9k_write (unit->io_base, ISR, 0x3f);
 
     // Banzai!
 //    Signal (task, (1 << SIGNAL_INTERRUPT));
 
-    i = dm9k_read (unit->io_base, ISR);
+    isr = dm9k_read (unit->io_base, ISR);
     
-    if (i & ISR_PR)     // Packet Received
-        Cause (&unit->rx_int);      // Cause soft interrupt on RX
-
-    // for now, only clear interrupts
-    dm9k_write (unit->io_base, ISR, 0x3f);
-    
+    if (isr & ISR_PR)     // Packet Received
+        Cause (&unit->rx_int);      // Cause soft interrupt on RX    
     
 
 }

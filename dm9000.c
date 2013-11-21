@@ -27,10 +27,6 @@ UWORD peek_w (APTR io_addr) {
 ULONG *ptr;
 ULONG value;
 
-    // Dummy read
-//    ptr = (ULONG *)0x40000000;
-//    value = *ptr;
-
     ptr = (ULONG *)io_addr;
     value = *ptr;
 
@@ -43,11 +39,6 @@ ULONG value;
 void poke (APTR io_addr, UBYTE value) {
 UBYTE *ptr;
 UBYTE dummy;
-
-    // Dummy read
-//    ptr = (UBYTE *)0x40000000;
-//    dummy = *ptr;
-
 
     ptr = (BYTE *) io_addr + 16;        // anti caching hack
     *ptr = value;
