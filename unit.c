@@ -619,7 +619,7 @@ volatile UBYTE r;
     buffer = (UWORD *)unit->rx_buffer;
     end = (UBYTE *)buffer + HEADER_SIZE;
 
-//    do {    
+
         
         r = dm9k_read (unit->io_base, MRCMDX);  // dummy read        
         r = dm9k_read (unit->io_base, MRCMDX);
@@ -1132,7 +1132,9 @@ UBYTE i;
 
 
 /************************************************************
+ *
  * InterruptServer
+ *
  ************************************************************/
 __saveds void InterruptServer (__reg("a1") struct Task *task) {
 struct DevUnit *unit;
@@ -1140,12 +1142,12 @@ register UBYTE isr;
 
     unit = task->tc_UserData;
 
+    isr = dm9k_read (unit->io_base, ISR);
     dm9k_write (unit->io_base, ISR, 0x3f);
 
     // Banzai!
 //    Signal (task, (1 << SIGNAL_INTERRUPT));
 
-    isr = dm9k_read (unit->io_base, ISR);
     
     if (isr & ISR_PR)     // Packet Received
         Cause (&unit->rx_int);      // Cause soft interrupt on RX    
