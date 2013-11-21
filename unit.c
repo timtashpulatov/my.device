@@ -605,26 +605,18 @@ struct TypeStats *tracker;
 
 UBYTE r;
 
-
     base = unit->device;
     buffer = (UWORD *)unit->rx_buffer;
     end = (UBYTE *)buffer + HEADER_SIZE;
 
-
-
-//_Debug (base, "\nRxInt ");
-    
-
-//    while (1) {    
-    
-    
+//    do {    
+        
         r = dm9k_read (unit->io_base, MRCMDX);  // dummy read        
         r = dm9k_read (unit->io_base, MRCMDX);
 
         if (r == 0x01) {
 
 //        if (dm9000_packet_ready (unit->io_base)) {
-
 
             // Read packet header
 
@@ -725,9 +717,9 @@ UBYTE r;
 //      Enable();
 
 
-        
+        dm9k_read (unit->io_base, MRCMDX);
 
-//    } //while (dm9k_read (unit->io_base, MRCMDX) == 0x01);              //while (ppPeek (PP_RER != 0x0004));
+//    } while (dm9k_read (unit->io_base, MRCMDX) == 0x01);              //while (ppPeek (PP_RER != 0x0004));
 
 
 
@@ -775,7 +767,7 @@ UWORD *p, *end;
     if (1) {  // HAHAHACK
     UWORD i;
     
-        p = (UWORD *)(buffer + PACKET_DATA);              // p=(ULONG *)(buffer+((PACKET_DATA+3)&~3));
+        p = (UWORD *)(buffer + ((PACKET_DATA + 1) & ~1));              // p=(ULONG *)(buffer+((PACKET_DATA+3)&~3));
         end = (UWORD *)(buffer + packet_size);
       
         while (p < end)
@@ -785,12 +777,12 @@ UWORD *p, *end;
 
     if ((request->ios2_Req.io_Flags & SANA2IOF_RAW) == 0) {
         packet_size -= PACKET_DATA;
-        buffer += PACKET_DATA / 2;
+        buffer += PACKET_DATA;         
     }
 
 #ifdef USE_HACKS
    else
-      packet_size += 4;   /* Needed for Shapeshifter & Fusion */
+      packet_size += 4;   /* Needed for Shapeshifter & Fusion */        // ??? WTF ???
 #endif
 
    request->ios2_DataLength = packet_size;
@@ -812,6 +804,7 @@ UWORD *p, *end;
          ReportEvents (unit,
             S2EVENT_ERROR | S2EVENT_SOFTWARE | S2EVENT_BUFF | S2EVENT_RX, base);
       }
+      
       Remove ((APTR)request);
       ReplyMsg ((APTR)request);
 
