@@ -1143,15 +1143,17 @@ UBYTE i;
  ************************************************************/
 __saveds void InterruptServer (__reg("a1") struct Task *task) {
 struct DevUnit *unit;
+register UBYTE i;
 
     unit = task->tc_UserData;
 
     // Banzai!
 //    Signal (task, (1 << SIGNAL_INTERRUPT));
 
-
-    Cause (&unit->rx_int);      // Cause soft interrupt on RX
-
+    i = dm9k_read (unit->io_base, ISR);
+    
+    if (i & ISR_PR)     // Packet Received
+        Cause (&unit->rx_int);      // Cause soft interrupt on RX
 
     // for now, only clear interrupts
     dm9k_write (unit->io_base, ISR, 0x3f);
