@@ -764,10 +764,9 @@ UWORD *p, *end;
    /* Read rest of packet */
 
     if (!all_read) {
-//    if (1) {  // HAHAHACK
-  //  UWORD i;
     
-        p = (UWORD *)(buffer + ((PACKET_DATA + 1) & ~1));              // p=(ULONG *)(buffer+((PACKET_DATA+3)&~3));
+//        p = (UWORD *)(buffer + ((PACKET_DATA + 1) & ~1));              // p=(ULONG *)(buffer+((PACKET_DATA+3)&~3));
+        p = (UWORD *)(buffer + PACKET_DATA);
         end = (UWORD *)(buffer + packet_size);
       
         while (p < end)
