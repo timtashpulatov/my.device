@@ -402,10 +402,10 @@ VOID GoOnline (struct DevUnit *unit, struct MyBase *base) {
     // Enable RX and TX
 
     dm9k_write (base->io_base, IMR, 
-                                IMR_PAR | 
-                             //   IMR_PTI | 
-                                IMR_PRI
-                                );          // IMR.7 PAR bit ON and TX & RX INT MASK ON        
+                                IMR_PAR |           
+                             //   IMR_PTI |         // TX interrupt
+                                IMR_PRI             // RX interrupt
+                                );                  // IMR.7 PAR bit ON and TX & RX INT MASK ON        
     
     dm9k_write (base->io_base, RCR, 
                                 RCR_DIS_CRC | 
@@ -698,7 +698,7 @@ volatile UBYTE r;
                         
                         CopyPacket (unit, (APTR)unit->request_ports [ADOPT_QUEUE]->mp_MsgList.lh_Head, 
                                 packet_size, packet_type,
-                                TRUE /* FALSE */, base);
+                                FALSE, base);
                     }
                 }
 
@@ -763,9 +763,9 @@ UWORD *p, *end;
 
    /* Read rest of packet */
 
-//    if (!all_read) {
-    if (1) {  // HAHAHACK
-    UWORD i;
+    if (!all_read) {
+//    if (1) {  // HAHAHACK
+  //  UWORD i;
     
         p = (UWORD *)(buffer + ((PACKET_DATA + 1) & ~1));              // p=(ULONG *)(buffer+((PACKET_DATA+3)&~3));
         end = (UWORD *)(buffer + packet_size);
