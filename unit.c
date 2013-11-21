@@ -122,7 +122,7 @@ UBYTE *p, i;
     // Set registers
     dm9k_write (unit->io_base, NCR, 0);                                    // normal mode
     dm9k_write (unit->io_base, TCR, 0);                                    // TX polling clear
-    dm9k_set_bits (unit->io_base, RCR, RCR_DIS_CRC);                       // discard RX CRC Error Packet
+//    dm9k_set_bits (unit->io_base, RCR, RCR_DIS_CRC);                       // discard RX CRC Error Packet
     dm9k_set_bits (unit->io_base, FCR, FCR_FLCE);                          // Flow Control FLCE bit ON
 
     dm9k_write (unit->io_base, NSR, NSR_WAKEST | NSR_TX2END | NSR_TX1END); // clear Network Status latched bits
@@ -401,9 +401,8 @@ VOID GoOnline (struct DevUnit *unit, struct MyBase *base) {
 
     // Enable RX and TX
 
-    dm9k_write (base->io_base, RCR, RCR_RXEN | RCR_PRMSC | RCR_ALL);
     dm9k_write (base->io_base, IMR, IMR_PAR | IMR_PTI | IMR_PRI);          // IMR.7 PAR bit ON and TX & RX INT MASK ON        
-
+    dm9k_write (base->io_base, RCR, RCR_DIS_CRC | RCR_DIS_LONG | RCR_RXEN);
 
     /* Record start time and report Online event */
 
@@ -612,11 +611,11 @@ UBYTE r;
     end = (UBYTE *)buffer + HEADER_SIZE;
 
 
-    //FPuts (base->log, "\nRxInt ");
-    _Debug (base, "\nRxInt ");
+
+//_Debug (base, "\nRxInt ");
     
 
-    while (1) {    
+//    while (1) {    
     
     
         r = dm9k_read (unit->io_base, MRCMDX);  // dummy read        
@@ -637,14 +636,14 @@ UBYTE r;
             packet_size = dm9k_read_w (unit->io_base, MRCMD);     
               
               
-_Debug (base, "status: ");
-_DebugHex16 (base, rx_status);
-_Debug (base, "length: ");
-_DebugHex16 (base, packet_size);
-_Debug (base, "ISR: ");
-_DebugHex (base, dm9k_read (unit->io_base, ISR));
-_Debug (base, "IMR: ");
-_DebugHex (base, dm9k_read (unit->io_base, IMR));
+//_Debug (base, "status: ");
+//_DebugHex16 (base, rx_status);
+//_Debug (base, "length: ");
+//_DebugHex16 (base, packet_size);
+//_Debug (base, "ISR: ");
+//_DebugHex (base, dm9k_read (unit->io_base, ISR));
+//_Debug (base, "IMR: ");
+//_DebugHex (base, dm9k_read (unit->io_base, IMR));
               
 
             p = buffer;
@@ -715,8 +714,6 @@ _DebugHex (base, dm9k_read (unit->io_base, IMR));
         else {
             unit->stats.BadData ++;
             ReportEvents (unit, S2EVENT_ERROR | S2EVENT_HARDWARE | S2EVENT_RX, base);
-            
-            break;
         }
 
       /* Discard packet */
@@ -730,7 +727,7 @@ _DebugHex (base, dm9k_read (unit->io_base, IMR));
 
         
 
-    } //while (dm9k_read (unit->io_base, MRCMDX) == 0x01);              //while (ppPeek (PP_RER != 0x0004));
+//    } //while (dm9k_read (unit->io_base, MRCMDX) == 0x01);              //while (ppPeek (PP_RER != 0x0004));
 
 
 
@@ -1139,6 +1136,8 @@ UBYTE i;
 
 
 
+
+
 /************************************************************
  * InterruptServer
  ************************************************************/
@@ -1148,7 +1147,11 @@ struct DevUnit *unit;
     unit = task->tc_UserData;
 
     // Banzai!
-    Signal (task, task->tc_SigAlloc);
+//    Signal (task, (1 << SIGNAL_INTERRUPT));
+
+
+    Cause (&unit->rx_int);      // Cause soft interrupt on RX
+
 
     // for now, only clear interrupts
     dm9k_write (unit->io_base, ISR, 0x3f);
@@ -1157,10 +1160,6 @@ struct DevUnit *unit;
 
 }
 
-
-
-
-#define INTERVAL_MICROSECONDS 500000
 
 /*****************************************************************************
  *
@@ -1174,14 +1173,13 @@ struct DevUnit *unit;
 struct MyBase *base;
 struct DOSBase *DOSBase;
 struct MsgPort *general_port;
-struct MsgPort *timer_port;
-struct timerequest *TimerIO;
+struct MsgPort *int_port;
 struct Interrupt *myInt;
 
 ULONG signals, 
     wait_signals, 
-    general_port_signal, 
-    timer_port_signal;
+    general_port_signal;
+    
 UBYTE rxbyte;
 
     /* Get parameters */
@@ -1200,28 +1198,7 @@ UBYTE rxbyte;
     general_port->mp_Flags = PA_SIGNAL;
 
 
-
-
-    // Timer port
-    timer_port = (APTR) AllocMem (sizeof (struct MsgPort), MEMF_PUBLIC | MEMF_CLEAR);
-    timer_port->mp_SigTask = task;
-    timer_port->mp_SigBit = AllocSignal (-1);
-    timer_port_signal = 1 << timer_port->mp_SigBit;
-    timer_port->mp_Flags = PA_SIGNAL;
-    
-    TimerIO = (struct timerequest *) CreateExtIO (timer_port, sizeof (struct timerequest));  
-
-    OpenDevice (TIMERNAME, UNIT_MICROHZ, TimerIO, 0);
-    
-    TimerIO->tr_node.io_Command = TR_ADDREQUEST;
-    TimerIO->tr_time.tv_secs = 0;
-    TimerIO->tr_time.tv_micro = INTERVAL_MICROSECONDS;
-    
-    SendIO ((struct IORequest *)TimerIO);
-    
-
-
-    wait_signals = general_port_signal | timer_port_signal;
+    wait_signals = general_port_signal;
 
 
     // Install interrupt handler        NB perhaps we should do this when creating Unit
@@ -1250,36 +1227,8 @@ UBYTE rxbyte;
    while (TRUE) {
       signals = Wait (wait_signals);
 
-        if ((signals & timer_port_signal) != 0) {
-            UWORD r;            
-
-/*
-            // Setup next timer signal
-            
-            TimerIO->tr_node.io_Command = TR_ADDREQUEST;
-            TimerIO->tr_time.tv_secs = 0;
-            TimerIO->tr_time.tv_micro = INTERVAL_MICROSECONDS;
-
-            SendIO ((struct IORequest *)TimerIO);
-*/
-
-            // See if RX packet is ready
-
-            rxbyte = dm9k_read (base->io_base, MRCMDX);    // dummy read
-            rxbyte = dm9k_read (base->io_base, MRCMDX);
-      
-            if (rxbyte == 0x01) {
-
-//            if (dm9000_packet_ready (unit->io_base))     // TODO better replace it with RX interrupt check
-
-
-
-
-                Cause (&unit->rx_int);      // Cause soft interrupt on RX
+//                Cause (&unit->rx_int);      // Cause soft interrupt on RX
                 
-            }
-        }
-
 
         if ((signals & general_port_signal) != 0) {
             while ((request = (APTR)GetMsg (general_port)) != NULL) {

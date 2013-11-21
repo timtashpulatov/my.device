@@ -3,6 +3,7 @@
  */
 
 #define NCR         0x00    // Network Control Register
+#define     NCR_LBK_MAC 0x02        // MAC internal loopback
 #define     NCR_RST     0x01        // Software reset and auto clear after 10us
 
 #define NSR         0x01    // Network Status Register

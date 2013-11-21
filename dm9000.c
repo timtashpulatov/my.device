@@ -166,7 +166,7 @@ void dm9k_write_phy (APTR io_addr, UBYTE offset, UWORD value) {
  * dm9k_reset
  ************************************************************/
 void dm9k_reset (APTR io_addr) {
-    dm9k_write (io_addr, NCR, NCR_RST);
+    dm9k_write (io_addr, NCR, NCR_RST | NCR_LBK_MAC);      // 
     while (dm9k_read (io_addr, NCR) & NCR_RST);
 }
 
