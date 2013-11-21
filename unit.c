@@ -606,9 +606,8 @@ struct MyBase *base;
 BOOL is_orphan, accepted;
 ULONG packet_type;
 //UWORD status;
-UWORD *p;
-UBYTE *end;
-UWORD *buffer;
+UWORD *p, *end;
+UBYTE *buffer;
 struct IOSana2Req *request, *request_tail;
 struct Opener *opener, *opener_tail;
 struct TypeStats *tracker;
@@ -616,15 +615,16 @@ struct TypeStats *tracker;
 volatile UBYTE r;
 
     base = unit->device;
-    buffer = (UWORD *)unit->rx_buffer;
-    end = (UBYTE *)buffer + HEADER_SIZE;
+
+    buffer = unit->rx_buffer;
+    end = (UWORD *)(buffer + HEADER_SIZE);
 
 
-        
         r = dm9k_read (unit->io_base, MRCMDX);  // dummy read        
         r = dm9k_read (unit->io_base, MRCMDX);
 
         if (r == 0x01) {
+
 
 //        if (dm9000_packet_ready (unit->io_base)) {
 
@@ -648,15 +648,15 @@ volatile UBYTE r;
 //_DebugHex (base, dm9k_read (unit->io_base, IMR));
               
 
-            p = buffer;
+            p = (UWORD *)buffer;
          
             while (p < (UWORD *)end)
                 *p++ = /* ntohw */ (dm9k_read_w (unit->io_base, MRCMD)); 
 
 
-            if (AddressFilter (unit, (UBYTE *)buffer + PACKET_DEST, base)) {
+            if (AddressFilter (unit, buffer + PACKET_DEST, base)) {
                 
-                packet_type = BEWord (*((UWORD *)((UBYTE *)buffer + PACKET_TYPE)));
+                packet_type = BEWord (*((UWORD *)(buffer + PACKET_TYPE)));
 
                 opener = (APTR)unit->openers.mlh_Head;
                 opener_tail = (APTR)&unit->openers.mlh_Tail;
@@ -738,7 +738,7 @@ volatile UBYTE r;
  *****************************************************************************/
 static VOID CopyPacket (struct DevUnit *unit, struct IOSana2Req *request,
    UWORD packet_size, UWORD packet_type, BOOL all_read, struct MyBase *base) {
-volatile UBYTE *io_base;
+//volatile UBYTE *io_base;
 struct Opener *opener;
 UBYTE *buffer;
 BOOL filtered = FALSE;
@@ -746,7 +746,7 @@ UWORD *p, *end;
 
    /* Set multicast and broadcast flags */
 
-   io_base = unit->io_base;
+//   io_base = unit->io_base;
    buffer = unit->rx_buffer;
    request->ios2_Req.io_Flags &= ~(SANA2IOF_BCAST | SANA2IOF_MCAST);    // clear bcast and mcast flags
 
@@ -770,7 +770,7 @@ UWORD *p, *end;
         end = (UWORD *)(buffer + packet_size);
       
         while (p < end)
-            *p ++ = ntohw (dm9k_read_w (io_base, MRCMD));
+            *p ++ = /* ntohw */ (dm9k_read_w (unit->io_base, MRCMD));
 
     }
 
