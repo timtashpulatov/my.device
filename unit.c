@@ -401,8 +401,18 @@ VOID GoOnline (struct DevUnit *unit, struct MyBase *base) {
 
     // Enable RX and TX
 
-    dm9k_write (base->io_base, IMR, IMR_PAR /* | IMR_PTI */ | IMR_PRI);          // IMR.7 PAR bit ON and TX & RX INT MASK ON        
-    dm9k_write (base->io_base, RCR, RCR_DIS_CRC | RCR_DIS_LONG | RCR_RXEN);
+    dm9k_write (base->io_base, IMR, 
+                                IMR_PAR | 
+                             //   IMR_PTI | 
+                                IMR_PRI
+                                );          // IMR.7 PAR bit ON and TX & RX INT MASK ON        
+    
+    dm9k_write (base->io_base, RCR, 
+                                RCR_DIS_CRC | 
+                                RCR_DIS_LONG | 
+                             //   RCR_PRMSC |
+                                RCR_RXEN
+                                );
 
     /* Record start time and report Online event */
 
@@ -676,6 +686,7 @@ volatile UBYTE r;
 
                     if (accepted)
                         is_orphan = FALSE;
+                        
                     opener = (APTR)opener->node.mln_Succ;
                 }
 
@@ -706,51 +717,13 @@ volatile UBYTE r;
         else {
             unit->stats.BadData ++;
             ReportEvents (unit, S2EVENT_ERROR | S2EVENT_HARDWARE | S2EVENT_RX, base);
-
-            // ------------------- Forge fake packet for debugging -----------------
-            packet_size = 32;
-            packet_type = 77;
-            
-            
-            // dump registers
-            {
-                register UBYTE i;
-                UBYTE *p = unit->rx_buffer;
-                
-                for (i = 0; i < 32; i++)
-                    p [i] = 0;
-                    
-                p [0] = dm9k_read (unit->io_base, MRCMDX);
-                    
-                    
-            }
-
-            
-            if (!IsMsgPortEmpty (unit->request_ports [ADOPT_QUEUE]))
-                CopyPacket (unit, (APTR)unit->request_ports [ADOPT_QUEUE]->mp_MsgList.lh_Head,
-                                packet_size, packet_type,
-                                TRUE /* FALSE */, base);
-            // ---------------------------------------------------------------------
-
-
         }
 
       /* Discard packet */
 
-//      Disable();   /* Needed? */
-  //    LEWordOut(io_base+EL3REG_COMMAND,EL3CMD_RXDISCARD);
-   //   while((LEWordIn(io_base+EL3REG_STATUS)&
-    //     EL3REG_STATUSF_CMDINPROGRESS)!=0);
-//      Enable();
-
-
-        dm9k_read (unit->io_base, MRCMDX);
 
 //    } while (dm9k_read (unit->io_base, MRCMDX) == 0x01);              //while (ppPeek (PP_RER != 0x0004));
 
-
-
-//   LEWordOut(io_base+EL3REG_COMMAND,EL3CMD_SETINTMASK|INT_MASK);
 
 //    Flush (base->log);
 
