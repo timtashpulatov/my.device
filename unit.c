@@ -402,9 +402,9 @@ VOID GoOnline (struct DevUnit *unit, struct MyBase *base) {
     // Enable RX and TX
 
     dm9k_write (base->io_base, IMR, 
-                                IMR_PAR |           
+                                IMR_PAR 
                              //   IMR_PTI |         // TX interrupt
-                                IMR_PRI             // RX interrupt
+                                | IMR_PRI             // RX interrupt
                                 );                  // IMR.7 PAR bit ON and TX & RX INT MASK ON        
     
     dm9k_write (base->io_base, RCR, 
@@ -614,16 +614,21 @@ struct TypeStats *tracker;
 
 volatile UBYTE r;
 
+
+
+
+
     base = unit->device;
 
     buffer = unit->rx_buffer;
     end = (UWORD *)(buffer + HEADER_SIZE);
 
 
-        r = dm9k_read (unit->io_base, MRCMDX);  // dummy read        
-        r = dm9k_read (unit->io_base, MRCMDX);
+ //       r = dm9k_read (unit->io_base, MRCMDX);  // dummy read        
+ //       r = dm9k_read (unit->io_base, MRCMDX);
 
-        if (r == 0x01) {
+  //      if (r == 0x01) {
+        if (1) {
 
 
 //        if (dm9000_packet_ready (unit->io_base)) {
@@ -650,7 +655,7 @@ volatile UBYTE r;
 
             p = (UWORD *)buffer;
          
-            while (p < (UWORD *)end)
+            while (p < end)
                 *p++ = /* ntohw */ (dm9k_read_w (unit->io_base, MRCMD)); 
 
 
@@ -727,6 +732,16 @@ volatile UBYTE r;
 
 //    Flush (base->log);
 
+
+
+//    // Enable ints back
+
+  //  dm9k_write (base->io_base, IMR,
+    //                            IMR_PAR |
+      //                          IMR_PRI             // RX interrupt
+        //                        );                  
+
+
    return;
 }
 
@@ -783,6 +798,43 @@ UWORD *p, *end;
    else
       packet_size += 4;   /* Needed for Shapeshifter & Fusion */        // ??? WTF ???
 #endif
+
+/*
+    //----------------------
+    {
+    ULONG *l;
+    UBYTE i;
+    
+    packet_size += 32;
+    
+    p = (UWORD *)(unit->rx_buffer + 0x30);
+    
+    for (i = 0; i < 32; i++)
+        *p++ = 0x7777;
+    
+    
+    p = (UWORD *)(unit->rx_buffer + 0x20);
+    
+    *p++ = 0xfeed;
+    *p++ = 0xbeef;    
+    
+    l = (ULONG *)p;
+    *l++ = (ULONG) unit->rx_buffer;
+    *l++ = (ULONG) end;
+    
+    p += 4;
+    
+    *p++ = dm9k_read (unit->io_base, MDRAH);
+    *p++ = dm9k_read (unit->io_base, MDRAL);
+    
+    *p++ = 0xAAAA;
+    *p++ = 0xAAAA;
+    *p++ = 0xAAAA;
+    *p++ = 0xAAAA;
+    }
+    //----------------------
+
+*/
 
    request->ios2_DataLength = packet_size;
 
@@ -1137,20 +1189,23 @@ UBYTE i;
  ************************************************************/
 __saveds void InterruptServer (__reg("a1") struct Task *task) {
 struct DevUnit *unit;
-register UBYTE isr;
+UBYTE r;
 
     unit = task->tc_UserData;
 
-    isr = dm9k_read (unit->io_base, ISR);
     dm9k_write (unit->io_base, ISR, 0x3f);
 
-    // Banzai!
-//    Signal (task, (1 << SIGNAL_INTERRUPT));
+    // The IMR only allows for certain ISR bits to be routed to INT pin. So there's
+    // no sense in reading ISR and/or fiddling with IMR.   
+    
+    r = dm9k_read (unit->io_base, MRCMDX);
+    r = dm9k_read (unit->io_base, MRCMDX);
+    if (r == 0x01)
+        Cause (&unit->rx_int);
+    
+    
 
-    
-    if (isr & ISR_PR)     // Packet Received
-        Cause (&unit->rx_int);      // Cause soft interrupt on RX    
-    
+
 
 }
 
@@ -1219,10 +1274,7 @@ UBYTE rxbyte;
    /* Infinite loop to service requests and signals */
 
    while (TRUE) {
-      signals = Wait (wait_signals);
-
-//                Cause (&unit->rx_int);      // Cause soft interrupt on RX
-                
+      signals = Wait (wait_signals);            
 
         if ((signals & general_port_signal) != 0) {
             while ((request = (APTR)GetMsg (general_port)) != NULL) {

@@ -94,6 +94,8 @@
 #define MRCMDX      0xf0    // Memory Data Pre-Fetch Read Command Without Address Increment Register
 #define MRCMDX1     0xf1    // Memory Data Read Command without Address Increment Register
 #define MRCMD       0xf2    // Memory Data Read Command with Address Increment Register
+#define MDRAH       0xf4
+#define MDRAL       0xf5
 
 #define ISR         0xfe    // Interrupt Status Register
 #define 	ISR_IOMODE   0x80    // 0 : 16-bit mode 1: 8-bit mode
@@ -106,9 +108,9 @@
 #define 	ISR_PR       0x01    // Packet Received
 
 #define IMR         0xff    // Interrupt Mask Register
-#define 	IMR_PAR      0x80  // Enable the SRAM read/write pointer to automatically return to the start address when pointer addresses are over the SRAM size. 
-                               // When driver sets this bit, REG_F5 will set to 0Ch automatically
-#define IMR_RSVD     0x40
+#define 	IMR_PAR      0x80    // Enable the SRAM read/write pointer to automatically return to the start address when pointer addresses are over the SRAM size. 
+                                 // When driver sets this bit, REG_F5 will set to 0Ch automatically
+#define     IMR_RSVD     0x40
 #define 	IMR_LNKCHGI  0x20    // Enable Link Status Change Interrupt
 #define 	IMR_UDRUNI   0x10    // Enable Transmit Under-run Interrupt
 #define 	IMR_ROOI     0x08    // Enable Receive Overflow Counter Overflow Interrupt

@@ -198,6 +198,13 @@ UBYTE tmp;
     return (tmp);
 }
 
+/************************************************************
+ * dm9k_clear_interrupts
+ ************************************************************/
+void dm9k_clear_interrupts (APTR io_addr) {
+    dm9k_write (io_addr, ISR, 0x3f);
+}
+
 
 UWORD ntohw (UWORD val) {
     return ((val >> 8) & 0x00ff) | ((val << 8) & 0xff00);
