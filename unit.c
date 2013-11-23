@@ -408,10 +408,10 @@ VOID GoOnline (struct DevUnit *unit, struct MyBase *base) {
                                 );                  // IMR.7 PAR bit ON and TX & RX INT MASK ON        
     
     dm9k_write (base->io_base, RCR, 
-                                RCR_DIS_CRC | 
-                                RCR_DIS_LONG | 
+                                RCR_DIS_CRC |       // Discard CRC error packet
+                                RCR_DIS_LONG |      // Discard long packets (over 1522 bytes)
                              //   RCR_PRMSC |
-                                RCR_RXEN
+                                RCR_RXEN            // RX Enable
                                 );
 
     /* Record start time and report Online event */
@@ -624,10 +624,11 @@ volatile UBYTE r;
     end = (UWORD *)(buffer + HEADER_SIZE);
 
 
- //       r = dm9k_read (unit->io_base, MRCMDX);  // dummy read        
- //       r = dm9k_read (unit->io_base, MRCMDX);
+//    while (1) {
 
+  
   //      if (r == 0x01) {
+        
         if (1) {
 
 
@@ -656,7 +657,7 @@ volatile UBYTE r;
             p = (UWORD *)buffer;
          
             while (p < end)
-                *p++ = /* ntohw */ (dm9k_read_w (unit->io_base, MRCMD)); 
+                *p++ =  /* ntohw */  (dm9k_read_w (unit->io_base, MRCMD)); 
 
 
             if (AddressFilter (unit, buffer + PACKET_DEST, base)) {
@@ -730,19 +731,20 @@ volatile UBYTE r;
 //    } while (dm9k_read (unit->io_base, MRCMDX) == 0x01);              //while (ppPeek (PP_RER != 0x0004));
 
 
+
+
 //    Flush (base->log);
 
 
 
-//    // Enable ints back
+    // Enable ints back
+    dm9k_write (base->io_base, IMR,
+                                IMR_PAR |
+                                IMR_PRI             // RX interrupt
+                                );                  
 
-  //  dm9k_write (base->io_base, IMR,
-    //                            IMR_PAR |
-      //                          IMR_PRI             // RX interrupt
-        //                        );                  
 
-
-   return;
+    return;
 }
 
 
@@ -1182,6 +1184,9 @@ UBYTE i;
 
 
 
+
+
+
 /************************************************************
  *
  * InterruptServer
@@ -1193,7 +1198,11 @@ UBYTE r;
 
     unit = task->tc_UserData;
 
+    // Acknowledge all interrupts
     dm9k_write (unit->io_base, ISR, 0x3f);
+    
+    // Disable all interrupts
+    dm9k_write (unit->io_base, IMR, IMR_PAR);
 
     // The IMR only allows for certain ISR bits to be routed to INT pin. So there's
     // no sense in reading ISR and/or fiddling with IMR.   
@@ -1203,11 +1212,10 @@ UBYTE r;
     if (r == 0x01)
         Cause (&unit->rx_int);
     
-    
-
-
-
 }
+
+
+
 
 
 /*****************************************************************************
