@@ -620,7 +620,7 @@ volatile UBYTE r;
     r = dm9k_read (unit->io_base, MRCMDX);      // dummy read
     r = dm9k_read (unit->io_base, MRCMDX);
 
-    if (r & 0x01) {//    if (r == 0x01) {
+    if (r == 0x01) {
 
 //        if (dm9000_packet_ready (unit->io_base)) {
 
