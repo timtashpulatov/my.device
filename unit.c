@@ -775,43 +775,6 @@ UWORD *p, *end;
       packet_size += 4;   /* Needed for Shapeshifter & Fusion */        // ??? WTF ???
 #endif
 
-/*
-    //----------------------
-    {
-    ULONG *l;
-    UBYTE i;
-    
-    packet_size += 32;
-    
-    p = (UWORD *)(unit->rx_buffer + 0x30);
-    
-    for (i = 0; i < 32; i++)
-        *p++ = 0x7777;
-    
-    
-    p = (UWORD *)(unit->rx_buffer + 0x20);
-    
-    *p++ = 0xfeed;
-    *p++ = 0xbeef;    
-    
-    l = (ULONG *)p;
-    *l++ = (ULONG) unit->rx_buffer;
-    *l++ = (ULONG) end;
-    
-    p += 4;
-    
-    *p++ = dm9k_read (unit->io_base, MDRAH);
-    *p++ = dm9k_read (unit->io_base, MDRAL);
-    
-    *p++ = 0xAAAA;
-    *p++ = 0xAAAA;
-    *p++ = 0xAAAA;
-    *p++ = 0xAAAA;
-    }
-    //----------------------
-
-*/
-
    request->ios2_DataLength = packet_size;
 
    /* Filter packet */
