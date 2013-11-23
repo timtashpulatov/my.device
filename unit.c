@@ -554,41 +554,6 @@ UBYTE emulated_packet [] = {
 
 
 
-/***********************************************************************************/
-
-
-void _Debug (struct MyBase *base, char *s) {
-	FPuts (base->log, s);
-}
-
-void _DebugHex (struct MyBase *base, UBYTE b) {
-register UBYTE nibble;
-	nibble = b >> 4;
-	FPutC (base->log, (nibble < 10) ? '0' + nibble : 'A' - 10 + nibble);
-	nibble = b & 0x0f;
-	FPutC (base->log, (nibble < 10) ? '0' + nibble : 'A' - 10 + nibble);
-	FPutC (base->log, 0x20);
-//	Flush (MyBase->log);
-
-}
-
-void _DebugHex16 (struct MyBase *base, UWORD w) {
-register UBYTE nibble;
-register UBYTE i;
-
-	for (i = 0; i < 4; i ++) {
-		nibble = (w >> (12 - i * 4)) & 0x0f;
-		FPutC (base->log, (nibble < 10) ? '0' + nibble : 'A' - 10 + nibble);
-	}
-
-	FPutC (base->log, 0x20);
-
-//	Flush (base->log);
-}
-
-
-
-
 
 /*****************************************************************************
  *
@@ -632,22 +597,6 @@ volatile UBYTE r;
                 
             rx_status = dm9k_read_w (unit->io_base, MRCMD);
             packet_size = dm9k_read_w (unit->io_base, MRCMD);     
-          
-    
-              
-              
-              
-              
-              
-//_Debug (base, "status: ");
-//_DebugHex16 (base, rx_status);
-//_Debug (base, "length: ");
-//_DebugHex16 (base, packet_size);
-//_Debug (base, "ISR: ");
-//_DebugHex (base, dm9k_read (unit->io_base, ISR));
-//_Debug (base, "IMR: ");
-//_DebugHex (base, dm9k_read (unit->io_base, IMR));
-              
 
             p = (UWORD *)buffer;
          
