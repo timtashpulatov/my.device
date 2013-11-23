@@ -548,13 +548,8 @@ struct Opener *opener, *tail;
 
 
 UBYTE emulated_packet [] = {
-    0xfe, 0xed, 0xfa, 0xce, 0xaa, 0x55,
-    0xde, 0xad, 0xbe, 0xef, 0xff, 0x00,
-    0x77, 0x77,
-    0x00, 0x01, 
-    0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09,
-    0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
-    0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a
+    0xfe, 0xed, 0xfa, 0xce, 0xaa, 0x55, 0xde, 0xad, 0xbe, 0xef, 0xff, 0x00, 0x77, 0x77, 0x77, 0x77, 
+    0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0
 };
 
 
@@ -614,10 +609,6 @@ struct TypeStats *tracker;
 
 volatile UBYTE r;
 
-
-
-
-
     base = unit->device;
 
     buffer = unit->rx_buffer;
@@ -626,11 +617,10 @@ volatile UBYTE r;
 
 //    while (1) {
 
-  
-  //      if (r == 0x01) {
-        
-        if (1) {
+    r = dm9k_read (unit->io_base, MRCMDX);      // dummy read
+    r = dm9k_read (unit->io_base, MRCMDX);
 
+    if (r & 0x01) {//    if (r == 0x01) {
 
 //        if (dm9000_packet_ready (unit->io_base)) {
 
@@ -642,6 +632,11 @@ volatile UBYTE r;
                 
             rx_status = dm9k_read_w (unit->io_base, MRCMD);
             packet_size = dm9k_read_w (unit->io_base, MRCMD);     
+          
+    
+              
+              
+              
               
               
 //_Debug (base, "status: ");
@@ -701,10 +696,13 @@ volatile UBYTE r;
                 if (is_orphan) {
                     unit->stats.UnknownTypesReceived ++;
                     if (!IsMsgPortEmpty (unit->request_ports [ADOPT_QUEUE])) {
+
+
                         
                         CopyPacket (unit, (APTR)unit->request_ports [ADOPT_QUEUE]->mp_MsgList.lh_Head, 
                                 packet_size, packet_type,
                                 FALSE, base);
+
                     }
                 }
 
@@ -723,6 +721,33 @@ volatile UBYTE r;
         else {
             unit->stats.BadData ++;
             ReportEvents (unit, S2EVENT_ERROR | S2EVENT_HARDWARE | S2EVENT_RX, base);
+            
+            
+            // ------- Forge fake packet ------------------------
+            
+            emulated_packet [16] = r;                                    // MRCMDX
+            emulated_packet [17] = dm9k_read (unit->io_base, RSR);       // RX Status Register
+            emulated_packet [18] = unit->isr;                            //  saved Interrupt Status Register
+            emulated_packet [19] = dm9k_read (unit->io_base, NSR);       // Network Status Register            
+            
+            emulated_packet [20] = dm9k_read (unit->io_base, MDRAL);
+            emulated_packet [21] = dm9k_read (unit->io_base, MDRAH);
+
+            
+            packet_size = sizeof (emulated_packet);
+            CopyMem (emulated_packet, unit->rx_buffer, packet_size);
+            
+            unit->stats.UnknownTypesReceived ++;
+            if (!IsMsgPortEmpty (unit->request_ports [ADOPT_QUEUE])) {
+                CopyPacket (unit, (APTR)unit->request_ports [ADOPT_QUEUE]->mp_MsgList.lh_Head,
+                            packet_size, packet_type,
+                            TRUE, base);
+            }
+            
+            // ------- Forge fake packet ------------------------
+
+
+            
         }
 
       /* Discard packet */
@@ -782,8 +807,8 @@ UWORD *p, *end;
 
     if (!all_read) {
     
-//        p = (UWORD *)(buffer + ((PACKET_DATA + 1) & ~1));              // p=(ULONG *)(buffer+((PACKET_DATA+3)&~3));
-        p = (UWORD *)(buffer + PACKET_DATA);
+        p = (UWORD *)(buffer + ((PACKET_DATA + 1) & ~1));              // p=(ULONG *)(buffer+((PACKET_DATA+3)&~3));
+//        p = (UWORD *)(buffer + PACKET_DATA);
         end = (UWORD *)(buffer + packet_size);
       
         while (p < end)
@@ -1198,21 +1223,38 @@ UBYTE r;
 
     unit = task->tc_UserData;
 
-    // Acknowledge all interrupts
-    dm9k_write (unit->io_base, ISR, 0x3f);
-    
-    // Disable all interrupts
-    dm9k_write (unit->io_base, IMR, IMR_PAR);
+    r = dm9k_read (unit->io_base, ISR);
 
-    // The IMR only allows for certain ISR bits to be routed to INT pin. So there's
-    // no sense in reading ISR and/or fiddling with IMR.   
-    
-    r = dm9k_read (unit->io_base, MRCMDX);
-    r = dm9k_read (unit->io_base, MRCMDX);
-    if (r == 0x01)
+    if (r & 0x3f) {       // any dm9000 int
+
+        // Disable all interrupts
+        dm9k_write (unit->io_base, IMR, IMR_PAR);
+
+        // Save ISR for later inspection
+        unit->isr = r;
+
+        // Acknowledge all interrupts
+        dm9k_write (unit->io_base, ISR, 0x3f);      // you MUST do this
+
         Cause (&unit->rx_int);
+    }
     
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

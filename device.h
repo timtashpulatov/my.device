@@ -76,6 +76,9 @@ struct DevUnit {
    ULONG special_stats [STAT_COUNT];
    struct SignalSemaphore access_lock;
    UWORD rx_filter_cmd;
+   
+   // 
+   UBYTE isr;
 };
 
 struct TypeStats
