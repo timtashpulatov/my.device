@@ -38,11 +38,21 @@ ULONG value;
  ************************************************************/
 void poke (APTR io_addr, UBYTE value) {
 UBYTE *ptr;
-UBYTE dummy;
 
     ptr = (BYTE *) io_addr + 16;        // anti caching hack
     *ptr = value;
 }
+
+/************************************************************
+ * poke_w
+ ************************************************************/
+void poke_w (APTR io_addr, UWORD value) {
+UWORD *ptr;
+
+    ptr = (UWORD *)((UBYTE *)io_addr + 16);        // anti caching hack
+    *ptr = value;
+}
+
 
 /************************************************************
  * dm9k_read
@@ -76,6 +86,14 @@ void dm9k_read_block (APTR io_addr, UBYTE reg, UBYTE *dst, UWORD len) {
 void dm9k_write (APTR io_addr, UBYTE reg, UBYTE value) {
     poke ((UBYTE *)io_addr, reg);
     poke ((UBYTE *)io_addr + 4, value);
+}
+
+/************************************************************
+ * dm9k_write_w
+ ************************************************************/
+void dm9k_write_w (APTR io_addr, UBYTE reg, UWORD value) {
+    poke ((UBYTE *)io_addr, reg);
+    poke_w ((UBYTE *)io_addr + 4, value);
 }
 
 /************************************************************

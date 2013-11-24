@@ -97,6 +97,8 @@
 #define MDRAL       0xf4
 #define MDRAH       0xf5
 
+#define MWCMD       0xf8    // Memory Data Write Command with Address Increment Register
+
 #define ISR         0xfe    // Interrupt Status Register
 #define 	ISR_IOMODE   0x80    // 0 : 16-bit mode 1: 8-bit mode
 #define 	ISR_RSVD     0x40
