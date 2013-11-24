@@ -404,14 +404,14 @@ VOID GoOnline (struct DevUnit *unit, struct MyBase *base) {
     dm9k_write (base->io_base, IMR, 
                                   IMR_PAR 
                                 | IMR_PTI           // TX interrupt
-                                | IMR_PRI           // RX interrupt
+           //                     | IMR_PRI           // RX interrupt
                                 );                  // IMR.7 PAR bit ON and TX & RX INT MASK ON        
     
     dm9k_write (base->io_base, RCR, 
                                   RCR_DIS_CRC       // Discard CRC error packet
                                 | RCR_DIS_LONG      // Discard long packets (over 1522 bytes)
                              // | RCR_PRMSC
-                                | RCR_RXEN          // RX Enable
+                          //      | RCR_RXEN          // RX Enable
                                 );
 
     /* Record start time and report Online event */
@@ -549,7 +549,23 @@ struct Opener *opener, *tail;
 
 UBYTE emulated_packet [] = {
     0xfe, 0xed, 0xfa, 0xce, 0xaa, 0x55, 0xde, 0xad, 0xbe, 0xef, 0xff, 0x00, 0x77, 0x77, 0x77, 0x77, 
+    0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,
+    0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,
+    0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,
+    0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,
+    0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,
+    0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,
+    0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,
+    0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,
+    0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,
+    0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,
+    0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,
+    0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,
+    0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,
+    0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,
+    0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,
     0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0
+
 };
 
 
@@ -733,7 +749,8 @@ UWORD SRAMaddr;
     // Enable ints back
     dm9k_write (base->io_base, IMR,
                                 IMR_PAR |
-                                IMR_PRI             // RX interrupt
+                          //      IMR_PRI |             // RX interrupt
+                                IMR_PTI
                                 );                  
 
 
@@ -883,14 +900,22 @@ struct MyBase *base;
 struct IOSana2Req *request;
 BOOL proceed = TRUE;
 struct Opener *opener;
-UBYTE *buffer, *end, wire_error;
+UWORD *buffer, *end;
+ULONG wire_error;
 ULONG *(*dma_tx_function)(APTR __reg("a0"));
 BYTE error;
 struct MsgPort *port;
 struct TypeStats *tracker;
 
+UBYTE i;
+
+    for (i = 0; i < 16; i ++)    emulated_packet [i] = 0;
+
+
+
     base = unit->device;
     port = unit->request_ports [WRITE_QUEUE];
+
 
     while (proceed && (!IsMsgPortEmpty (port))) {
     
@@ -908,6 +933,7 @@ struct TypeStats *tracker;
              
         if (1) {
 
+
             /* Write packet header */
             
             send_size = (packet_size + 1) & (~0x1);
@@ -922,9 +948,19 @@ struct TypeStats *tracker;
                 dm9k_write_w (unit->io_base, MWCMD, unit->address [2]);
                 dm9k_write_w (unit->io_base, MWCMD, unit->address [4]);
                 
-                dm9k_write_w (unit->io_base, MWCMD, request->ios2_PacketType);
+                dm9k_write_w (unit->io_base, MWCMD, ntohw (request->ios2_PacketType));
                      
                 send_size -= PACKET_DATA;
+                
+                //--------------------------
+                for (i = 0; i < 6; i++)
+                    emulated_packet [i] = request->ios2_DstAddr [i];
+                for (i = 6; i < 12; i++)
+                    emulated_packet [i] = unit->address [i];
+                emulated_packet [12] = request->ios2_PacketType >> 8;
+                emulated_packet [13] = request->ios2_PacketType;
+                //--------------------------
+                
             }
 
             /* Get packet data */
@@ -932,12 +968,12 @@ struct TypeStats *tracker;
             opener = (APTR)request->ios2_BufferManagement;
             dma_tx_function = opener->dma_tx_function;
             if (dma_tx_function != NULL)
-                buffer = (UBYTE *)dma_tx_function (request->ios2_Data);
+                buffer = (UWORD *)dma_tx_function (request->ios2_Data);
             else
                 buffer = NULL;
 
             if (buffer == NULL) {
-                buffer = (UBYTE *)unit->tx_buffer;
+                buffer = (UWORD *)unit->tx_buffer;
                 if (!opener->tx_function (buffer, request->ios2_Data, data_size)) {
                     error = S2ERR_NO_RESOURCES;
                     wire_error = S2WERR_BUFF_ERROR;
@@ -950,7 +986,7 @@ struct TypeStats *tracker;
             /* Write packet data */
 
             if (error == 0) {
-                end = buffer + send_size;
+                end = buffer + (send_size >> 1);
                 while (buffer < end) {
               //      poke (0x44000000, *buffer++);
               //      poke (0x44000001, *buffer++);
@@ -965,8 +1001,44 @@ struct TypeStats *tracker;
              
                     dm9k_write_w (unit->io_base, MWCMD, *buffer);
                 }
+                
+                // Write transmitted data length to DM9000
+                dm9k_write (unit->io_base, TXPLH, packet_size >> 8);
+                dm9k_write (unit->io_base, TXPLL, packet_size);
+                
+                
+                // Start TX
+                dm9k_write (unit->io_base, TCR, TCR_TXREQ);
+
+
+            // ------- Forge fake packet ------------------------
+
+            {
+                
+                emulated_packet [0x40] = packet_size >> 8;
+                emulated_packet [0x41] = packet_size;
+                
+                
+                packet_size = sizeof (emulated_packet);
+                CopyMem (emulated_packet, unit->rx_buffer, packet_size);
+
+                if (!IsMsgPortEmpty (unit->request_ports [ADOPT_QUEUE])) {
+                    CopyPacket (unit, (APTR)unit->request_ports [ADOPT_QUEUE]->mp_MsgList.lh_Head,
+                                packet_size, 777,
+                                TRUE, base);
+                }
+            }
+
+            // ------- Forge fake packet ------------------------
+
+
+
+
 
             }
+
+
+
 
             /* Reply packet */
 
@@ -980,18 +1052,18 @@ struct TypeStats *tracker;
             if (error == 0) {
                 unit->stats.PacketsSent ++;
 
-            tracker = FindTypeStats (unit, &unit->type_trackers,
-                        request->ios2_PacketType,
-                        base);
+                tracker = FindTypeStats (unit, &unit->type_trackers,
+                                        request->ios2_PacketType,
+                            base);
                         
-            if (tracker != NULL) {
-                tracker->stats.PacketsSent ++;
-                tracker->stats.BytesSent += packet_size;
+                if (tracker != NULL) {
+                    tracker->stats.PacketsSent ++;
+                    tracker->stats.BytesSent += packet_size;
+                }
             }
         }
-    }
-    else
-        proceed = FALSE;
+        else
+            proceed = FALSE;
     }
 
     if (proceed)
@@ -1001,6 +1073,16 @@ struct TypeStats *tracker;
 //         |(PREAMBLE_SIZE+packet_size));
         unit->request_ports [WRITE_QUEUE]->mp_Flags = PA_IGNORE;
     }
+
+
+    // Enable ints back
+    dm9k_write (base->io_base, IMR,
+                                IMR_PAR |
+                                IMR_PRI |             // RX interrupt
+                                IMR_PTI
+                                );
+
+
 
     return;
 }
@@ -1137,7 +1219,16 @@ UBYTE r;
     }
     
     if (r & ISR_PT) {       // Packet transmitted
+
+        // Disable all interrupts
+        dm9k_write (unit->io_base, IMR, IMR_PAR);
+
+        // Save ISR for later inspection
+        unit->isr = r;
+
         dm9k_write (unit->io_base, ISR, ISR_PT);            // clear Packet TX interrupt
+        
+        Cause (&unit->tx_int);
     }
 
     if (r & ISR_PR) {       // Packet received

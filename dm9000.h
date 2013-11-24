@@ -17,6 +17,8 @@
 #define     NSR_RSRV2    0x01
 
 #define TCR         0x02    // TX Control Register
+#define     TCR_TXREQ   0x01    // TX Request. Auto clears after sending completely
+
 #define TSR1        0x03    // TX Status Register I
 #define TSR2        0x04    // TX Status Register II
 
@@ -98,6 +100,9 @@
 #define MDRAH       0xf5
 
 #define MWCMD       0xf8    // Memory Data Write Command with Address Increment Register
+
+#define TXPLL       0xfc    // TX Packet Length Low byte
+#define TXPLH       0xfd    // TX Packet Length High byte
 
 #define ISR         0xfe    // Interrupt Status Register
 #define 	ISR_IOMODE   0x80    // 0 : 16-bit mode 1: 8-bit mode
