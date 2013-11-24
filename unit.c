@@ -48,8 +48,8 @@ VOID ConfigureCard (struct DevUnit *unit, struct MyBase *base);
 
 
 
-//UBYTE fakeMAC [6] = {0x00, 0x44, 0x66, 0x88, 0xaa, 0xcc};
-UBYTE fakeMAC [6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+UBYTE fakeMAC [6] = {0x00, 0x44, 0x66, 0x88, 0xaa, 0xcc};
+//UBYTE fakeMAC [6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
 /*****************************************************************************
  *
@@ -607,8 +607,8 @@ UWORD SRAMaddr;
                 *p++ =  ntohw (dm9k_read_w (unit->io_base, MRCMD)); 
 
 
-            if (1) {
-//            if (AddressFilter (unit, buffer + PACKET_DEST, base)) {
+//            if (1) {
+            if (AddressFilter (unit, buffer + PACKET_DEST, base)) {
                 
                 packet_type = BEWord (*((UWORD *)(buffer + PACKET_TYPE)));
 
@@ -673,7 +673,7 @@ UWORD SRAMaddr;
             unit->stats.BadData ++;
             ReportEvents (unit, S2EVENT_ERROR | S2EVENT_HARDWARE | S2EVENT_RX, base);
             
-/*            
+            
             // ------- Forge fake packet ------------------------
             
             emulated_packet [16] = r;                                    // MRCMDX
@@ -696,7 +696,7 @@ UWORD SRAMaddr;
             }
             
             // ------- Forge fake packet ------------------------
-*/
+
 
             
         }
@@ -1118,6 +1118,7 @@ UBYTE i;
    /* Decide on promiscuous mode */
 
     if ((unit->flags & UNITF_PROM) != 0)
+    
     
     ;
     
