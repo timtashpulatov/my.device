@@ -582,19 +582,14 @@ UWORD SRAMaddr;
     end = (UWORD *)(buffer + HEADER_SIZE);
 
 
-//    while (1) {
+    do {
 
-    r = dm9k_read (unit->io_base, MRCMDX);      // dummy read
-    r = dm9k_read (unit->io_base, MRCMDX);
+        r = dm9k_read (unit->io_base, MRCMDX);      // dummy read
+        r = dm9k_read (unit->io_base, MRCMDX);
 
-    if (r == 0x01) {
-
-        SRAMaddr = (dm9k_read (unit->io_base, MDRAH) << 8) | dm9k_read (unit->io_base, MDRAL);
-
-
-//        if (dm9000_packet_ready (unit->io_base)) {
-
-            // Read packet header
+        if (r == 0x01) {
+    
+        //    SRAMaddr = (dm9k_read (unit->io_base, MDRAH) << 8) | dm9k_read (unit->io_base, MDRAL);
 
             is_orphan = TRUE;
      
@@ -603,11 +598,13 @@ UWORD SRAMaddr;
             rx_status = dm9k_read_w (unit->io_base, MRCMD);
             packet_size = dm9k_read_w (unit->io_base, MRCMD);
 
+            // Read whole packet    TODO read only header, skip the rest if not needed
+
             p = (UWORD *)(buffer);
             end = (UWORD *)(buffer + packet_size);
          
             while (p < end)
-                *p++ =  /* ntohw */  (dm9k_read_w (unit->io_base, MRCMD)); 
+                *p++ =  ntohw (dm9k_read_w (unit->io_base, MRCMD)); 
 
 
             if (1) {
@@ -652,8 +649,6 @@ UWORD SRAMaddr;
                 if (is_orphan) {
                     unit->stats.UnknownTypesReceived ++;
                     if (!IsMsgPortEmpty (unit->request_ports [ADOPT_QUEUE])) {
-
-
                         
                         CopyPacket (unit, (APTR)unit->request_ports [ADOPT_QUEUE]->mp_MsgList.lh_Head, 
                                 packet_size, packet_type,
@@ -678,7 +673,7 @@ UWORD SRAMaddr;
             unit->stats.BadData ++;
             ReportEvents (unit, S2EVENT_ERROR | S2EVENT_HARDWARE | S2EVENT_RX, base);
             
-            
+/*            
             // ------- Forge fake packet ------------------------
             
             emulated_packet [16] = r;                                    // MRCMDX
@@ -701,7 +696,7 @@ UWORD SRAMaddr;
             }
             
             // ------- Forge fake packet ------------------------
-
+*/
 
             
         }
@@ -723,15 +718,14 @@ UWORD SRAMaddr;
         dm9k_write (unit->io_base, MDRAL, SRAMaddr);
 */
         
+        r = dm9k_read (unit->io_base, MRCMDX);      // dummy read
+        r = dm9k_read (unit->io_base, MRCMDX);
 
+    
 
+    } while (r == 0x01);
+    
 //    } while (dm9k_read (unit->io_base, MRCMDX) == 0x01);              //while (ppPeek (PP_RER != 0x0004));
-
-
-
-
-//    Flush (base->log);
-
 
 
     // Enable ints back
