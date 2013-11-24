@@ -94,8 +94,8 @@
 #define MRCMDX      0xf0    // Memory Data Pre-Fetch Read Command Without Address Increment Register
 #define MRCMDX1     0xf1    // Memory Data Read Command without Address Increment Register
 #define MRCMD       0xf2    // Memory Data Read Command with Address Increment Register
-#define MDRAH       0xf4
-#define MDRAL       0xf5
+#define MDRAL       0xf4
+#define MDRAH       0xf5
 
 #define ISR         0xfe    // Interrupt Status Register
 #define 	ISR_IOMODE   0x80    // 0 : 16-bit mode 1: 8-bit mode

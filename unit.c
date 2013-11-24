@@ -554,41 +554,6 @@ UBYTE emulated_packet [] = {
 
 
 
-/***********************************************************************************/
-
-
-void _Debug (struct MyBase *base, char *s) {
-	FPuts (base->log, s);
-}
-
-void _DebugHex (struct MyBase *base, UBYTE b) {
-register UBYTE nibble;
-	nibble = b >> 4;
-	FPutC (base->log, (nibble < 10) ? '0' + nibble : 'A' - 10 + nibble);
-	nibble = b & 0x0f;
-	FPutC (base->log, (nibble < 10) ? '0' + nibble : 'A' - 10 + nibble);
-	FPutC (base->log, 0x20);
-//	Flush (MyBase->log);
-
-}
-
-void _DebugHex16 (struct MyBase *base, UWORD w) {
-register UBYTE nibble;
-register UBYTE i;
-
-	for (i = 0; i < 4; i ++) {
-		nibble = (w >> (12 - i * 4)) & 0x0f;
-		FPutC (base->log, (nibble < 10) ? '0' + nibble : 'A' - 10 + nibble);
-	}
-
-	FPutC (base->log, 0x20);
-
-//	Flush (base->log);
-}
-
-
-
-
 
 /*****************************************************************************
  *
@@ -608,6 +573,8 @@ struct Opener *opener, *opener_tail;
 struct TypeStats *tracker;
 
 volatile UBYTE r;
+UWORD SRAMaddr;
+
 
     base = unit->device;
 
@@ -622,6 +589,9 @@ volatile UBYTE r;
 
     if (r == 0x01) {
 
+        SRAMaddr = (dm9k_read (unit->io_base, MDRAH) << 8) | dm9k_read (unit->io_base, MDRAL);
+
+
 //        if (dm9000_packet_ready (unit->io_base)) {
 
             // Read packet header
@@ -631,31 +601,18 @@ volatile UBYTE r;
             // Read status and packet size
                 
             rx_status = dm9k_read_w (unit->io_base, MRCMD);
-            packet_size = dm9k_read_w (unit->io_base, MRCMD);     
-          
-    
-              
-              
-              
-              
-              
-//_Debug (base, "status: ");
-//_DebugHex16 (base, rx_status);
-//_Debug (base, "length: ");
-//_DebugHex16 (base, packet_size);
-//_Debug (base, "ISR: ");
-//_DebugHex (base, dm9k_read (unit->io_base, ISR));
-//_Debug (base, "IMR: ");
-//_DebugHex (base, dm9k_read (unit->io_base, IMR));
+            packet_size = dm9k_read_w (unit->io_base, MRCMD);
               
 
-            p = (UWORD *)buffer;
+            p = (UWORD *)(buffer);
+            end = (UWORD *)(buffer + packet_size);
          
             while (p < end)
                 *p++ =  /* ntohw */  (dm9k_read_w (unit->io_base, MRCMD)); 
 
 
-            if (AddressFilter (unit, buffer + PACKET_DEST, base)) {
+            if (1) {
+//            if (AddressFilter (unit, buffer + PACKET_DEST, base)) {
                 
                 packet_type = BEWord (*((UWORD *)(buffer + PACKET_TYPE)));
 
@@ -669,7 +626,7 @@ volatile UBYTE r;
                     request_tail = (APTR)&opener->read_port.mp_MsgList.lh_Tail;
                     accepted = FALSE;
 
-                    /* Offer packet to each request until it's accepted */
+                    // Offer packet to each request until it's accepted 
 
                     while ((request != request_tail) && !accepted) {
                     
@@ -730,8 +687,8 @@ volatile UBYTE r;
             emulated_packet [18] = unit->isr;                            //  saved Interrupt Status Register
             emulated_packet [19] = dm9k_read (unit->io_base, NSR);       // Network Status Register            
             
-            emulated_packet [20] = dm9k_read (unit->io_base, MDRAL);
-            emulated_packet [21] = dm9k_read (unit->io_base, MDRAH);
+            emulated_packet [20] = dm9k_read (unit->io_base, MDRAH);
+            emulated_packet [21] = dm9k_read (unit->io_base, MDRAL);
 
             
             packet_size = sizeof (emulated_packet);
@@ -751,6 +708,22 @@ volatile UBYTE r;
         }
 
       /* Discard packet */
+
+/*      
+        // Adjust MDRAH/L to skip unread part of packet
+        // If the packet was read then it won't hurt
+
+        packet_size -= 14;      // the header was read out already
+
+        if ((SRAMaddr + packet_size) < 0x4000)
+            SRAMaddr += packet_size;
+        else
+            SRAMaddr = 0x0c00 + (0x4000 - SRAMaddr);
+
+        dm9k_write (unit->io_base, MDRAH, SRAMaddr >> 8);
+        dm9k_write (unit->io_base, MDRAL, SRAMaddr);
+*/
+        
 
 
 //    } while (dm9k_read (unit->io_base, MRCMDX) == 0x01);              //while (ppPeek (PP_RER != 0x0004));
@@ -803,8 +776,9 @@ UWORD *p, *end;
    CopyMem (buffer + PACKET_DEST, request->ios2_DstAddr, ADDRESS_SIZE);
    request->ios2_PacketType = packet_type;
 
-   /* Read rest of packet */
 
+   /* Read rest of packet */
+/*
     if (!all_read) {
     
         p = (UWORD *)(buffer + ((PACKET_DATA + 1) & ~1));              // p=(ULONG *)(buffer+((PACKET_DATA+3)&~3));
@@ -812,9 +786,10 @@ UWORD *p, *end;
         end = (UWORD *)(buffer + packet_size);
       
         while (p < end)
-            *p ++ = /* ntohw */ (dm9k_read_w (unit->io_base, MRCMD));
-
+            *p ++ = (dm9k_read_w (unit->io_base, MRCMD));       // htonw?
     }
+
+*/
 
     if ((request->ios2_Req.io_Flags & SANA2IOF_RAW) == 0) {
         packet_size -= PACKET_DATA;
@@ -825,43 +800,6 @@ UWORD *p, *end;
    else
       packet_size += 4;   /* Needed for Shapeshifter & Fusion */        // ??? WTF ???
 #endif
-
-/*
-    //----------------------
-    {
-    ULONG *l;
-    UBYTE i;
-    
-    packet_size += 32;
-    
-    p = (UWORD *)(unit->rx_buffer + 0x30);
-    
-    for (i = 0; i < 32; i++)
-        *p++ = 0x7777;
-    
-    
-    p = (UWORD *)(unit->rx_buffer + 0x20);
-    
-    *p++ = 0xfeed;
-    *p++ = 0xbeef;    
-    
-    l = (ULONG *)p;
-    *l++ = (ULONG) unit->rx_buffer;
-    *l++ = (ULONG) end;
-    
-    p += 4;
-    
-    *p++ = dm9k_read (unit->io_base, MDRAH);
-    *p++ = dm9k_read (unit->io_base, MDRAL);
-    
-    *p++ = 0xAAAA;
-    *p++ = 0xAAAA;
-    *p++ = 0xAAAA;
-    *p++ = 0xAAAA;
-    }
-    //----------------------
-
-*/
 
    request->ios2_DataLength = packet_size;
 
