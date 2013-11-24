@@ -602,7 +602,6 @@ UWORD SRAMaddr;
                 
             rx_status = dm9k_read_w (unit->io_base, MRCMD);
             packet_size = dm9k_read_w (unit->io_base, MRCMD);
-              
 
             p = (UWORD *)(buffer);
             end = (UWORD *)(buffer + packet_size);
