@@ -940,6 +940,7 @@ UBYTE i;
 
             if ((request->ios2_Req.io_Flags & SANA2IOF_RAW) == 0) {
 
+/*
                 dm9k_write_w (unit->io_base, MWCMD, request->ios2_DstAddr [0]);
                 dm9k_write_w (unit->io_base, MWCMD, request->ios2_DstAddr [2]);
                 dm9k_write_w (unit->io_base, MWCMD, request->ios2_DstAddr [4]);                
@@ -947,6 +948,10 @@ UBYTE i;
                 dm9k_write_w (unit->io_base, MWCMD, unit->address [0]);
                 dm9k_write_w (unit->io_base, MWCMD, unit->address [2]);
                 dm9k_write_w (unit->io_base, MWCMD, unit->address [4]);
+  */
+  
+                dm9k_write_block_w (unit->io_base, MWCMD, request->ios2_DstAddr, 3);
+                dm9k_write_block_w (unit->io_base, MWCMD, unit->address, 3);
                 
                 dm9k_write_w (unit->io_base, MWCMD, ntohw (request->ios2_PacketType));
                      

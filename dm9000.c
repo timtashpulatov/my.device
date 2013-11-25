@@ -2,6 +2,8 @@
 
 #include "dm9000.h"
 
+UWORD ntohw (UWORD val);
+
 
 /************************************************************
  * peek
@@ -95,6 +97,17 @@ void dm9k_write_w (APTR io_addr, UBYTE reg, UWORD value) {
     poke ((UBYTE *)io_addr, reg);
     poke_w ((UBYTE *)io_addr + 4, value);
 }
+
+/************************************************************
+ * dm9k_write_block_w
+ ************************************************************/
+void dm9k_write_block_w (APTR io_addr, UBYTE reg, UWORD *src, UWORD len) {
+    poke ((UBYTE *)io_addr, reg);
+    
+    while (len--)
+        poke_w ((UBYTE *)io_addr + 4, ntohw (*src++));
+}
+
 
 /************************************************************
  * dm9k_set_bits
