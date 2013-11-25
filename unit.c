@@ -907,15 +907,8 @@ BYTE error;
 struct MsgPort *port;
 struct TypeStats *tracker;
 
-UBYTE i;
-
-    for (i = 0; i < 16; i ++)    emulated_packet [i] = 0;
-
-
-
     base = unit->device;
     port = unit->request_ports [WRITE_QUEUE];
-
 
     while (proceed && (!IsMsgPortEmpty (port))) {
     
@@ -939,33 +932,12 @@ UBYTE i;
             send_size = (packet_size + 1) & (~0x1);
 
             if ((request->ios2_Req.io_Flags & SANA2IOF_RAW) == 0) {
-
-/*
-                dm9k_write_w (unit->io_base, MWCMD, request->ios2_DstAddr [0]);
-                dm9k_write_w (unit->io_base, MWCMD, request->ios2_DstAddr [2]);
-                dm9k_write_w (unit->io_base, MWCMD, request->ios2_DstAddr [4]);                
-     
-                dm9k_write_w (unit->io_base, MWCMD, unit->address [0]);
-                dm9k_write_w (unit->io_base, MWCMD, unit->address [2]);
-                dm9k_write_w (unit->io_base, MWCMD, unit->address [4]);
-  */
-  
                 dm9k_write_block_w (unit->io_base, MWCMD, request->ios2_DstAddr, 3);
                 dm9k_write_block_w (unit->io_base, MWCMD, unit->address, 3);
                 
                 dm9k_write_w (unit->io_base, MWCMD, ntohw (request->ios2_PacketType));
                      
-                send_size -= PACKET_DATA;
-                
-                //--------------------------
-                for (i = 0; i < 6; i++)
-                    emulated_packet [i] = request->ios2_DstAddr [i];
-                for (i = 6; i < 12; i++)
-                    emulated_packet [i] = unit->address [i];
-                emulated_packet [12] = request->ios2_PacketType >> 8;
-                emulated_packet [13] = request->ios2_PacketType;
-                //--------------------------
-                
+                send_size -= PACKET_DATA;                                
             }
 
             /* Get packet data */
@@ -992,20 +964,11 @@ UBYTE i;
 
             if (error == 0) {
                 end = buffer + (send_size >> 1);
-                while (buffer < end) {
-              //      poke (0x44000000, *buffer++);
-              //      poke (0x44000001, *buffer++);
+                while (buffer < end)
                     dm9k_write_w (unit->io_base, MWCMD, ntohw (*buffer++));
 
-                }
-
-                if ((send_size & 0x1) != 0) {
-                 //   WordToTxDataPort0 (*((UWORD *)buffer));
-             //       poke (0x44000000, *buffer++);
-             //       poke (0x44000001, *buffer++);
-             
+                if ((send_size & 0x1) != 0)
                     dm9k_write_w (unit->io_base, MWCMD, ntohw (*buffer));
-                }
                 
                 // Write transmitted data length to DM9000
                 dm9k_write (unit->io_base, TXPLH, packet_size >> 8);
@@ -1014,30 +977,6 @@ UBYTE i;
                 
                 // Start TX
                 dm9k_write (unit->io_base, TCR, TCR_TXREQ);
-
-
-            // ------- Forge fake packet ------------------------
-
-            {
-                
-                emulated_packet [0x40] = packet_size >> 8;
-                emulated_packet [0x41] = packet_size;
-                
-                
-                packet_size = sizeof (emulated_packet);
-                CopyMem (emulated_packet, unit->rx_buffer, packet_size);
-
-                if (!IsMsgPortEmpty (unit->request_ports [ADOPT_QUEUE])) {
-                    CopyPacket (unit, (APTR)unit->request_ports [ADOPT_QUEUE]->mp_MsgList.lh_Head,
-                                packet_size, 777,
-                                TRUE, base);
-                }
-            }
-
-            // ------- Forge fake packet ------------------------
-
-
-
 
 
             }
