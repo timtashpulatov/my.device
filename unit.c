@@ -995,7 +995,7 @@ UBYTE i;
                 while (buffer < end) {
               //      poke (0x44000000, *buffer++);
               //      poke (0x44000001, *buffer++);
-                    dm9k_write_w (unit->io_base, MWCMD, *buffer++);
+                    dm9k_write_w (unit->io_base, MWCMD, ntohw (*buffer++));
 
                 }
 
@@ -1004,7 +1004,7 @@ UBYTE i;
              //       poke (0x44000000, *buffer++);
              //       poke (0x44000001, *buffer++);
              
-                    dm9k_write_w (unit->io_base, MWCMD, *buffer);
+                    dm9k_write_w (unit->io_base, MWCMD, ntohw (*buffer));
                 }
                 
                 // Write transmitted data length to DM9000
