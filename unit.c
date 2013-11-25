@@ -618,10 +618,9 @@ UWORD SRAMaddr;
 
             p = (UWORD *)(buffer);
             end = (UWORD *)(buffer + packet_size);
-         
+                  
             while (p < end)
                 *p++ =  ntohw (dm9k_read_w (unit->io_base, MRCMD)); 
-
 
             if (1) {
 //            if (AddressFilter (unit, buffer + PACKET_DEST, base)) {
@@ -687,12 +686,7 @@ UWORD SRAMaddr;
         }
         else {
             unit->stats.BadData ++;
-            ReportEvents (unit, S2EVENT_ERROR | S2EVENT_HARDWARE | S2EVENT_RX, base);
-            
-            
-            
-            
-        }
+            ReportEvents (unit, S2EVENT_ERROR | S2EVENT_HARDWARE | S2EVENT_RX, base);            
 
 
             // ------- Forge fake packet ------------------------
@@ -718,6 +712,8 @@ UWORD SRAMaddr;
 
             // ------- Forge fake packet ------------------------
 
+
+        }
 
 
 
@@ -1153,8 +1149,12 @@ UBYTE i;
 __saveds void InterruptServer (__reg("a1") struct Task *task) {
 struct DevUnit *unit;
 UBYTE r;
+UBYTE index;
 
     unit = task->tc_UserData;
+
+    // Save dm9000 INDEX register
+    index = peek (unit->io_base);
 
     r = dm9k_read (unit->io_base, ISR);
 
@@ -1184,6 +1184,10 @@ UBYTE r;
         }
 
     }
+    
+    // Restore dm9000 INDEX register
+    poke (unit->io_base, index);
+
     
 }
 
