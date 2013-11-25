@@ -404,14 +404,14 @@ VOID GoOnline (struct DevUnit *unit, struct MyBase *base) {
     dm9k_write (base->io_base, IMR, 
                                   IMR_PAR 
                                 | IMR_PTI           // TX interrupt
-           //                     | IMR_PRI           // RX interrupt
+                                | IMR_PRI           // RX interrupt
                                 );                  // IMR.7 PAR bit ON and TX & RX INT MASK ON        
     
     dm9k_write (base->io_base, RCR, 
                                   RCR_DIS_CRC       // Discard CRC error packet
                                 | RCR_DIS_LONG      // Discard long packets (over 1522 bytes)
                              // | RCR_PRMSC
-                          //      | RCR_RXEN          // RX Enable
+                                | RCR_RXEN          // RX Enable
                                 );
 
     /* Record start time and report Online event */
@@ -445,11 +445,10 @@ VOID GoOffline (struct DevUnit *unit, struct MyBase *base) {
         
       /* Stop interrupts */
 
-    dm9k_write (unit->io_base, IMR, 0);   // disable all interrupts
+    dm9k_write (unit->io_base, IMR, IMR_PAR);   // disable all interrupts
 
 
       /* Stop transmission and reception */
-  //    ppPoke (PP_LineCTL, ppPeek (PP_LineCTL) & ~(PP_LineCTL_Rx | PP_LineCTL_Tx));
     
     dm9k_write (unit->io_base, RCR, 0);    // stop RX
 
@@ -549,7 +548,8 @@ struct Opener *opener, *tail;
 
 UBYTE emulated_packet [] = {
     0xfe, 0xed, 0xfa, 0xce, 0xaa, 0x55, 0xde, 0xad, 0xbe, 0xef, 0xff, 0x00, 0x77, 0x77, 0x77, 0x77, 
-    0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,
+    0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0
+/*    
     0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,
     0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,
     0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,
@@ -565,7 +565,7 @@ UBYTE emulated_packet [] = {
     0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,
     0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,
     0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0
-
+*/
 };
 
 
@@ -749,8 +749,8 @@ UWORD SRAMaddr;
     // Enable ints back
     dm9k_write (base->io_base, IMR,
                                 IMR_PAR |
-                          //      IMR_PRI |             // RX interrupt
-                                IMR_PTI
+                                IMR_PRI |           // RX interrupt
+                                IMR_PTI             // TX interrupt
                                 );                  
 
 
@@ -1022,8 +1022,8 @@ struct TypeStats *tracker;
     // Enable ints back
     dm9k_write (base->io_base, IMR,
                                 IMR_PAR |
-                                IMR_PRI |             // RX interrupt
-                                IMR_PTI
+                                IMR_PRI |           // RX interrupt
+                                IMR_PTI             // TX interrupt
                                 );
 
 
@@ -1158,48 +1158,32 @@ UBYTE r;
 
     r = dm9k_read (unit->io_base, ISR);
 
-    if (r & ISR_LNKCHG) {   // Link changed
-        dm9k_write (unit->io_base, ISR, ISR_LNKCHG);        // clear Link change interrupt
-    }
+    if (r & 0x3f) {
+
+        // Disable all interrupts
+        dm9k_write (unit->io_base, IMR, IMR_PAR);
+
+        // Save ISR for later inspection
+        unit->isr = r;
+
+        // Acknowledge all interrupts
+        dm9k_write (unit->io_base, ISR, 0x3f);      // you MUST do this
+
+
+        if (r & ISR_LNKCHG) {   // Link changed
+        }
     
-    if (r & ISR_PT) {       // Packet transmitted
 
-        // Disable all interrupts
-        dm9k_write (unit->io_base, IMR, IMR_PAR);
+        if (r & ISR_PT) {       // Packet transmitted
+            Cause (&unit->tx_int);
+        }
 
-        // Save ISR for later inspection
-        unit->isr = r;
 
-        dm9k_write (unit->io_base, ISR, ISR_PT);            // clear Packet TX interrupt
-        
-        Cause (&unit->tx_int);
+        if (r & ISR_PR) {       // Packet received
+            Cause (&unit->rx_int);
+        }
+
     }
-
-    if (r & ISR_PR) {       // Packet received
-
-        // Disable all interrupts
-        dm9k_write (unit->io_base, IMR, IMR_PAR);
-
-        // Save ISR for later inspection
-        unit->isr = r;
-
-        // Acknowledge all interrupts
-        dm9k_write (unit->io_base, ISR, 0x3f);      // you MUST do this
-
-        Cause (&unit->rx_int);
-    }
-
-/*    
-    if (r & 0x3f) {         // any dm9000 int
-        // Disable all interrupts
-        dm9k_write (unit->io_base, IMR, IMR_PAR);
-
-        // Acknowledge all interrupts
-        dm9k_write (unit->io_base, ISR, 0x3f);      // you MUST do this
-
-
-    }    
-*/    
     
 }
 

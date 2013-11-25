@@ -338,6 +338,7 @@ UWORD i;
    base->device.dd_Library.lib_OpenCnt ++;
    base->device.dd_Library.lib_Flags &= ~LIBF_DELEXP;
 
+/*
 
     // Log
    	if (base->log == NULL)
@@ -352,7 +353,7 @@ UWORD i;
 		
 		Flush (base->log);
         };
-
+*/
 
    	request->ios2_Req.io_Unit = NULL;
    	tag_list = request->ios2_BufferManagement;
