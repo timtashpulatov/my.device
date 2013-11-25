@@ -240,7 +240,7 @@ BOOL complete = FALSE;
    }
 
 
-//    Cause (&unit->tx_int);      // HACK
+    Cause (&unit->tx_int);      // HACK
 
 
 
