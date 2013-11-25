@@ -622,8 +622,8 @@ UWORD SRAMaddr;
             while (p < end)
                 *p++ =  ntohw (dm9k_read_w (unit->io_base, MRCMD)); 
 
-            if (1) {
-//            if (AddressFilter (unit, buffer + PACKET_DEST, base)) {
+//            if (1) {
+            if (AddressFilter (unit, buffer + PACKET_DEST, base)) {
                 
                 packet_type = BEWord (*((UWORD *)(buffer + PACKET_TYPE)));
 
