@@ -257,13 +257,10 @@ APTR stack;
             }
         }
 
-//      unit->tuple_buffer=
- //        AllocVec(TUPLE_BUFFER_SIZE,MEMF_ANY);
         unit->rx_buffer = (APTR) AllocVec ((MAX_PACKET_SIZE + 3) &~ 3, MEMF_PUBLIC);
         unit->tx_buffer = (APTR) AllocVec (MAX_PACKET_SIZE, MEMF_PUBLIC);
-        if (/*(unit->tuple_buffer==NULL)||*/
-            (unit->rx_buffer == NULL) || (unit->tx_buffer == NULL))
-                success = FALSE;
+        if ((unit->rx_buffer == NULL) || (unit->tx_buffer == NULL))
+            success = FALSE;
     }
 
     if (success) {
