@@ -14,6 +14,10 @@
 
 #define STAT_COUNT 3
 
+
+
+#define NSCMD_DEVICEQUERY   0x4000
+
 /* Unit flags */
 
 #define UNITF_SHARED        (1<<0)
@@ -81,15 +85,13 @@ struct DevUnit {
    UBYTE isr;
 };
 
-struct TypeStats
-{
+struct TypeStats {
    struct MinNode node;
    ULONG packet_type;
    struct Sana2PacketTypeStats stats;
 };
 
-struct TypeTracker
-{
+struct TypeTracker {
    struct MinNode node;
    ULONG packet_type;
    struct Sana2PacketTypeStats stats;
@@ -97,8 +99,7 @@ struct TypeTracker
 };
 
 
-struct AddressRange
-{
+struct AddressRange {
    struct MinNode node;
    ULONG add_count;
    ULONG lower_bound_left;

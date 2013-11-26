@@ -43,8 +43,8 @@ static BOOL CmdReadOrphan(struct IOSana2Req *request, struct MyBase *base);
 static BOOL CmdOnline(struct IOSana2Req *request,struct MyBase *base);
 static BOOL CmdOffline(struct IOSana2Req *request,struct MyBase *base);
 static BOOL CmdDeviceQuery(struct IOStdReq *request, struct MyBase *base);
-//static BOOL CmdAddMulticastAddresses(struct IOSana2Req *request, struct MyBase *base);
-//static BOOL CmdDelMulticastAddresses(struct IOSana2Req *request, struct MyBase *base);
+static BOOL CmdAddMulticastAddresses(struct IOSana2Req *request, struct MyBase *base);
+static BOOL CmdDelMulticastAddresses(struct IOSana2Req *request, struct MyBase *base);
 
 VOID PutRequest (struct MsgPort *port, struct IORequest *request, struct MyBase *base);
 
@@ -113,15 +113,13 @@ BOOL complete;
       break;
    case S2_CONFIGINTERFACE:
       complete = CmdConfigInterface ((APTR)request, base);
-      break;
-/*      
+      break;     
    case S2_ADDMULTICASTADDRESS:
-      complete=CmdAddMulticastAddresses((APTR)request,base);
+      complete = CmdAddMulticastAddresses ((APTR)request, base);
       break;
    case S2_DELMULTICASTADDRESS:
-      complete=CmdDelMulticastAddresses((APTR)request,base);
+      complete = CmdDelMulticastAddresses ((APTR)request, base);
       break;
-*/      
    case S2_MULTICAST:
       complete = CmdWrite ((APTR)request, base);
       break;
@@ -154,26 +152,22 @@ BOOL complete;
    case S2_ONLINE:
       complete = CmdOnline ((APTR)request, base);
       break;
+
    case S2_OFFLINE:
       complete = CmdOffline ((APTR)request, base);
       break;
-/*
+
    case NSCMD_DEVICEQUERY:
-      complete=CmdDeviceQuery((APTR)request,base);
+      complete = CmdDeviceQuery ((APTR)request, base);
       break;
-   case S2_ADDMULTICASTADDRESSES:
-      complete=CmdAddMulticastAddresses((APTR)request,base);
-      break;
-   case S2_DELMULTICASTADDRESSES:
-      complete=CmdDelMulticastAddresses((APTR)request,base);
-      break;
-*/
+     
+
    default:
       complete = CmdInvalid ((APTR)request, base);
    }
 
-   if (complete && ((request->ios2_Req.io_Flags & IOF_QUICK) == 0))
-      ReplyMsg ((APTR)request);
+    if (complete && ((request->ios2_Req.io_Flags & IOF_QUICK) == 0))
+        ReplyMsg ((APTR)request);
 
    ReleaseSemaphore (&((struct DevUnit *)request->ios2_Req.io_Unit)->access_lock);
    return;

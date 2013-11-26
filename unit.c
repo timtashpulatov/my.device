@@ -26,7 +26,7 @@
 
 IMPORT struct ExecBase *AbsExecBase;
 
-//static struct AddressRange *FindMulticastRange(struct DevUnit *unit,  ULONG lower_bound_left, UWORD lower_bound_right, ULONG upper_bound_left,   UWORD upper_bound_right, struct DevBase *base);
+static struct AddressRange *FindMulticastRange (struct DevUnit *unit, ULONG lower_bound_left, UWORD lower_bound_right, ULONG upper_bound_left, UWORD upper_bound_right, struct MyBase *base);
 static VOID RxInt (__reg("a1") struct DevUnit *unit);
 static VOID CopyPacket (struct DevUnit *unit, struct IOSana2Req *request, UWORD packet_size, UWORD packet_type, BOOL all_read, struct MyBase *base);
 static BOOL AddressFilter (struct DevUnit *unit, UBYTE *address, struct MyBase *base);
@@ -474,6 +474,134 @@ VOID GoOffline (struct DevUnit *unit, struct MyBase *base) {
    ReportEvents (unit, S2EVENT_OFFLINE, base);
    return;
 }
+
+
+/*****************************************************************************
+ *
+ * AddMulticastRange
+ *
+ *****************************************************************************/
+BOOL AddMulticastRange (struct DevUnit *unit, UBYTE *lower_bound,
+                        UBYTE *upper_bound, struct MyBase *base) {
+struct AddressRange *range;
+ULONG lower_bound_left, upper_bound_left;
+UWORD lower_bound_right, upper_bound_right;
+
+    lower_bound_left = BELong (*((ULONG *)lower_bound));
+    lower_bound_right = BEWord (*((UWORD *)(lower_bound + 4)));
+    upper_bound_left = BELong (*((ULONG *)upper_bound));
+    upper_bound_right = BEWord (*((UWORD *)(upper_bound + 4)));
+
+    range = FindMulticastRange (unit, lower_bound_left, lower_bound_right,
+                                upper_bound_left, upper_bound_right, base);
+
+    if (range != NULL)
+        range->add_count ++;
+    else {
+        range = (APTR)AllocMem (sizeof (struct AddressRange), MEMF_PUBLIC);
+        if (range != NULL) {
+            range->lower_bound_left = lower_bound_left;
+            range->lower_bound_right = lower_bound_right;
+            range->upper_bound_left = upper_bound_left;
+            range->upper_bound_right = upper_bound_right;
+            range->add_count = 1;
+
+            Disable ();
+            AddTail ((APTR)&unit->multicast_ranges, (APTR)range);
+            Enable ();
+
+            if (unit->range_count ++ == 0) {
+//                unit->rx_filter_cmd |= EL3CMD_SETRXFILTERF_MCAST;
+//                LEWordOut (unit->io_base + EL3REG_COMMAND, unit->rx_filter_cmd);
+            }
+        }
+    }
+
+    return range != NULL;
+}
+
+
+
+/*****************************************************************************
+ *
+ * RemMulticastRange
+ *
+ *****************************************************************************/
+BOOL RemMulticastRange (struct DevUnit *unit, UBYTE *lower_bound, UBYTE *upper_bound, struct MyBase *base) {
+struct AddressRange *range;
+ULONG lower_bound_left, upper_bound_left;
+UWORD lower_bound_right, upper_bound_right;
+
+    lower_bound_left = BELong(*((ULONG *)lower_bound));
+    lower_bound_right = BEWord(*((UWORD *)(lower_bound + 4)));
+    upper_bound_left = BELong(*((ULONG *)upper_bound));
+    upper_bound_right = BEWord(*((UWORD *)(upper_bound + 4)));
+
+    range = FindMulticastRange (unit, lower_bound_left, lower_bound_right,
+            upper_bound_left, upper_bound_right, base);
+
+    if (range != NULL) {
+        if (--range->add_count == 0) {
+            Disable ();
+            Remove ((APTR)range);
+            Enable ();
+            FreeMem (range, sizeof (struct AddressRange));
+
+            if (--unit->range_count == 0) {
+//            unit->rx_filter_cmd&=~EL3CMD_SETRXFILTERF_MCAST;
+//            LEWordOut(unit->io_base+EL3REG_COMMAND,unit->rx_filter_cmd);
+            }
+        }
+    }
+
+    return range != NULL;
+}
+
+
+
+/***** 3c589.device/FindMulticastRange *************************************
+*
+*   NAME
+*	FindMulticastRange -- .
+*
+*   SYNOPSIS
+*	range = FindMulticastRange(unit,lower_bound_left,
+*	    lower_bound_right,upper_bound_left,upper_bound_right)
+*
+*	struct AddressRange *FindMulticastRange(struct DevUnit *,ULONG,
+*	    UWORD,ULONG,UWORD);
+*
+****************************************************************************
+*/
+
+static struct AddressRange *FindMulticastRange (struct DevUnit *unit,
+        ULONG lower_bound_left, UWORD lower_bound_right, ULONG upper_bound_left,
+        UWORD upper_bound_right, struct MyBase *base) {
+struct AddressRange *range,*tail;
+BOOL found;
+
+   range=(APTR)unit->multicast_ranges.mlh_Head;
+   tail=(APTR)&unit->multicast_ranges.mlh_Tail;
+   found=FALSE;
+
+   while((range!=tail)&&!found)
+   {
+      if((lower_bound_left==range->lower_bound_left)&&
+         (lower_bound_right==range->lower_bound_right)&&
+         (upper_bound_left==range->upper_bound_left)&&
+         (upper_bound_right==range->upper_bound_right))
+         found=TRUE;
+      else
+         range=(APTR)range->node.mln_Succ;
+   }
+
+   if(!found)
+      range=NULL;
+
+   return range;
+}
+
+
 
 
 
