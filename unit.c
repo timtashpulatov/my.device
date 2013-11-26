@@ -622,6 +622,10 @@ UWORD SRAMaddr;
             rx_status = dm9k_read_w (unit->io_base, MRCMD);
             packet_size = dm9k_read_w (unit->io_base, MRCMD);
 
+
+
+
+
             // Read whole packet    TODO read only header, skip the rest if not needed
 
             p = (UWORD *)(buffer);
@@ -748,7 +752,7 @@ UWORD SRAMaddr;
 
     
 
-    } while (r == 0x01);
+    } while (0);  //    } while (r == 0x01);
 
 
     // Enable ints back
