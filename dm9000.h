@@ -68,7 +68,8 @@
 #define PAR5        0x14    // 
 #define PAR6        0x15    // 
 
-#define MAR
+#define MAB0        0x16    // Multicast Address Byte 7
+#define MAB7        0x1d    // Multicast Address Byte 7
 
 #define GPCR        0x1e    // General Purpose Control Register (in 8-bit mode)
 

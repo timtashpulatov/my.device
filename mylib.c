@@ -590,8 +590,8 @@ __saveds __stdargs void L_CloseLibs (void)
 __saveds APTR DevExpunge (__reg("a6") struct MyBase *base) {
 APTR seg_list;
 
-    Debug ("\n- DevExpunge");
-    Flush (base->log);
+//    Debug ("\n- DevExpunge");
+//    Flush (base->log);
 
    if (base->device.dd_Library.lib_OpenCnt == 0) {
       seg_list = base->my_SegList;

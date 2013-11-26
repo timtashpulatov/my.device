@@ -130,6 +130,14 @@ UBYTE *p, i;
 
     // MAC Node Address and FILTER Hash Table
     // dm9000_hash_table(dev); /* map HASH Table (see ch.3-1 & ch.6 ) */
+    
+    
+    for (i = 0; i < 8; i++)
+        dm9k_write (unit->io_base, MAB0 + i, 0);
+    
+    //Always accept broadcast packets
+    dm9k_write (unit->io_base, MAB7, 0x80);
+    
 
     // Activate DM9000
 //        dm9k_set_bits (base->io_base, RCR, RCR_RXEN | RCR_PRMSC | RCR_ALL);    // RXCR.0 RXEN bit ON Enable
@@ -688,6 +696,7 @@ UWORD SRAMaddr;
             unit->stats.BadData ++;
             ReportEvents (unit, S2EVENT_ERROR | S2EVENT_HARDWARE | S2EVENT_RX, base);            
 
+/*
 
             // ------- Forge fake packet ------------------------
 
@@ -711,7 +720,7 @@ UWORD SRAMaddr;
             }
 
             // ------- Forge fake packet ------------------------
-
+*/
 
         }
 
