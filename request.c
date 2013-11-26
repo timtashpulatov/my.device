@@ -804,6 +804,64 @@ static BOOL CmdDeviceQuery (struct IOStdReq *request, struct MyBase *base) {
 }
 
 
+/*****************************************************************************
+ *
+ * CmdAddMulticastAddresses
+ *
+ *****************************************************************************/
+static BOOL CmdAddMulticastAddresses (struct IOSana2Req *request, struct MyBase *base) {
+struct DevUnit *unit;
+UBYTE *lower_bound, *upper_bound;
+
+    unit = (APTR) request->ios2_Req.io_Unit;
+
+    lower_bound = request->ios2_SrcAddr;
+    if (request->ios2_Req.io_Command == S2_ADDMULTICASTADDRESS)
+        upper_bound = lower_bound;
+    else
+        upper_bound = request->ios2_DstAddr;
+
+    if (!AddMulticastRange (unit, lower_bound, upper_bound, base)) {
+        request->ios2_Req.io_Error = S2ERR_NO_RESOURCES;
+        request->ios2_WireError = S2WERR_GENERIC_ERROR;
+    }
+
+    /* Return */
+
+    return TRUE;
+}
+
+
+/*****************************************************************************
+ *
+ * CmdDelMulticastAddresses
+ *
+ *****************************************************************************/
+static BOOL CmdDelMulticastAddresses (struct IOSana2Req *request, struct MyBase *base) {
+struct DevUnit *unit;
+UBYTE *lower_bound, *upper_bound;
+
+    unit = (APTR) request->ios2_Req.io_Unit;
+
+    lower_bound = request->ios2_SrcAddr;
+    if (request->ios2_Req.io_Command == S2_DELMULTICASTADDRESS)
+        upper_bound = lower_bound;
+    else
+        upper_bound = request->ios2_DstAddr;
+
+    if (!RemMulticastRange (unit, lower_bound, upper_bound,base)) {
+        request->ios2_Req.io_Error = S2ERR_BAD_STATE;
+        request->ios2_WireError = S2WERR_BAD_MULTICAST;
+    }
+
+    /* Return */
+
+    return TRUE;
+}
+
+
+
+
 
 
 
