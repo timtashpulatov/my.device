@@ -1301,14 +1301,17 @@ UBYTE index;
 
     if (r & 0x3f) {
 
+        // Acknowledge all interrupts
+        dm9k_write (unit->io_base, ISR, 0x3f);      // you MUST do this
+
         // Disable all interrupts
         dm9k_write (unit->io_base, IMR, IMR_PAR);
 
         // Save ISR for later inspection
         unit->isr = r;
 
-        // Acknowledge all interrupts
-        dm9k_write (unit->io_base, ISR, 0x3f);      // you MUST do this
+//        // Acknowledge all interrupts
+//        dm9k_write (unit->io_base, ISR, 0x3f);      // you MUST do this
 
 
         if (r & ISR_LNKCHG) {   // Link changed

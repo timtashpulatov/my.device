@@ -25,26 +25,26 @@
                         S2EVENT_OFFLINE | S2EVENT_BUFF | S2EVENT_HARDWARE | S2EVENT_SOFTWARE)
 
 
-static BOOL CmdInvalid(struct IOSana2Req *request, struct MyBase *base);
-static BOOL CmdRead(struct IOSana2Req *request, struct MyBase *base);
-static BOOL CmdWrite(struct IOSana2Req *request, struct MyBase *base);
-static BOOL CmdFlush(struct IORequest *request,struct MyBase *base);
-static BOOL CmdS2DeviceQuery(struct IOSana2Req *request,   struct MyBase *base);
-static BOOL CmdGetStationAddress(struct IOSana2Req *request,   struct MyBase *base);
+static BOOL CmdInvalid (struct IOSana2Req *request, struct MyBase *base);
+static BOOL CmdRead (struct IOSana2Req *request, struct MyBase *base);
+static BOOL CmdWrite (struct IOSana2Req *request, struct MyBase *base);
+static BOOL CmdFlush (struct IORequest *request,struct MyBase *base);
+static BOOL CmdS2DeviceQuery (struct IOSana2Req *request,   struct MyBase *base);
+static BOOL CmdGetStationAddress (struct IOSana2Req *request,   struct MyBase *base);
 static BOOL CmdConfigInterface (struct IOSana2Req *request,   struct MyBase *base);
-static BOOL CmdBroadcast(struct IOSana2Req *request,   struct MyBase *base);
-static BOOL CmdTrackType(struct IOSana2Req *request,   struct MyBase *base);
-static BOOL CmdUntrackType(struct IOSana2Req *request,   struct MyBase *base);
-static BOOL CmdGetTypeStats(struct IOSana2Req *request,   struct MyBase *base);
-static BOOL CmdGetSpecialStats(struct IOSana2Req *request,   struct MyBase *base);
-static BOOL CmdGetGlobalStats(struct IOSana2Req *request,   struct MyBase *base);
-static BOOL CmdOnEvent(struct IOSana2Req *request,struct MyBase *base);
-static BOOL CmdReadOrphan(struct IOSana2Req *request, struct MyBase *base);
-static BOOL CmdOnline(struct IOSana2Req *request,struct MyBase *base);
-static BOOL CmdOffline(struct IOSana2Req *request,struct MyBase *base);
-static BOOL CmdDeviceQuery(struct IOStdReq *request, struct MyBase *base);
-static BOOL CmdAddMulticastAddresses(struct IOSana2Req *request, struct MyBase *base);
-static BOOL CmdDelMulticastAddresses(struct IOSana2Req *request, struct MyBase *base);
+static BOOL CmdBroadcast (struct IOSana2Req *request,   struct MyBase *base);
+static BOOL CmdTrackType (struct IOSana2Req *request,   struct MyBase *base);
+static BOOL CmdUntrackType (struct IOSana2Req *request,   struct MyBase *base);
+static BOOL CmdGetTypeStats (struct IOSana2Req *request,   struct MyBase *base);
+static BOOL CmdGetSpecialStats (struct IOSana2Req *request,   struct MyBase *base);
+static BOOL CmdGetGlobalStats (struct IOSana2Req *request,   struct MyBase *base);
+static BOOL CmdOnEvent (struct IOSana2Req *request,struct MyBase *base);
+static BOOL CmdReadOrphan (struct IOSana2Req *request, struct MyBase *base);
+static BOOL CmdOnline (struct IOSana2Req *request,struct MyBase *base);
+static BOOL CmdOffline (struct IOSana2Req *request,struct MyBase *base);
+static BOOL CmdDeviceQuery (struct IOStdReq *request, struct MyBase *base);
+static BOOL CmdAddMulticastAddresses (struct IOSana2Req *request, struct MyBase *base);
+static BOOL CmdDelMulticastAddresses (struct IOSana2Req *request, struct MyBase *base);
 
 VOID PutRequest (struct MsgPort *port, struct IORequest *request, struct MyBase *base);
 
@@ -68,9 +68,9 @@ static const UWORD supported_commands [] = {
    S2_READORPHAN,
    S2_ONLINE,
    S2_OFFLINE,
-//   NSCMD_DEVICEQUERY,
-//   S2_ADDMULTICASTADDRESSES,
-//   S2_DELMULTICASTADDRESSES,
+   NSCMD_DEVICEQUERY,
+   S2_ADDMULTICASTADDRESS,
+   S2_DELMULTICASTADDRESS,
    0
 };
 
@@ -98,82 +98,110 @@ BOOL complete;
    switch (request->ios2_Req.io_Command) {
    case CMD_READ:
       complete = CmdRead (request, base);
+Debug (base->log, "CMD_READ\r");
       break;
    case CMD_WRITE:
       complete = CmdWrite (request, base);
+Debug ("CMD_WRITE\r");      
       break;
    case CMD_FLUSH:
       complete = CmdFlush ((APTR)request, base);
+Debug ("CMD_FLUSH\r");      
       break;
    case S2_DEVICEQUERY:
       complete = CmdS2DeviceQuery ((APTR)request, base);
+Debug ("S2_DEVICEQUERY\r");      
       break;
    case S2_GETSTATIONADDRESS:
       complete = CmdGetStationAddress ((APTR)request, base);
+Debug ("S2_GETSTATIONADDRESS\r");      
       break;
    case S2_CONFIGINTERFACE:
       complete = CmdConfigInterface ((APTR)request, base);
+Debug ("S2_CONFIGINTERFACE\r");      
       break;     
    case S2_ADDMULTICASTADDRESS:
       complete = CmdAddMulticastAddresses ((APTR)request, base);
+Debug ("S2_ADDMULTICASTADDRESS\r");      
       break;
    case S2_DELMULTICASTADDRESS:
       complete = CmdDelMulticastAddresses ((APTR)request, base);
+Debug ("S2_DELMULTICASTADDRESS\r");      
       break;
    case S2_MULTICAST:
       complete = CmdWrite ((APTR)request, base);
+Debug ("S2_MULTICAST\r");      
       break;
    case S2_BROADCAST:
       complete = CmdBroadcast ((APTR)request, base);
+Debug ("S2_BROADCAST\r");      
       break;
    case S2_TRACKTYPE:
       complete = CmdTrackType ((APTR)request, base);
+Debug ("S2_TRACKTYPE\r");      
       break;
    case S2_UNTRACKTYPE:
       complete = CmdUntrackType ((APTR)request, base);
+Debug ("S2_UNTRACKTYPE\r");      
       break;
    case S2_GETTYPESTATS:
       complete = CmdGetTypeStats ((APTR)request, base);
+Debug ("S2_GETTYPESTATS\r");      
       break;
    case S2_GETSPECIALSTATS:
       complete = CmdGetSpecialStats ((APTR)request, base);
+Debug ("S2_GETSPECIALSTATS\r");      
       break;
    case S2_GETGLOBALSTATS:
       complete = CmdGetGlobalStats ((APTR)request, base);
+Debug ("S2_GETGLOBALSTATS\r");      
       break;
    case S2_ONEVENT:
       complete = CmdOnEvent ((APTR)request, base);
+Debug ("S2_ONEVENT\r");      
       break;
       
    case S2_READORPHAN:
       complete = CmdReadOrphan ((APTR)request, base);
+Debug ("S2_READORPHAN\r");      
       break;
       
    case S2_ONLINE:
       complete = CmdOnline ((APTR)request, base);
+Debug ("S2_ONLINE\r");      
       break;
 
    case S2_OFFLINE:
       complete = CmdOffline ((APTR)request, base);
+Debug ("S2_OFFLINE\r");      
       break;
 
    case NSCMD_DEVICEQUERY:
       complete = CmdDeviceQuery ((APTR)request, base);
+Debug ("NSCMD_DEVICEQUERY\r");      
       break;
      
 
    default:
       complete = CmdInvalid ((APTR)request, base);
+Debug ("CMD_???\r");      
    }
 
     if (complete && ((request->ios2_Req.io_Flags & IOF_QUICK) == 0))
         ReplyMsg ((APTR)request);
 
    ReleaseSemaphore (&((struct DevUnit *)request->ios2_Req.io_Unit)->access_lock);
+   
+   Flush (base->log);
+   
    return;
 }
 
-
+/*****************************************************************************
+ *
+ * CmdInvalid
+ *
+ *****************************************************************************/
 static BOOL CmdInvalid (struct IOSana2Req *request, struct MyBase *base) {
    request->ios2_Req.io_Error = IOERR_NOCMD;
    request->ios2_WireError = S2WERR_GENERIC_ERROR;
@@ -181,7 +209,11 @@ static BOOL CmdInvalid (struct IOSana2Req *request, struct MyBase *base) {
    return TRUE;
 }
 
-
+/*****************************************************************************
+ *
+ * CmdRead
+ *
+ *****************************************************************************/
 static BOOL CmdRead (struct IOSana2Req *request, struct MyBase *base) {
 struct DevUnit *unit;
 struct Opener *opener;
@@ -204,6 +236,11 @@ BOOL complete = FALSE;
    return complete;
 }
 
+/*****************************************************************************
+ *
+ * CmdWrite
+ *
+ *****************************************************************************/
 static BOOL CmdWrite (struct IOSana2Req *request, struct MyBase *base) {
 struct DevUnit *unit;
 BYTE error = 0;
@@ -244,6 +281,11 @@ BOOL complete = FALSE;
 }
 
 
+/*****************************************************************************
+ *
+ * CmdFlush
+ *
+ *****************************************************************************/
 static BOOL CmdFlush (struct IORequest *request,struct MyBase *base) {
    FlushUnit ((APTR)request->io_Unit, EVENT_QUEUE, IOERR_ABORTED, base);
    return TRUE;
@@ -342,7 +384,11 @@ static BOOL CmdBroadcast (struct IOSana2Req *request, struct MyBase *base) {
    return CmdWrite (request, base);
 }
 
-
+/*****************************************************************************
+ *
+ * CmdTrackType
+ *
+ *****************************************************************************/
 static BOOL CmdTrackType (struct IOSana2Req *request, struct MyBase *base) {
 struct DevUnit *unit;
 struct Opener *opener;
