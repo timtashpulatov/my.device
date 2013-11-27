@@ -619,77 +619,77 @@ struct DevUnit *unit;
     iorq->ios2_Req.io_Error = 0;
     unit = (APTR)iorq->ios2_Req.io_Unit;
 
-/*      
+      
 	Debug ("\n- BeginIO ");
 	Debug ("command ");
 	DebugHex16 (iorq->ios2_Req.io_Command);
 	Debug ("flags ");
 	DebugHex32 (iorq->ios2_Req.io_Flags);
-*/          
+          
         switch (iorq->ios2_Req.io_Command) {
 
 	    case CMD_READ:
-//	    	Debug ("\n CMD_READ");
+	    	Debug ("\n CMD_READ");
 	    	break;
 
             case CMD_WRITE:
-//                Debug ("\n CMD_WRITE");
+                Debug ("\n CMD_WRITE");
                 break;
             case S2_DEVICEQUERY:
-//                Debug ("\n S2_DEVICEQUERY");
+                Debug ("\n S2_DEVICEQUERY");
                 break;
             case S2_GETSTATIONADDRESS:
-//                Debug ("\n S2_GETSTATIONADDRESS");
+                Debug ("\n S2_GETSTATIONADDRESS");
                 break;
             case S2_CONFIGINTERFACE:
-//                Debug ("\n S2_CONFIGINTERFACE");
+                Debug ("\n S2_CONFIGINTERFACE");
                 break;
             case S2_ADDMULTICASTADDRESS:
-//                Debug ("\n S2_ADDMULTICASTADDRESS");
+                Debug ("\n S2_ADDMULTICASTADDRESS");
                 break;
             case S2_DELMULTICASTADDRESS:
-//                Debug ("\n S2_DELMULTICASTADDRESS");
+                Debug ("\n S2_DELMULTICASTADDRESS");
                 break;
             case S2_MULTICAST:
-//                Debug ("\n S2_MULTICAST");
+                Debug ("\n S2_MULTICAST");
                 break;
             case S2_BROADCAST:
-//                Debug ("\n S2_BROADCAST");
+                Debug ("\n S2_BROADCAST");
                 break;            
             case S2_TRACKTYPE:
-//                Debug ("\n S2_TRACKTYPE");
+                Debug ("\n S2_TRACKTYPE");
                 break;
             case S2_UNTRACKTYPE:
-//                Debug ("\n S2_UNTRACKTYPE");
+                Debug ("\n S2_UNTRACKTYPE");
                 break;
             case S2_GETTYPESTATS:
-//                Debug ("\n S2_GETTYPESTATS");
+                Debug ("\n S2_GETTYPESTATS");
                 break;
             case S2_GETSPECIALSTATS:
-//                Debug ("\n S2_GETSPECIALSTATS");
+                Debug ("\n S2_GETSPECIALSTATS");
                 break;
             case S2_GETGLOBALSTATS:
-//                Debug ("\n S2_GETGLOBALSTATS");
+                Debug ("\n S2_GETGLOBALSTATS");
                 break;
             case S2_ONEVENT:
-//                Debug ("\n S2_ONEVENT");
+                Debug ("\n S2_ONEVENT");
                 break;
             case S2_READORPHAN:
-//                Debug ("\n S2_READORPHAN");
+               Debug ("\n S2_READORPHAN");
                 break;
             case S2_ONLINE:
-//                Debug ("\n S2_ONLINE");
+               Debug ("\n S2_ONLINE");
                 break;
             case S2_OFFLINE:
-//                Debug ("\n S2_OFFLINE");
+                Debug ("\n S2_OFFLINE");
                 break;                
 
             default:
-//                Debug ("\n CMD???");
+                Debug ("\n CMD???");
                 break;
         }    
         
-//	Flush (base->log);
+	Flush (base->log);
           
    if (AttemptSemaphore (&unit->access_lock))
       ServiceRequest (iorq, base);

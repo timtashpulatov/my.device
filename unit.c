@@ -27,7 +27,7 @@
 IMPORT struct ExecBase *AbsExecBase;
 
 static struct AddressRange *FindMulticastRange (struct DevUnit *unit, ULONG lower_bound_left, UWORD lower_bound_right, ULONG upper_bound_left, UWORD upper_bound_right, struct MyBase *base);
-static VOID RxInt (__reg("a1") struct DevUnit *unit);
+__saveds static VOID RxInt (__reg("a1") struct DevUnit *unit);
 static VOID CopyPacket (struct DevUnit *unit, struct IOSana2Req *request, UWORD packet_size, UWORD packet_type, BOOL all_read, struct MyBase *base);
 static BOOL AddressFilter (struct DevUnit *unit, UBYTE *address, struct MyBase *base);
 static VOID TxInt (__reg("a1") struct DevUnit *unit);
@@ -709,7 +709,7 @@ UBYTE emulated_packet [] = {
  * RxInt
  *
  *****************************************************************************/
-static VOID RxInt (__reg("a1") struct DevUnit *unit) {
+__saveds static VOID RxInt (__reg("a1") struct DevUnit *unit) {
 UWORD rx_status, packet_size;
 struct MyBase *base;
 BOOL is_orphan, accepted;
@@ -877,8 +877,13 @@ UWORD SRAMaddr;
 
     
 
-    } while (0);  //    } while (r == 0x01);
+    //} while (0);  //    
+    } while (r == 0x01);
 
+
+    // Just in case, clear whatever RX Packet int could occur while processing
+    dm9k_write (base->io_base, ISR, ISR_PR);
+    
 
     // Enable ints back
     dm9k_write (base->io_base, IMR,
@@ -1044,10 +1049,10 @@ struct TypeStats *tracker;
     base = unit->device;
     port = unit->request_ports [WRITE_QUEUE];
 
-    while (proceed && (!IsMsgPortEmpty (port))) {
+//    while (proceed && (!IsMsgPortEmpty (port))) {
     
     // run once DEBUG
-    //if (!IsMsgPortEmpty (port)) {
+    if (!IsMsgPortEmpty (port)) {
     
         error = 0;
 

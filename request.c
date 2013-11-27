@@ -98,93 +98,92 @@ BOOL complete;
    switch (request->ios2_Req.io_Command) {
    case CMD_READ:
       complete = CmdRead (request, base);
-Debug (base->log, "CMD_READ\n");
+//Debug (base->log, "CMD_READ\n");
       break;
    case CMD_WRITE:
       complete = CmdWrite (request, base);
-Debug ("CMD_WRITE\n");      
+//Debug ("CMD_WRITE\n");      
       break;
    case CMD_FLUSH:
       complete = CmdFlush ((APTR)request, base);
-Debug ("CMD_FLUSH\n");      
+//Debug ("CMD_FLUSH\n");      
       break;
    case S2_DEVICEQUERY:
       complete = CmdS2DeviceQuery ((APTR)request, base);
-Debug ("S2_DEVICEQUERY\n");      
+//Debug ("S2_DEVICEQUERY\n");      
       break;
    case S2_GETSTATIONADDRESS:
       complete = CmdGetStationAddress ((APTR)request, base);
-Debug ("S2_GETSTATIONADDRESS\n");      
+//Debug ("S2_GETSTATIONADDRESS\n");      
       break;
    case S2_CONFIGINTERFACE:
       complete = CmdConfigInterface ((APTR)request, base);
-Debug ("S2_CONFIGINTERFACE\n");      
+//Debug ("S2_CONFIGINTERFACE\n");      
       break;     
    case S2_ADDMULTICASTADDRESS:
       complete = CmdAddMulticastAddresses ((APTR)request, base);
-Debug ("S2_ADDMULTICASTADDRESS\n");      
+//Debug ("S2_ADDMULTICASTADDRESS\n");      
       break;
    case S2_DELMULTICASTADDRESS:
       complete = CmdDelMulticastAddresses ((APTR)request, base);
-Debug ("S2_DELMULTICASTADDRESS\n");      
+//Debug ("S2_DELMULTICASTADDRESS\n");      
       break;
    case S2_MULTICAST:
       complete = CmdWrite ((APTR)request, base);
-Debug ("S2_MULTICAST\n");      
+//Debug ("S2_MULTICAST\n");      
       break;
    case S2_BROADCAST:
       complete = CmdBroadcast ((APTR)request, base);
-Debug ("S2_BROADCAST\n");      
+//Debug ("S2_BROADCAST\n");      
       break;
    case S2_TRACKTYPE:
       complete = CmdTrackType ((APTR)request, base);
-Debug ("S2_TRACKTYPE\n");      
+//Debug ("S2_TRACKTYPE\n");      
       break;
    case S2_UNTRACKTYPE:
       complete = CmdUntrackType ((APTR)request, base);
-Debug ("S2_UNTRACKTYPE\n");      
+//Debug ("S2_UNTRACKTYPE\n");      
       break;
    case S2_GETTYPESTATS:
       complete = CmdGetTypeStats ((APTR)request, base);
-Debug ("S2_GETTYPESTATS\n");      
+//Debug ("S2_GETTYPESTATS\n");      
       break;
    case S2_GETSPECIALSTATS:
       complete = CmdGetSpecialStats ((APTR)request, base);
-Debug ("S2_GETSPECIALSTATS\n");      
+//Debug ("S2_GETSPECIALSTATS\n");      
       break;
    case S2_GETGLOBALSTATS:
       complete = CmdGetGlobalStats ((APTR)request, base);
-Debug ("S2_GETGLOBALSTATS\n");      
+//Debug ("S2_GETGLOBALSTATS\n");      
       break;
    case S2_ONEVENT:
       complete = CmdOnEvent ((APTR)request, base);
-Debug ("S2_ONEVENT\n");      
+//Debug ("S2_ONEVENT\n");      
       break;
       
    case S2_READORPHAN:
       complete = CmdReadOrphan ((APTR)request, base);
-Debug ("S2_READORPHAN\n");      
+//Debug ("S2_READORPHAN\n");      
       break;
       
    case S2_ONLINE:
       complete = CmdOnline ((APTR)request, base);
-Debug ("S2_ONLINE\n");      
+//Debug ("S2_ONLINE\n");      
       break;
 
    case S2_OFFLINE:
       complete = CmdOffline ((APTR)request, base);
-Debug ("S2_OFFLINE\n");      
+//Debug ("S2_OFFLINE\n");      
       break;
 
    case NSCMD_DEVICEQUERY:
       complete = CmdDeviceQuery ((APTR)request, base);
-Debug ("NSCMD_DEVICEQUERY\n");      
+//Debug ("NSCMD_DEVICEQUERY\n");      
       break;
      
-
    default:
       complete = CmdInvalid ((APTR)request, base);
-Debug ("CMD_???\n");      
+//Debug ("CMD ???\n");      
    }
 
     if (complete && ((request->ios2_Req.io_Flags & IOF_QUICK) == 0))
@@ -192,7 +191,7 @@ Debug ("CMD_???\n");
 
    ReleaseSemaphore (&((struct DevUnit *)request->ios2_Req.io_Unit)->access_lock);
    
-   Flush (base->log);
+//   Flush (base->log);
    
    return;
 }
@@ -264,7 +263,11 @@ BOOL complete = FALSE;
 
    if (error == 0) {
       PutRequest (unit->request_ports [WRITE_QUEUE], (APTR)request, base);
+      
       Cause (&unit->tx_int);      // HACK
+      
+      
+      
     }
    else {
       request->ios2_Req.io_Error = error;
