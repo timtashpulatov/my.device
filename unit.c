@@ -60,18 +60,18 @@ void FindCard (struct DevUnit *unit, struct MyBase *base) {
 UBYTE *p, i;
 struct ConfigDev *myCD;
 
-    Debug ("\n     Searching for card\n");
+    KPrintF ("\n     Searching for card\n");
 
     myCD = NULL;
 
     // search for all ConfigDevs
     while (myCD = (struct ConfigDev *)FindConfigDev (myCD, 5030, 24)) {     // TODO put some defines
-        Debug ("     FindConfigDev success\n");
+        KPrintF ("     FindConfigDev success\n");
         break;
     }
 
     if (myCD) {
-        Debug ("     Found card\n");
+        KPrintF ("     Found card\n");
         
         unit->io_base = (UBYTE *)myCD->cd_BoardAddr;
         
@@ -89,7 +89,7 @@ struct ConfigDev *myCD;
 
     }
     else {
-        Debug ("     No card\n");
+        KPrintF ("     No card\n");
     }
 
     Flush (base->log);
@@ -169,11 +169,11 @@ struct DevUnit *unit;
     unit = FindUnit (unit_num, base);
 
     if (unit == NULL) {
-        Debug ("\n Unit not found, creating new");
+        KPrintF ("\n Unit not found, creating new");
         unit = CreateUnit (unit_num, base);    
     
         if (unit != NULL) {
-            Debug ("\n Adding unit to base->units list");
+            KPrintF ("\n Adding unit to base->units list");
             AddTail ((APTR)&(base->units), (APTR)unit);
         }
     }
@@ -225,8 +225,7 @@ APTR stack;
 //   struct Interrupt *card_removed_int,*card_inserted_int,*card_status_int;
 
 
-    Debug ("\n  CreateUnit");
-    Flush (base->log);
+    KPrintF ("\n  CreateUnit");
 
     unit = (APTR) AllocMem (sizeof (struct DevUnit), MEMF_CLEAR);
     if (unit == NULL)
@@ -329,7 +328,7 @@ APTR stack;
 
    if (success) {
       task->tc_UserData = unit;
-      Debug ("\n  AddTask () success");
+      KPrintF ("\n  AddTask () success");
    }
 
    if (!success) {
@@ -352,7 +351,7 @@ VOID DeleteUnit (struct DevUnit *unit, struct MyBase *base) {
 UBYTE i;
 struct Task *task;
 
-    Debug ("\n  DeleteUnit");
+    KPrintF ("\n  DeleteUnit");
 
     if (unit != NULL) {
         task = unit->task;
@@ -408,7 +407,7 @@ VOID GoOnline (struct DevUnit *unit, struct MyBase *base) {
 
     dm9k_write (base->io_base, IMR, 
                                   IMR_PAR 
-                                | IMR_PTI           // TX interrupt
+                              //  | IMR_PTI           // TX interrupt
                                 | IMR_PRI           // RX interrupt
                                 );                  // IMR.7 PAR bit ON and TX & RX INT MASK ON        
     
@@ -877,8 +876,8 @@ UWORD SRAMaddr;
 
     
 
-    //} while (0);  //    
-    } while (r == 0x01);
+    } while (0);  //    
+    //} while (r == 0x01);
 
 
     // Just in case, clear whatever RX Packet int could occur while processing
@@ -887,9 +886,9 @@ UWORD SRAMaddr;
 
     // Enable ints back
     dm9k_write (base->io_base, IMR,
-                                IMR_PAR |
-                                IMR_PRI |           // RX interrupt
-                                IMR_PTI             // TX interrupt
+                                  IMR_PAR
+                                | IMR_PRI           // RX interrupt
+                              // | IMR_PTI             // TX interrupt
                                 );                  
 
 
@@ -1160,9 +1159,9 @@ struct TypeStats *tracker;
 
     // Enable ints back
     dm9k_write (base->io_base, IMR,
-                                IMR_PAR |
-                                IMR_PRI |           // RX interrupt
-                                IMR_PTI             // TX interrupt
+                                IMR_PAR
+                                | IMR_PRI           // RX interrupt
+                          //      | IMR_PTI             // TX interrupt
                                 );
 
 
@@ -1321,7 +1320,7 @@ UBYTE index;
     
 
         if (r & ISR_PT) {       // Packet transmitted
-            Cause (&unit->tx_int);
+//            Cause (&unit->tx_int);
         }
 
 

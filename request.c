@@ -48,6 +48,8 @@ static BOOL CmdDelMulticastAddresses (struct IOSana2Req *request, struct MyBase 
 
 VOID PutRequest (struct MsgPort *port, struct IORequest *request, struct MyBase *base);
 
+
+
 static const UWORD supported_commands [] = {
    CMD_READ,
    CMD_WRITE,
@@ -85,6 +87,36 @@ struct Sana2DeviceQuery sana2_info = {
    10000000,
    S2WireType_Ethernet
 };
+
+
+
+/*****************************************************************************
+ *
+ * DebugS2Request
+ *
+ *****************************************************************************/
+void DebugS2Request (struct IOSana2Req *request) {
+UBYTE *data;
+
+    KPrintF ("\n--- IOSana2Req ---");
+    KPrintF ("\n  ios2_PacketType: %8lx", request->ios2_PacketType);
+    KPrintF ("\n  ios2_WireError: %8lx", request->ios2_WireError);
+    data = request->ios2_SrcAddr;
+    KPrintF ("\n  ios2_SrcAddr: %2x %2x %2x %2x %2x %2x %2x %2x", 
+        data, data + 1, data + 2, data + 3, data + 4, data + 5, data + 6, data + 7);
+
+    data = request->ios2_DstAddr;
+    KPrintF ("\n  ios2_DstAddr: %2x %2x %2x %2x %2x %2x %2x %2x",
+        data, data + 1, data + 2, data + 3, data + 4, data + 5, data + 6, data + 7);
+
+    KPrintF ("\n  ios2_DataLength: %8lx\n", request->ios2_DataLength);
+/*    
+    KPrintF ("\n  ios2_Data: ");
+    data = request->ios2_Data;
+    DebugHex (data [0]); DebugHex (data [1]); DebugHex (data [2]); DebugHex (data [3]); DebugHex (data [4]); DebugHex (data [5]); DebugHex (data [6]); DebugHex (data [7]);
+*/
+  //  KPrintF (" ...\n");
+}
 
 
 /*****************************************************************************
@@ -220,6 +252,11 @@ BOOL complete = FALSE;
 
    unit = (APTR)request->ios2_Req.io_Unit;
 
+
+
+DebugS2Request (request);
+
+
    if ((unit->flags & UNITF_ONLINE) != 0) {
       opener = request->ios2_BufferManagement;
       PutRequest (&opener->read_port, (APTR)request, base);
@@ -249,6 +286,10 @@ BOOL complete = FALSE;
    /* Check request is valid */
 
    unit = (APTR)request->ios2_Req.io_Unit;
+   
+DebugS2Request (request);   
+   
+   
    if ((unit->flags & UNITF_ONLINE) == 0) {
       error = S2ERR_OUTOFSERVICE;
       wire_error = S2WERR_UNIT_OFFLINE;
@@ -675,6 +716,10 @@ BOOL complete = FALSE;
    /* Check if we understand the event types */
 
    unit = (APTR)request->ios2_Req.io_Unit;
+   
+   
+DebugS2Request (request);   
+   
    wanted_events = request->ios2_WireError;
    if ((wanted_events & ~KNOWN_EVENTS) != 0) {
       request->ios2_Req.io_Error = S2ERR_NOT_SUPPORTED;
@@ -718,6 +763,9 @@ BOOL complete = FALSE;
    /* Check request is valid */
 
    unit = (APTR)request->ios2_Req.io_Unit;
+   
+DebugS2Request (request);   
+   
    if ((unit->flags & UNITF_ONLINE) == 0) {
       error = S2ERR_OUTOFSERVICE;
       wire_error = S2WERR_UNIT_OFFLINE;
@@ -905,12 +953,11 @@ UBYTE *lower_bound, *upper_bound;
 }
 
 
-
-
-
-
-
-
+/*****************************************************************************
+ *
+ * PutRequest
+ *
+ *****************************************************************************/
 VOID PutRequest (struct MsgPort *port, struct IORequest *request, struct MyBase *base) {
    request->io_Flags &= ~IOF_QUICK;
    PutMsg (port, (APTR)request);

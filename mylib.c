@@ -194,52 +194,24 @@ __saveds __stdargs void L_CloseLibs (void);
 
 
 
-
+/*
 void Debug (char *s) {
-	FPuts (MyBase->log, s);
+    KPrintF (s);
 }
 
 void DebugHex (UBYTE b) {
-register UBYTE nibble;
-	nibble = b >> 4;
-	FPutC (MyBase->log, (nibble < 10) ? '0' + nibble : 'A' - 10 + nibble);
-	nibble = b & 0x0f;
-	FPutC (MyBase->log, (nibble < 10) ? '0' + nibble : 'A' - 10 + nibble);
-	FPutC (MyBase->log, 0x20);
-//	Flush (MyBase->log);
-
+    KPrintF ("%x ", b);
 }
 
 void DebugHex16 (UWORD w) {
-register UBYTE nibble;
-register UBYTE i;
-
-	for (i = 0; i < 4; i ++) {
-		nibble = (w >> (12 - i * 4)) & 0x0f;
-		FPutC (MyBase->log, (nibble < 10) ? '0' + nibble : 'A' - 10 + nibble);
-	}
-
-	FPutC (MyBase->log, 0x20);
-
-	Flush (MyBase->log);
+    KPrintF ("%x ", w);
 }
 
 
 void DebugHex32 (ULONG l) {
-register UBYTE nibble;
-register UBYTE i;
-
-	for (i = 0; i < 8; i ++) {
-		nibble = (l >> (12 - i * 4)) & 0x0f;
-		FPutC (MyBase->log, (nibble < 10) ? '0' + nibble : 'A' - 10 + nibble);
-    }
-
-	FPutC (MyBase->log, 0x20);
-	
-	
-//	Flush (MyBase->log);
+    KPrintF ("%l ", l);
 }
-
+*/
 
 
 /*****************************************************************************
@@ -256,8 +228,6 @@ __saveds struct MyBase * InitLib (__reg ("a6") struct ExecBase  *base,
 
  	MyBase->my_SysBase = base;
  	MyBase->my_SegList = seglist;
-
- 	MyBase->log = NULL;
  
  	NewList ((APTR)(&MyBase->units));
 
@@ -339,20 +309,7 @@ UWORD i;
    base->device.dd_Library.lib_Flags &= ~LIBF_DELEXP;
 
 
-
-    // Log
-   	if (base->log == NULL)
-    	base->log = Open ("T:log", MODE_READWRITE);
-
-	if (base->log) {
-	    Seek (base->log, 0, OFFSET_END);
-		Debug ("\n\n- DevOpenNew unit ");
-		DebugHex (unit_num);
-		Debug (", flags ");
-		DebugHex32 (flags);
-		
-		Flush (base->log);
-        };
+    KPrintF ("\nDevOpenNew\n");
 
 
    	request->ios2_Req.io_Unit = NULL;
@@ -444,7 +401,7 @@ APTR seg_list;
 struct Opener *opener;
 
 
-//    Debug ("\n- DevClose");
+    KPrintF ("\nDevClose\n");
 
 
    /* Free buffer-management resources */
@@ -492,7 +449,7 @@ struct Opener *opener;
     seg_list = NULL;
     // --- HAHAHACK
 
-//   Flush (base->log);
+
 
 
    return seg_list;
@@ -590,8 +547,7 @@ __saveds __stdargs void L_CloseLibs (void)
 __saveds APTR DevExpunge (__reg("a6") struct MyBase *base) {
 APTR seg_list;
 
-//    Debug ("\n- DevExpunge");
-//    Flush (base->log);
+    KPrintF ("\nDevExpunge\n");
 
    if (base->device.dd_Library.lib_OpenCnt == 0) {
       seg_list = base->my_SegList;
@@ -620,76 +576,72 @@ struct DevUnit *unit;
     unit = (APTR)iorq->ios2_Req.io_Unit;
 
       
-	Debug ("\n- BeginIO ");
-	Debug ("command ");
-	DebugHex16 (iorq->ios2_Req.io_Command);
-	Debug ("flags ");
-	DebugHex32 (iorq->ios2_Req.io_Flags);
+	KPrintF ("\nBeginIO cmd: %lx, flags: %lx", iorq->ios2_Req.io_Command, iorq->ios2_Req.io_Flags);
           
         switch (iorq->ios2_Req.io_Command) {
 
 	    case CMD_READ:
-	    	Debug ("\n CMD_READ");
+	    	KPrintF ("\n CMD_READ");
 	    	break;
 
             case CMD_WRITE:
-                Debug ("\n CMD_WRITE");
+                KPrintF ("\n CMD_WRITE");
                 break;
             case S2_DEVICEQUERY:
-                Debug ("\n S2_DEVICEQUERY");
+                KPrintF ("\n S2_DEVICEQUERY");
                 break;
             case S2_GETSTATIONADDRESS:
-                Debug ("\n S2_GETSTATIONADDRESS");
+                KPrintF ("\n S2_GETSTATIONADDRESS");
                 break;
             case S2_CONFIGINTERFACE:
-                Debug ("\n S2_CONFIGINTERFACE");
+                KPrintF ("\n S2_CONFIGINTERFACE");
                 break;
             case S2_ADDMULTICASTADDRESS:
-                Debug ("\n S2_ADDMULTICASTADDRESS");
+                KPrintF ("\n S2_ADDMULTICASTADDRESS");
                 break;
             case S2_DELMULTICASTADDRESS:
-                Debug ("\n S2_DELMULTICASTADDRESS");
+                KPrintF ("\n S2_DELMULTICASTADDRESS");
                 break;
             case S2_MULTICAST:
-                Debug ("\n S2_MULTICAST");
+                KPrintF ("\n S2_MULTICAST");
                 break;
             case S2_BROADCAST:
-                Debug ("\n S2_BROADCAST");
+                KPrintF ("\n S2_BROADCAST");
                 break;            
             case S2_TRACKTYPE:
-                Debug ("\n S2_TRACKTYPE");
+                KPrintF ("\n S2_TRACKTYPE");
                 break;
             case S2_UNTRACKTYPE:
-                Debug ("\n S2_UNTRACKTYPE");
+                KPrintF ("\n S2_UNTRACKTYPE");
                 break;
             case S2_GETTYPESTATS:
-                Debug ("\n S2_GETTYPESTATS");
+                KPrintF ("\n S2_GETTYPESTATS");
                 break;
             case S2_GETSPECIALSTATS:
-                Debug ("\n S2_GETSPECIALSTATS");
+                KPrintF ("\n S2_GETSPECIALSTATS");
                 break;
             case S2_GETGLOBALSTATS:
-                Debug ("\n S2_GETGLOBALSTATS");
+                KPrintF ("\n S2_GETGLOBALSTATS");
                 break;
             case S2_ONEVENT:
-                Debug ("\n S2_ONEVENT");
+                KPrintF ("\n S2_ONEVENT");
                 break;
             case S2_READORPHAN:
-               Debug ("\n S2_READORPHAN");
+               KPrintF ("\n S2_READORPHAN");
                 break;
             case S2_ONLINE:
-               Debug ("\n S2_ONLINE");
+               KPrintF ("\n S2_ONLINE");
                 break;
             case S2_OFFLINE:
-                Debug ("\n S2_OFFLINE");
+                KPrintF ("\n S2_OFFLINE");
                 break;                
 
             default:
-                Debug ("\n CMD???");
+                KPrintF ("\n CMD???");
                 break;
         }    
         
-	Flush (base->log);
+
           
    if (AttemptSemaphore (&unit->access_lock))
       ServiceRequest (iorq, base);
@@ -709,8 +661,8 @@ struct DevUnit *unit;
 __saveds void AbortIO (struct IOSana2Req *iorq, __reg ("a6") struct MyBase *base) {
 struct DevUnit *unit;
 
-//	Debug ("\n- AbortIO");
-//	Flush (base->log);
+	KPrintF ("\nAbortIO\n");
+
 
    unit = (APTR)iorq->ios2_Req.io_Unit;
 
