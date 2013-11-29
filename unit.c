@@ -724,6 +724,8 @@ volatile UBYTE r;
 UWORD SRAMaddr;
 
 
+    KPrintF (" =RxInt=\n");
+
     base = unit->device;
 
     buffer = unit->rx_buffer;
@@ -1045,6 +1047,8 @@ BYTE error;
 struct MsgPort *port;
 struct TypeStats *tracker;
 
+    KPrintF (" =TxInt=\n");
+
     base = unit->device;
     port = unit->request_ports [WRITE_QUEUE];
 
@@ -1302,6 +1306,9 @@ UBYTE index;
 
     if (r & 0x3f) {
 
+
+        KPrintF ("\n*** InterruptServer: %x", r);
+
         // Acknowledge all interrupts
         dm9k_write (unit->io_base, ISR, 0x3f);      // you MUST do this
 
@@ -1374,7 +1381,6 @@ ULONG signals,
     wait_signals, 
     general_port_signal;
     
-UBYTE rxbyte;
 
     /* Get parameters */
 
@@ -1423,6 +1429,8 @@ UBYTE rxbyte;
 
         if ((signals & general_port_signal) != 0) {
             while ((request = (APTR)GetMsg (general_port)) != NULL) {
+
+                KPrintF ("\n= UnitTask got req =\n");
                 
                 /* Service the request as soon as the unit is free */
 
