@@ -98,7 +98,7 @@ struct Sana2DeviceQuery sana2_info = {
 void DebugS2Request (struct IOSana2Req *request) {
 UBYTE *data;
 
-    KPrintF ("\n--- IOSana2Req ---");
+    KPrintF ("\n  --- IOSana2Req ---");
     KPrintF ("\n  ios2_PacketType: %8lx", request->ios2_PacketType);
     KPrintF ("\n  ios2_WireError:  %8lx", request->ios2_WireError);
 
@@ -129,103 +129,98 @@ UBYTE *data;
 VOID ServiceRequest (struct IOSana2Req *request, struct MyBase *base) {
 BOOL complete;
 
-   switch (request->ios2_Req.io_Command) {
-   case CMD_READ:
+
+    KPrintF ("\n= ServiceRequest: ");
+
+    switch (request->ios2_Req.io_Command) {
+    case CMD_READ:
       complete = CmdRead (request, base);
-//Debug (base->log, "CMD_READ\n");
       break;
    case CMD_WRITE:
       complete = CmdWrite (request, base);
-//Debug ("CMD_WRITE\n");      
       break;
    case CMD_FLUSH:
       complete = CmdFlush ((APTR)request, base);
-//Debug ("CMD_FLUSH\n");      
       break;
    case S2_DEVICEQUERY:
       complete = CmdS2DeviceQuery ((APTR)request, base);
-//Debug ("S2_DEVICEQUERY\n");      
       break;
    case S2_GETSTATIONADDRESS:
       complete = CmdGetStationAddress ((APTR)request, base);
-//Debug ("S2_GETSTATIONADDRESS\n");      
       break;
    case S2_CONFIGINTERFACE:
       complete = CmdConfigInterface ((APTR)request, base);
-//Debug ("S2_CONFIGINTERFACE\n");      
       break;     
    case S2_ADDMULTICASTADDRESS:
       complete = CmdAddMulticastAddresses ((APTR)request, base);
-//Debug ("S2_ADDMULTICASTADDRESS\n");      
       break;
    case S2_DELMULTICASTADDRESS:
       complete = CmdDelMulticastAddresses ((APTR)request, base);
-//Debug ("S2_DELMULTICASTADDRESS\n");      
       break;
    case S2_MULTICAST:
       complete = CmdWrite ((APTR)request, base);
-//Debug ("S2_MULTICAST\n");      
       break;
    case S2_BROADCAST:
       complete = CmdBroadcast ((APTR)request, base);
-//Debug ("S2_BROADCAST\n");      
+
       break;
    case S2_TRACKTYPE:
       complete = CmdTrackType ((APTR)request, base);
-//Debug ("S2_TRACKTYPE\n");      
+
       break;
    case S2_UNTRACKTYPE:
       complete = CmdUntrackType ((APTR)request, base);
-//Debug ("S2_UNTRACKTYPE\n");      
+
       break;
    case S2_GETTYPESTATS:
       complete = CmdGetTypeStats ((APTR)request, base);
-//Debug ("S2_GETTYPESTATS\n");      
+
       break;
    case S2_GETSPECIALSTATS:
       complete = CmdGetSpecialStats ((APTR)request, base);
-//Debug ("S2_GETSPECIALSTATS\n");      
+
       break;
    case S2_GETGLOBALSTATS:
       complete = CmdGetGlobalStats ((APTR)request, base);
-//Debug ("S2_GETGLOBALSTATS\n");      
+
       break;
    case S2_ONEVENT:
       complete = CmdOnEvent ((APTR)request, base);
-//Debug ("S2_ONEVENT\n");      
+
       break;
       
    case S2_READORPHAN:
       complete = CmdReadOrphan ((APTR)request, base);
-//Debug ("S2_READORPHAN\n");      
+
       break;
       
    case S2_ONLINE:
       complete = CmdOnline ((APTR)request, base);
-//Debug ("S2_ONLINE\n");      
+
       break;
 
    case S2_OFFLINE:
       complete = CmdOffline ((APTR)request, base);
-//Debug ("S2_OFFLINE\n");      
+
       break;
 
    case NSCMD_DEVICEQUERY:
       complete = CmdDeviceQuery ((APTR)request, base);
-//Debug ("NSCMD_DEVICEQUERY\n");      
+
       break;
      
    default:
       complete = CmdInvalid ((APTR)request, base);
-//Debug ("CMD ???\n");      
+
    }
 
-    if (complete && ((request->ios2_Req.io_Flags & IOF_QUICK) == 0))
+    if (complete && ((request->ios2_Req.io_Flags & IOF_QUICK) == 0)) {
+        KPrintF ("\n= Complete, calling ReplyMsg");
         ReplyMsg ((APTR)request);
+    }
 
    ReleaseSemaphore (&((struct DevUnit *)request->ios2_Req.io_Unit)->access_lock);
    
-//   Flush (base->log);
    
    return;
 }
@@ -236,6 +231,9 @@ BOOL complete;
  *
  *****************************************************************************/
 static BOOL CmdInvalid (struct IOSana2Req *request, struct MyBase *base) {
+    
+    KPrintF ("CmdInvalid");
+    
    request->ios2_Req.io_Error = IOERR_NOCMD;
    request->ios2_WireError = S2WERR_GENERIC_ERROR;
 
@@ -252,12 +250,12 @@ struct DevUnit *unit;
 struct Opener *opener;
 BOOL complete = FALSE;
 
-   unit = (APTR)request->ios2_Req.io_Unit;
 
+    KPrintF ("CmdRead");
 
+    unit = (APTR)request->ios2_Req.io_Unit;
 
 DebugS2Request (request);
-
 
    if ((unit->flags & UNITF_ONLINE) != 0) {
       opener = request->ios2_BufferManagement;
@@ -284,6 +282,8 @@ struct DevUnit *unit;
 BYTE error = 0;
 ULONG wire_error;
 BOOL complete = FALSE;
+
+    KPrintF ("CmdWrite");
 
    /* Check request is valid */
 
@@ -335,6 +335,9 @@ DebugS2Request (request);
  *
  *****************************************************************************/
 static BOOL CmdFlush (struct IORequest *request,struct MyBase *base) {
+    
+    KPrintF ("CmdFlush");
+    
    FlushUnit ((APTR)request->io_Unit, EVENT_QUEUE, IOERR_ABORTED, base);
    return TRUE;
 }
@@ -349,6 +352,8 @@ static BOOL CmdS2DeviceQuery (struct IOSana2Req *request, struct MyBase *base) {
 struct DevUnit *unit;
 struct Sana2DeviceQuery *info;
 ULONG size_available, size;
+
+    KPrintF ("CmdS2DeviceQuery");
 
    /* Copy device info */
 
@@ -379,6 +384,9 @@ ULONG size_available, size;
 static BOOL CmdGetStationAddress (struct IOSana2Req *request, struct MyBase *base) {
 struct DevUnit *unit;
 
+    KPrintF ("CmdGetStationAddress");
+    
+    
    unit = (APTR)request->ios2_Req.io_Unit;
    CopyMem (unit->address, request->ios2_SrcAddr, ADDRESS_SIZE);
    CopyMem (unit->default_address, request->ios2_DstAddr, ADDRESS_SIZE);
@@ -395,6 +403,9 @@ struct DevUnit *unit;
 static BOOL CmdConfigInterface (struct IOSana2Req *request, struct MyBase *base) {
 struct DevUnit *unit;
 
+
+    KPrintF ("CmdConfigInterface");
+    
    /* Configure adapter */
 
    unit = (APTR)request->ios2_Req.io_Unit;
@@ -422,6 +433,9 @@ struct DevUnit *unit;
  *
  *****************************************************************************/
 static BOOL CmdBroadcast (struct IOSana2Req *request, struct MyBase *base) {
+
+    KPrintF ("CmdBroadcast");
+
    /* Fill in the broadcast address as destination */
 
    *((ULONG *)request->ios2_DstAddr) = 0xffffffff;
@@ -445,6 +459,8 @@ struct TypeTracker *tracker;
 struct TypeStats *initial_stats;
 BYTE error = 0;
 
+    KPrintF ("CmdTrackType");
+    
    unit = (APTR)request->ios2_Req.io_Unit;
    packet_type = request->ios2_PacketType;
 
@@ -501,13 +517,19 @@ BYTE error = 0;
 
 
 
-
+/*****************************************************************************
+ *
+ * CmdUntrackType
+ *
+ *****************************************************************************/
 static BOOL CmdUntrackType (struct IOSana2Req *request, struct MyBase *base) {
 struct DevUnit *unit;
 struct Opener *opener;
 ULONG packet_type;
 struct TypeTracker *tracker;
 struct TypeStats *initial_stats;
+
+    KPrintF ("CmdUntrackType");
 
    unit = (APTR)request->ios2_Req.io_Unit;
    packet_type = request->ios2_PacketType;
@@ -552,6 +574,8 @@ struct Opener *opener;
 ULONG packet_type;
 struct TypeStats *initial_stats, *tracker;
 struct Sana2PacketTypeStats *stats;
+
+    KPrintF ("CmdGetTypeStats");
 
    unit = (APTR)request->ios2_Req.io_Unit;
    packet_type = request->ios2_PacketType;
@@ -599,23 +623,17 @@ struct Sana2PacketTypeStats *stats;
 *	io_Error
 *	ios2_WireError
 *
-*   EXAMPLE
-*
-*   NOTES
-*
-*   BUGS
-*
-*   SEE ALSO
-*
 ****************************************************************************
 *
 */
 
-static BOOL CmdGetSpecialStats(struct IOSana2Req *request, struct MyBase *base) {
+static BOOL CmdGetSpecialStats (struct IOSana2Req *request, struct MyBase *base) {
 struct DevUnit *unit;
 UWORD i, stat_count;
 struct Sana2SpecialStatHeader *header;
 struct Sana2SpecialStatRecord *record;
+
+    KPrintF ("CmdGetSpecialStats");
 
    /* Fill in stats */
 
@@ -645,32 +663,14 @@ struct Sana2SpecialStatRecord *record;
 
 /****** 3c589.device/S2_GETGLOBALSTATS *************************************
 *
-*   NAME
-*	S2_GETGLOBALSTATS --
-*
-*   FUNCTION
-*
-*   INPUTS
-*	ios2_StatData - Pointer to Sana2DeviceStats structure.
-*
-*   RESULTS
-*	io_Error
-*	ios2_WireError
-*
-*   EXAMPLE
-*
-*   NOTES
-*
-*   BUGS
-*
-*   SEE ALSO
-*
 ****************************************************************************
 *
 */
 
-static BOOL CmdGetGlobalStats(struct IOSana2Req *request, struct MyBase *base) {
+static BOOL CmdGetGlobalStats (struct IOSana2Req *request, struct MyBase *base) {
 struct DevUnit *unit;
+
+    KPrintF ("CmdGetGlobalStats");
 
    /* Copy stats */
 
@@ -686,25 +686,6 @@ struct DevUnit *unit;
 
 /****** 3c589.device/S2_ONEVENT ********************************************
 *
-*   NAME
-*	S2_ONEVENT --
-*
-*   FUNCTION
-*
-*   INPUTS
-*	ios2_WireError
-*
-*   RESULTS
-*	io_Error
-*	ios2_WireError
-*
-*   EXAMPLE
-*
-*   NOTES
-*
-*   BUGS
-*
-*   SEE ALSO
 *
 ****************************************************************************
 *
@@ -714,6 +695,8 @@ static BOOL CmdOnEvent (struct IOSana2Req *request, struct MyBase *base) {
 struct DevUnit *unit;
 ULONG events, wanted_events;
 BOOL complete = FALSE;
+
+    KPrintF ("CmdOnEvent");
 
    /* Check if we understand the event types */
 
@@ -762,6 +745,8 @@ BYTE error = 0;
 ULONG wire_error;
 BOOL complete = FALSE;
 
+    KPrintF ("CmdReadOrphan");
+
    /* Check request is valid */
 
    unit = (APTR)request->ios2_Req.io_Unit;
@@ -790,12 +775,18 @@ DebugS2Request (request);
 
 
 
-
+/*****************************************************************************
+ *
+ * CmdOnline
+ *
+ *****************************************************************************/
 static BOOL CmdOnline (struct IOSana2Req *request, struct MyBase *base) {
 struct DevUnit *unit;
 BYTE error = 0;
 ULONG wire_error;
 UWORD i;
+
+    KPrintF ("CmdOnline");
 
    /* Check request is valid */
 
@@ -830,9 +821,16 @@ UWORD i;
 }
 
 
+/*****************************************************************************
+ *
+ * CmdOffline
+ *
+ *****************************************************************************/
 static BOOL CmdOffline (struct IOSana2Req *request, struct MyBase *base) {
 struct DevUnit *unit;
 
+    KPrintF ("CmdOffline");
+    
     /* Put adapter offline */
 
     unit = (APTR)request->ios2_Req.io_Unit;
@@ -877,6 +875,9 @@ struct DevUnit *unit;
 */
 
 static BOOL CmdDeviceQuery (struct IOStdReq *request, struct MyBase *base) {
+    
+   KPrintF ("CmdDeviceQuery");
+    
 /*
    struct NSDeviceQueryResult *info;
 
@@ -895,7 +896,9 @@ static BOOL CmdDeviceQuery (struct IOStdReq *request, struct MyBase *base) {
 
   
 */
-   return TRUE;
+//   return TRUE;
+
+    return FALSE;
 }
 
 
@@ -907,6 +910,8 @@ static BOOL CmdDeviceQuery (struct IOStdReq *request, struct MyBase *base) {
 static BOOL CmdAddMulticastAddresses (struct IOSana2Req *request, struct MyBase *base) {
 struct DevUnit *unit;
 UBYTE *lower_bound, *upper_bound;
+
+    KPrintF ("CmdAddMulticastAddresses");
 
     unit = (APTR) request->ios2_Req.io_Unit;
 
@@ -936,6 +941,8 @@ static BOOL CmdDelMulticastAddresses (struct IOSana2Req *request, struct MyBase 
 struct DevUnit *unit;
 UBYTE *lower_bound, *upper_bound;
 
+    KPrintF ("CmdDelMulticastAddresses");
+
     unit = (APTR) request->ios2_Req.io_Unit;
 
     lower_bound = request->ios2_SrcAddr;
@@ -961,8 +968,11 @@ UBYTE *lower_bound, *upper_bound;
  *
  *****************************************************************************/
 VOID PutRequest (struct MsgPort *port, struct IORequest *request, struct MyBase *base) {
-   request->io_Flags &= ~IOF_QUICK;
-   PutMsg (port, (APTR)request);
+    
+    KPrintF ("\n= PutRequest =\n");
+    
+    request->io_Flags &= ~IOF_QUICK;
+    PutMsg (port, (APTR)request);
 
    return;
 }

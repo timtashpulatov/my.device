@@ -576,78 +576,17 @@ struct DevUnit *unit;
     unit = (APTR)iorq->ios2_Req.io_Unit;
 
       
-	KPrintF ("\nBeginIO cmd: %lx, flags: %lx", iorq->ios2_Req.io_Command, iorq->ios2_Req.io_Flags);
-          
-        switch (iorq->ios2_Req.io_Command) {
-
-	    case CMD_READ:
-	    	KPrintF ("\n CMD_READ");
-	    	break;
-
-            case CMD_WRITE:
-                KPrintF ("\n CMD_WRITE");
-                break;
-            case S2_DEVICEQUERY:
-                KPrintF ("\n S2_DEVICEQUERY");
-                break;
-            case S2_GETSTATIONADDRESS:
-                KPrintF ("\n S2_GETSTATIONADDRESS");
-                break;
-            case S2_CONFIGINTERFACE:
-                KPrintF ("\n S2_CONFIGINTERFACE");
-                break;
-            case S2_ADDMULTICASTADDRESS:
-                KPrintF ("\n S2_ADDMULTICASTADDRESS");
-                break;
-            case S2_DELMULTICASTADDRESS:
-                KPrintF ("\n S2_DELMULTICASTADDRESS");
-                break;
-            case S2_MULTICAST:
-                KPrintF ("\n S2_MULTICAST");
-                break;
-            case S2_BROADCAST:
-                KPrintF ("\n S2_BROADCAST");
-                break;            
-            case S2_TRACKTYPE:
-                KPrintF ("\n S2_TRACKTYPE");
-                break;
-            case S2_UNTRACKTYPE:
-                KPrintF ("\n S2_UNTRACKTYPE");
-                break;
-            case S2_GETTYPESTATS:
-                KPrintF ("\n S2_GETTYPESTATS");
-                break;
-            case S2_GETSPECIALSTATS:
-                KPrintF ("\n S2_GETSPECIALSTATS");
-                break;
-            case S2_GETGLOBALSTATS:
-                KPrintF ("\n S2_GETGLOBALSTATS");
-                break;
-            case S2_ONEVENT:
-                KPrintF ("\n S2_ONEVENT");
-                break;
-            case S2_READORPHAN:
-               KPrintF ("\n S2_READORPHAN");
-                break;
-            case S2_ONLINE:
-               KPrintF ("\n S2_ONLINE");
-                break;
-            case S2_OFFLINE:
-                KPrintF ("\n S2_OFFLINE");
-                break;                
-
-            default:
-                KPrintF ("\n CMD???");
-                break;
-        }    
-        
-
-          
-   if (AttemptSemaphore (&unit->access_lock))
-      ServiceRequest (iorq, base);
-   else {
-      PutRequest (unit->request_ports [GENERAL_QUEUE], (APTR)iorq, base);
-   }
+	KPrintF ("\n\nBeginIO cmd: %lx, flags: %lx", iorq->ios2_Req.io_Command, iorq->ios2_Req.io_Flags);
+	
+                    
+    if (AttemptSemaphore (&unit->access_lock)) {
+        KPrintF ("\nLocking and servicing request");
+        ServiceRequest (iorq, base);
+    }
+    else {
+        KPrintF ("\nSemaphore locked, queueing request");
+        PutRequest (unit->request_ports [GENERAL_QUEUE], (APTR)iorq, base);
+    }
 
    return;    
 }
@@ -661,7 +600,7 @@ struct DevUnit *unit;
 __saveds void AbortIO (struct IOSana2Req *iorq, __reg ("a6") struct MyBase *base) {
 struct DevUnit *unit;
 
-	KPrintF ("\nAbortIO\n");
+	KPrintF ("\nAbortIO");
 
 
    unit = (APTR)iorq->ios2_Req.io_Unit;

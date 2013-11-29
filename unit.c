@@ -414,7 +414,8 @@ VOID GoOnline (struct DevUnit *unit, struct MyBase *base) {
     dm9k_write (base->io_base, RCR, 
                                   RCR_DIS_CRC       // Discard CRC error packet
                                 | RCR_DIS_LONG      // Discard long packets (over 1522 bytes)
-                             // | RCR_PRMSC
+                             // | RCR_PRMSC         // Promiscuous mode
+                             //   | RCR_ALL           // Pass all multicast
                                 | RCR_RXEN          // RX Enable
                                 );
 
@@ -681,23 +682,6 @@ struct Opener *opener, *tail;
 UBYTE emulated_packet [] = {
     0xfe, 0xed, 0xfa, 0xce, 0xaa, 0x55, 0xde, 0xad, 0xbe, 0xef, 0xff, 0x00, 0x77, 0x77, 0x77, 0x77, 
     0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0
-/*    
-    0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,
-    0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,
-    0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,
-    0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,
-    0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,
-    0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,
-    0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,
-    0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,
-    0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,
-    0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,
-    0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,
-    0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,
-    0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,
-    0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,
-    0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0
-*/
 };
 
 
@@ -724,7 +708,7 @@ volatile UBYTE r;
 UWORD SRAMaddr;
 
 
-    KPrintF (" =RxInt=\n");
+    KPrintF ("\n === RxInt ===");
 
     base = unit->device;
 
@@ -737,7 +721,9 @@ UWORD SRAMaddr;
         r = dm9k_read (unit->io_base, MRCMDX);      // dummy read
         r = dm9k_read (unit->io_base, MRCMDX);
 
-        if (r == 0x01) {
+        KPrintF ("\n   MRCMDX: %lx", r);
+
+        if (r == 0x01) {                        
     
         //    SRAMaddr = (dm9k_read (unit->io_base, MDRAH) << 8) | dm9k_read (unit->io_base, MDRAL);
 
@@ -749,7 +735,7 @@ UWORD SRAMaddr;
             packet_size = dm9k_read_w (unit->io_base, MRCMD);
 
 
-
+            KPrintF ("\n   Status: $%lx length: $%lx", rx_status, packet_size);
 
 
             // Read whole packet    TODO read only header, skip the rest if not needed
@@ -764,6 +750,8 @@ UWORD SRAMaddr;
             if (AddressFilter (unit, buffer + PACKET_DEST, base)) {
                 
                 packet_type = BEWord (*((UWORD *)(buffer + PACKET_TYPE)));
+
+                KPrintF (" type: %lx", packet_type);
 
                 opener = (APTR)unit->openers.mlh_Head;
                 opener_tail = (APTR)&unit->openers.mlh_Tail;
@@ -801,7 +789,7 @@ UWORD SRAMaddr;
 
                 if (is_orphan) {
                     unit->stats.UnknownTypesReceived ++;
-                    if (!IsMsgPortEmpty (unit->request_ports [ADOPT_QUEUE])) {
+                    if (!IsMsgPortEmpty (unit->request_ports [ADOPT_QUEUE])) {                        
                         
                         CopyPacket (unit, (APTR)unit->request_ports [ADOPT_QUEUE]->mp_MsgList.lh_Head, 
                                 packet_size, packet_type,
@@ -821,40 +809,14 @@ UWORD SRAMaddr;
                     tracker->stats.BytesReceived += packet_size;
                 }                                              
             }
+            else
+                KPrintF ("\n   packet filtered out");
         }
         else {
             unit->stats.BadData ++;
             ReportEvents (unit, S2EVENT_ERROR | S2EVENT_HARDWARE | S2EVENT_RX, base);            
 
-/*
-
-            // ------- Forge fake packet ------------------------
-
-            emulated_packet [16] = r;                                    // MRCMDX
-            emulated_packet [17] = dm9k_read (unit->io_base, RSR);       // RX Status Register
-            emulated_packet [18] = unit->isr;                            //  saved Interrupt Status Register
-            emulated_packet [19] = dm9k_read (unit->io_base, NSR);       // Network Status Register
-
-            emulated_packet [20] = dm9k_read (unit->io_base, MDRAH);
-            emulated_packet [21] = dm9k_read (unit->io_base, MDRAL);
-
-
-            packet_size = sizeof (emulated_packet);
-            CopyMem (emulated_packet, unit->rx_buffer, packet_size);
-
-            unit->stats.UnknownTypesReceived ++;
-            if (!IsMsgPortEmpty (unit->request_ports [ADOPT_QUEUE])) {
-                CopyPacket (unit, (APTR)unit->request_ports [ADOPT_QUEUE]->mp_MsgList.lh_Head,
-                            packet_size, packet_type,
-                            TRUE, base);
-            }
-
-            // ------- Forge fake packet ------------------------
-*/
-
         }
-
-
 
       /* Discard packet */
 
@@ -878,13 +840,15 @@ UWORD SRAMaddr;
 
     
 
-    } while (0);  //    
-    //} while (r == 0x01);
+//    } while (0);  //    
+    } while (r == 0x01);
 
 
     // Just in case, clear whatever RX Packet int could occur while processing
     dm9k_write (base->io_base, ISR, ISR_PR);
     
+    
+    KPrintF ("\n =============\n");
 
     // Enable ints back
     dm9k_write (base->io_base, IMR,
@@ -905,15 +869,15 @@ UWORD SRAMaddr;
  *****************************************************************************/
 static VOID CopyPacket (struct DevUnit *unit, struct IOSana2Req *request,
    UWORD packet_size, UWORD packet_type, BOOL all_read, struct MyBase *base) {
-//volatile UBYTE *io_base;
 struct Opener *opener;
 UBYTE *buffer;
 BOOL filtered = FALSE;
 UWORD *p, *end;
 
+    KPrintF ("\n   CopyPacket");
+
    /* Set multicast and broadcast flags */
 
-//   io_base = unit->io_base;
    buffer = unit->rx_buffer;
    request->ios2_Req.io_Flags &= ~(SANA2IOF_BCAST | SANA2IOF_MCAST);    // clear bcast and mcast flags
 
@@ -928,6 +892,7 @@ UWORD *p, *end;
    CopyMem (buffer + PACKET_DEST, request->ios2_DstAddr, ADDRESS_SIZE);
    request->ios2_PacketType = packet_type;
 
+    KPrintF (" type: %lx", packet_type);
 
    /* Read rest of packet */
 /*
@@ -958,17 +923,22 @@ UWORD *p, *end;
    /* Filter packet */
 
    opener = request->ios2_BufferManagement;
+   
    if ((request->ios2_Req.io_Command == CMD_READ) &&
-      (opener->filter_hook != NULL))
-      if (!CallHookPkt (opener->filter_hook, request, buffer))
-         filtered = TRUE;
+       (opener->filter_hook != NULL)) {
+            KPrintF (" CallHookPkt ");
+            if (!CallHookPkt (opener->filter_hook, request, buffer))
+                filtered = TRUE; 
+    }
 
    if (!filtered) {
       /* Copy packet into opener's buffer and reply packet */
+      KPrintF ("\n   Going to call opener->rx_function");
 
       if (!opener->rx_function (request->ios2_Data, buffer, packet_size)) {
          request->ios2_Req.io_Error = S2ERR_NO_RESOURCES;
          request->ios2_WireError = S2WERR_BUFF_ERROR;
+   
          ReportEvents (unit,
             S2EVENT_ERROR | S2EVENT_SOFTWARE | S2EVENT_BUFF | S2EVENT_RX, base);
       }
@@ -1047,7 +1017,13 @@ BYTE error;
 struct MsgPort *port;
 struct TypeStats *tracker;
 
-    KPrintF (" =TxInt=\n");
+
+
+    // Disable all interrupts
+    dm9k_write (unit->io_base, IMR, IMR_PAR);
+
+
+    KPrintF ("\n === TxInt ===");
 
     base = unit->device;
     port = unit->request_ports [WRITE_QUEUE];
@@ -1304,22 +1280,19 @@ UBYTE index;
 
     r = dm9k_read (unit->io_base, ISR);
 
-    if (r & 0x3f) {
+    if (r & 0x01 /* 0x3f */) {
 
 
-        KPrintF ("\n*** InterruptServer: %x", r);
-
-        // Acknowledge all interrupts
-        dm9k_write (unit->io_base, ISR, 0x3f);      // you MUST do this
+        KPrintF ("\n*** InterruptServer: %lx", r);
 
         // Disable all interrupts
         dm9k_write (unit->io_base, IMR, IMR_PAR);
 
+        // Acknowledge all interrupts
+        dm9k_write (unit->io_base, ISR, 0x3f);      // you MUST do this
+
         // Save ISR for later inspection
         unit->isr = r;
-
-//        // Acknowledge all interrupts
-//        dm9k_write (unit->io_base, ISR, 0x3f);      // you MUST do this
 
 
         if (r & ISR_LNKCHG) {   // Link changed
@@ -1414,6 +1387,7 @@ ULONG signals,
     }
 
 
+    KPrintF ("\n= UnitTask started =\n");
 
 
    /* Tell ourselves to check port for old messages */
@@ -1424,8 +1398,10 @@ ULONG signals,
 
    /* Infinite loop to service requests and signals */
 
-   while (TRUE) {
-      signals = Wait (wait_signals);            
+    while (TRUE) {
+        signals = Wait (wait_signals);            
+
+        KPrintF ("\n= UnitTask got signal =\n");
 
         if ((signals & general_port_signal) != 0) {
             while ((request = (APTR)GetMsg (general_port)) != NULL) {
