@@ -939,8 +939,7 @@ UWORD *p, *end;
          request->ios2_Req.io_Error = S2ERR_NO_RESOURCES;
          request->ios2_WireError = S2WERR_BUFF_ERROR;
    
-         ReportEvents (unit,
-            S2EVENT_ERROR | S2EVENT_SOFTWARE | S2EVENT_BUFF | S2EVENT_RX, base);
+         ReportEvents (unit, S2EVENT_ERROR | S2EVENT_SOFTWARE | S2EVENT_BUFF | S2EVENT_RX, base);
       }
       
       Remove ((APTR)request);
@@ -1283,7 +1282,7 @@ UBYTE index;
     if (r & 0x01 /* 0x3f */) {
 
 
-        KPrintF ("\n*** InterruptServer: %lx", r);
+        KPrintF ("(*** InterruptServer: %lx ***)", r);
 
         // Disable all interrupts
         dm9k_write (unit->io_base, IMR, IMR_PAR);
