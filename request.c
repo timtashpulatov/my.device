@@ -100,15 +100,17 @@ UBYTE *data;
 
     KPrintF ("\n--- IOSana2Req ---");
     KPrintF ("\n  ios2_PacketType: %8lx", request->ios2_PacketType);
-    KPrintF ("\n  ios2_WireError: %8lx", request->ios2_WireError);
+    KPrintF ("\n  ios2_WireError:  %8lx", request->ios2_WireError);
+
+/*
     data = request->ios2_SrcAddr;
     KPrintF ("\n  ios2_SrcAddr: %2x %2x %2x %2x %2x %2x %2x %2x", 
-        data, data + 1, data + 2, data + 3, data + 4, data + 5, data + 6, data + 7);
+        *data ++, *data ++, *data ++, *data ++, *data ++, *data ++, *data ++, *data ++);
 
     data = request->ios2_DstAddr;
     KPrintF ("\n  ios2_DstAddr: %2x %2x %2x %2x %2x %2x %2x %2x",
-        data, data + 1, data + 2, data + 3, data + 4, data + 5, data + 6, data + 7);
-
+        *data ++, *data ++, *data ++, *data ++, *data ++, *data ++, *data ++, *data ++);
+*/
     KPrintF ("\n  ios2_DataLength: %8lx\n", request->ios2_DataLength);
 /*    
     KPrintF ("\n  ios2_Data: ");
@@ -305,7 +307,7 @@ DebugS2Request (request);
    if (error == 0) {
       PutRequest (unit->request_ports [WRITE_QUEUE], (APTR)request, base);
       
-      Cause (&unit->tx_int);      // HACK
+//      Cause (&unit->tx_int);      // HACK
       
       
       
