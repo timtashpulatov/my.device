@@ -156,14 +156,14 @@ const APTR InitTable [] = {
 
 static const ULONG rx_tags [] = {
    S2_CopyToBuff,
-//   S2_CopyToBuff16
+   S2_CopyToBuff16
 };
 
 
 static const ULONG tx_tags [] = {
    S2_CopyFromBuff,
-//   S2_CopyFromBuff16,
-//   S2_CopyFromBuff32
+   S2_CopyFromBuff16,
+   S2_CopyFromBuff32
 };
 
 
@@ -362,14 +362,14 @@ UWORD i;
 
       	for (i = 0; i < 2; i ++)
          	opener->rx_function = (APTR)GetTagData (rx_tags [i],
-            	(ULONG)opener->rx_function, tag_list);
+            	 (ULONG)opener->rx_function, tag_list);
     
 		for (i = 0; i < 3; i ++)
          	opener->tx_function = (APTR)GetTagData (tx_tags [i],
             	(ULONG)opener->tx_function, tag_list);
 
       	opener->filter_hook = (APTR)GetTagData (S2_PacketFilter, NULL, tag_list);
-      	opener->dma_tx_function = NULL; //   (APTR)GetTagData(S2_DMACopyFromBuff32,NULL,tag_list);
+      	opener->dma_tx_function = (APTR)GetTagData (S2_DMACopyFromBuff32, NULL, tag_list);
 
       	Disable ();
       	AddTail ((APTR)&unit->openers, (APTR)opener);

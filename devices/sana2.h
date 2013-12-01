@@ -85,9 +85,15 @@ struct IOSana2Req
 */
 #define S2_Dummy        (TAG_USER + 0xB0000)
 
-#define S2_CopyToBuff   (S2_Dummy + 1)
-#define S2_CopyFromBuff (S2_Dummy + 2)
-#define S2_PacketFilter (S2_Dummy + 3)
+#define S2_CopyToBuff       (S2_Dummy + 1)
+#define S2_CopyFromBuff     (S2_Dummy + 2)
+#define S2_PacketFilter     (S2_Dummy + 3)
+#define S2_CopyToBuff16         (S2_Dummy + 4)
+#define S2_CopyFromBuff16       (S2_Dummy + 5)
+#define S2_CopyToBuff32         (S2_Dummy + 6)
+#define S2_CopyFromBuff32       (S2_Dummy + 7)
+#define S2_DMACopyToBuff32      (S2_Dummy + 8)
+#define S2_DMACopyFromBuff32    (S2_Dummy + 9)
 
 struct Sana2DeviceQuery
 {

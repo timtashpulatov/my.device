@@ -46,7 +46,6 @@ struct MyBase {
 // struct IntuitionBase  *exb_IntuitionBase;
 // struct GfxBase        *exb_GfxBase;
     struct UtilityBase          *my_UtilityBase;
-	BPTR                      log;
 	struct MinList             units;
 //	struct timerequest     *timer_request;
 

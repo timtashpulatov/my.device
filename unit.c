@@ -30,7 +30,7 @@ static struct AddressRange *FindMulticastRange (struct DevUnit *unit, ULONG lowe
 __saveds static VOID RxInt (__reg("a1") struct DevUnit *unit);
 static VOID CopyPacket (struct DevUnit *unit, struct IOSana2Req *request, UWORD packet_size, UWORD packet_type, BOOL all_read, struct MyBase *base);
 static BOOL AddressFilter (struct DevUnit *unit, UBYTE *address, struct MyBase *base);
-static VOID TxInt (__reg("a1") struct DevUnit *unit);
+__saveds static VOID TxInt (__reg("a1") struct DevUnit *unit);
 static VOID TxError (struct DevUnit *unit, struct MyBase *base);
 static VOID ReportEvents (struct DevUnit *unit, ULONG events, struct MyBase *base);
 static VOID UnitTask ();
@@ -92,7 +92,6 @@ struct ConfigDev *myCD;
         KPrintF ("     No card\n");
     }
 
-    Flush (base->log);
 }
 
 
@@ -336,7 +335,6 @@ APTR stack;
       unit = NULL;
    }
 
-    Flush (base->log);
 
    return unit;
 }
@@ -746,6 +744,7 @@ UWORD SRAMaddr;
             while (p < end)
                 *p++ =  ntohw (dm9k_read_w (unit->io_base, MRCMD)); 
 
+
 //            if (1) {
             if (AddressFilter (unit, buffer + PACKET_DEST, base)) {
                 
@@ -790,6 +789,8 @@ UWORD SRAMaddr;
                 if (is_orphan) {
                     unit->stats.UnknownTypesReceived ++;
                     if (!IsMsgPortEmpty (unit->request_ports [ADOPT_QUEUE])) {                        
+                        
+                        KPrintF (" ORPHAN!");
                         
                         CopyPacket (unit, (APTR)unit->request_ports [ADOPT_QUEUE]->mp_MsgList.lh_Head, 
                                 packet_size, packet_type,
@@ -908,10 +909,13 @@ UWORD *p, *end;
 
 */
 
+
+
     if ((request->ios2_Req.io_Flags & SANA2IOF_RAW) == 0) {
         packet_size -= PACKET_DATA;
         buffer += PACKET_DATA;         
     }
+
 
 #ifdef USE_HACKS
    else
@@ -933,7 +937,7 @@ UWORD *p, *end;
 
    if (!filtered) {
       /* Copy packet into opener's buffer and reply packet */
-      KPrintF ("\n   Going to call opener->rx_function");
+      KPrintF ("\n   Going to call opener's rx_function: %lx %lx %lx\n", request->ios2_Data, buffer, packet_size);
 
       if (!opener->rx_function (request->ios2_Data, buffer, packet_size)) {
          request->ios2_Req.io_Error = S2ERR_NO_RESOURCES;
@@ -1003,7 +1007,7 @@ UWORD address_right;
  * TxInt
  *
  *****************************************************************************/
-static VOID TxInt (__reg("a1") struct DevUnit *unit) {
+__saveds static VOID TxInt (__reg("a1") struct DevUnit *unit) {
 UWORD packet_size, data_size, send_size;
 struct MyBase *base;
 struct IOSana2Req *request;
