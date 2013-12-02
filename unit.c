@@ -405,7 +405,7 @@ VOID GoOnline (struct DevUnit *unit, struct MyBase *base) {
 
     dm9k_write (base->io_base, IMR, 
                                   IMR_PAR 
-                              //  | IMR_PTI           // TX interrupt
+                                | IMR_PTI           // TX interrupt
                                 | IMR_PRI           // RX interrupt
                                 );                  // IMR.7 PAR bit ON and TX & RX INT MASK ON        
     
@@ -790,7 +790,7 @@ UWORD SRAMaddr;
                     unit->stats.UnknownTypesReceived ++;
                     if (!IsMsgPortEmpty (unit->request_ports [ADOPT_QUEUE])) {                        
                         
-                        KPrintF (" ORPHAN!");
+                     //   KPrintF (" ORPHAN!");
                         
                         CopyPacket (unit, (APTR)unit->request_ports [ADOPT_QUEUE]->mp_MsgList.lh_Head, 
                                 packet_size, packet_type,
@@ -855,7 +855,7 @@ UWORD SRAMaddr;
     dm9k_write (base->io_base, IMR,
                                   IMR_PAR
                                 | IMR_PRI           // RX interrupt
-                              // | IMR_PTI             // TX interrupt
+                                | IMR_PTI             // TX interrupt
                                 );                  
 
 
@@ -930,14 +930,14 @@ UWORD *p, *end;
    
    if ((request->ios2_Req.io_Command == CMD_READ) &&
        (opener->filter_hook != NULL)) {
-            KPrintF (" CallHookPkt ");
+//            KPrintF (" CallHookPkt ");
             if (!CallHookPkt (opener->filter_hook, request, buffer))
                 filtered = TRUE; 
     }
 
    if (!filtered) {
       /* Copy packet into opener's buffer and reply packet */
-      KPrintF ("\n   Going to call opener's rx_function: %lx %lx %lx\n", request->ios2_Data, buffer, packet_size);
+//      KPrintF ("\n   Going to call opener's rx_function: %lx %lx %lx\n", request->ios2_Data, buffer, packet_size);
 
       if (!opener->rx_function (request->ios2_Data, buffer, packet_size)) {
          request->ios2_Req.io_Error = S2ERR_NO_RESOURCES;
@@ -1022,8 +1022,8 @@ struct TypeStats *tracker;
 
 
 
-    // Disable all interrupts
-    dm9k_write (unit->io_base, IMR, IMR_PAR);
+//    // Disable all interrupts
+//    dm9k_write (unit->io_base, IMR, IMR_PAR);
 
 
     KPrintF ("\n === TxInt ===");
@@ -1031,7 +1031,7 @@ struct TypeStats *tracker;
     base = unit->device;
     port = unit->request_ports [WRITE_QUEUE];
 
-//    while (proceed && (!IsMsgPortEmpty (port))) {
+    //while (proceed && (!IsMsgPortEmpty (port))) {
     
     // run once DEBUG
     if (!IsMsgPortEmpty (port)) {
@@ -1103,7 +1103,7 @@ struct TypeStats *tracker;
             }
 
 
-
+            KPrintF ("\n === Data sent, replying msg back");
 
             /* Reply packet */
 
@@ -1140,11 +1140,13 @@ struct TypeStats *tracker;
     }
 
 
+    KPrintF ("\n =============\n");
+
     // Enable ints back
     dm9k_write (base->io_base, IMR,
                                 IMR_PAR
                                 | IMR_PRI           // RX interrupt
-                          //      | IMR_PTI             // TX interrupt
+                                | IMR_PTI             // TX interrupt
                                 );
 
 

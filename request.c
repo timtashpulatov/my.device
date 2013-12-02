@@ -162,7 +162,6 @@ BOOL complete;
       break;
    case S2_BROADCAST:
       complete = CmdBroadcast ((APTR)request, base);
-
       break;
    case S2_TRACKTYPE:
       complete = CmdTrackType ((APTR)request, base);
@@ -434,7 +433,7 @@ struct DevUnit *unit;
  *****************************************************************************/
 static BOOL CmdBroadcast (struct IOSana2Req *request, struct MyBase *base) {
 
-    KPrintF ("CmdBroadcast");
+//    KPrintF ("CmdBroadcast");
 
    /* Fill in the broadcast address as destination */
 

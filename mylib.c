@@ -13,6 +13,8 @@
 
 #include <exec/semaphores.h>
 
+#include <hardware/custom.h>
+
 #include "devices/sana2.h"
 #include "devices/sana2specialstats.h"
 
@@ -229,6 +231,10 @@ __saveds struct MyBase * InitLib (__reg ("a6") struct ExecBase  *base,
  	MyBase->my_SysBase = base;
  	MyBase->my_SegList = seglist;
  
+
+    // set serial speed 115200 for debug
+    ((struct Custom*) 0xdff000)->serper = 30;
+
  	NewList ((APTR)(&MyBase->units));
 
  	if (L_OpenLibs (MyBase)) 
@@ -369,7 +375,7 @@ UWORD i;
             	(ULONG)opener->tx_function, tag_list);
 
       	opener->filter_hook = (APTR)GetTagData (S2_PacketFilter, NULL, tag_list);
-      	opener->dma_tx_function = (APTR)GetTagData (S2_DMACopyFromBuff32, NULL, tag_list);
+      	opener->dma_tx_function = NULL; // (APTR)GetTagData (S2_DMACopyFromBuff32, NULL, tag_list);
 
       	Disable ();
       	AddTail ((APTR)&unit->openers, (APTR)opener);
