@@ -98,8 +98,10 @@ struct Sana2DeviceQuery sana2_info = {
 void DebugS2Request (struct IOSana2Req *request) {
 UBYTE *data;
 
-//    KPrintF ("\n  --- IOSana2Req ---");
-//    KPrintF ("\n  ios2_PacketType: %8lx", request->ios2_PacketType);
+    KPrintF ("\n  --- IOSana2Req ---");
+    KPrintF ("\n  ios2_Command: %8lx", request->ios2_Req.io_Command);
+    KPrintF ("\n  ios2_Flags: %8lx", request->ios2_Req.io_Flags);
+    KPrintF ("\n  ios2_PacketType: %8lx", request->ios2_PacketType);
 //    KPrintF ("\n  ios2_WireError:  %8lx", request->ios2_WireError);
 
 /*
@@ -111,7 +113,7 @@ UBYTE *data;
     KPrintF ("\n  ios2_DstAddr: %2x %2x %2x %2x %2x %2x %2x %2x",
         *data ++, *data ++, *data ++, *data ++, *data ++, *data ++, *data ++, *data ++);
 */
-//    KPrintF ("\n  ios2_DataLength: %8lx\n", request->ios2_DataLength);
+    KPrintF ("\n  ios2_DataLength: %8lx\n", request->ios2_DataLength);
 /*    
     KPrintF ("\n  ios2_Data: ");
     data = request->ios2_Data;

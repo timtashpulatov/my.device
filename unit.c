@@ -748,6 +748,9 @@ UWORD SRAMaddr;
                 *p++ =  ntohw (dm9k_read_w (unit->io_base, MRCMD)); 
 
 
+            KPrintF ("\n   Src: %8lx Dst: %8lx", *((ULONG *)buffer), *((ULONG *)(buffer + 6)));
+
+
 //            if (1) {
             if (AddressFilter (unit, buffer + PACKET_DEST, base)) {
                 
@@ -1065,6 +1068,9 @@ struct TypeStats *tracker;
                 send_size = (packet_size + 1) & (~0x1);
 
                 if ((request->ios2_Req.io_Flags & SANA2IOF_RAW) == 0) {
+                    
+                    KPrintF ("\n === Src: %08lx.. Dst: %08lx..", *((ULONG *)unit->address), *((ULONG *)request->ios2_DstAddr));
+                    
                     dm9k_write_block_w (unit->io_base, MWCMD, request->ios2_DstAddr, 3);
                     dm9k_write_block_w (unit->io_base, MWCMD, unit->address, 3);
                 
@@ -1095,7 +1101,8 @@ struct TypeStats *tracker;
 
                 /* Write packet data */
 
-                if (error == 0) {
+                if (error == 0) {                                        
+                    
                     end = buffer + (send_size >> 1);
                     while (buffer < end)
                         dm9k_write_w (unit->io_base, MWCMD, ntohw (*buffer++));
@@ -1322,11 +1329,13 @@ UBYTE index;
     
 
         if (r & ISR_PT) {       // Packet transmitted
+
             if (unit->tx_busy)
                 unit->tx_busy = 0;
             else {
                 KPrintF (" ?tx_busy? ");
             }
+            
             Cause (&unit->tx_int);
         }
 
