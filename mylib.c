@@ -586,7 +586,7 @@ struct DevUnit *unit;
 	
                     
     if (AttemptSemaphore (&unit->access_lock)) {
-        KPrintF ("\nLocking and servicing request");
+        //KPrintF ("\nLocking and servicing request");
         ServiceRequest (iorq, base);
     }
     else {

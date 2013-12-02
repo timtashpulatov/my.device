@@ -82,6 +82,7 @@ struct DevUnit {
    
    // 
    UBYTE isr;
+   UBYTE tx_busy;
 };
 
 struct TypeStats {

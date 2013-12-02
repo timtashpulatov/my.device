@@ -401,6 +401,9 @@ VOID GoOnline (struct DevUnit *unit, struct MyBase *base) {
     unit->flags |= UNITF_ONLINE;
 
 
+    // Clear TX Busy flag
+    unit->tx_busy = 0;
+
     // Enable RX and TX
 
     dm9k_write (base->io_base, IMR, 
@@ -1031,114 +1034,129 @@ struct TypeStats *tracker;
     base = unit->device;
     port = unit->request_ports [WRITE_QUEUE];
 
-    //while (proceed && (!IsMsgPortEmpty (port))) {
-    
-    // run once DEBUG
-    if (!IsMsgPortEmpty (port)) {
-    
-        error = 0;
+    if (unit->tx_busy) {
+        KPrintF ("\n === TX Busy");
+    }
+    else {
 
-        request = (APTR)port->mp_MsgList.lh_Head;
-        data_size = packet_size = request->ios2_DataLength;
+        //while (proceed && (!IsMsgPortEmpty (port))) {
+    
+        // run once DEBUG
+        if (!IsMsgPortEmpty (port)) {
+            
+            KPrintF ("\n === Setting tx_busy flag");
+            
+            unit->tx_busy = 1;
+    
+            error = 0;
 
-        if ((request->ios2_Req.io_Flags & SANA2IOF_RAW) == 0)
-            packet_size += PACKET_DATA;
+            request = (APTR)port->mp_MsgList.lh_Head;
+            data_size = packet_size = request->ios2_DataLength;
+
+            if ((request->ios2_Req.io_Flags & SANA2IOF_RAW) == 0)
+                packet_size += PACKET_DATA;
 
              
-        if (1) {
+            if (1) {
 
 
-            /* Write packet header */
+                /* Write packet header */
             
-            send_size = (packet_size + 1) & (~0x1);
+                send_size = (packet_size + 1) & (~0x1);
 
-            if ((request->ios2_Req.io_Flags & SANA2IOF_RAW) == 0) {
-                dm9k_write_block_w (unit->io_base, MWCMD, request->ios2_DstAddr, 3);
-                dm9k_write_block_w (unit->io_base, MWCMD, unit->address, 3);
+                if ((request->ios2_Req.io_Flags & SANA2IOF_RAW) == 0) {
+                    dm9k_write_block_w (unit->io_base, MWCMD, request->ios2_DstAddr, 3);
+                    dm9k_write_block_w (unit->io_base, MWCMD, unit->address, 3);
                 
-                dm9k_write_w (unit->io_base, MWCMD, ntohw (request->ios2_PacketType));
+                    dm9k_write_w (unit->io_base, MWCMD, ntohw (request->ios2_PacketType));
                      
-                send_size -= PACKET_DATA;                                
-            }
-
-            /* Get packet data */
-
-            opener = (APTR)request->ios2_BufferManagement;
-            dma_tx_function = opener->dma_tx_function;
-            if (dma_tx_function != NULL)
-                buffer = (UWORD *)dma_tx_function (request->ios2_Data);
-            else
-                buffer = NULL;
-
-            if (buffer == NULL) {
-                buffer = (UWORD *)unit->tx_buffer;
-                if (!opener->tx_function (buffer, request->ios2_Data, data_size)) {
-                    error = S2ERR_NO_RESOURCES;
-                    wire_error = S2WERR_BUFF_ERROR;
-                    ReportEvents (unit,
-                        S2EVENT_ERROR | S2EVENT_SOFTWARE | S2EVENT_BUFF | S2EVENT_TX,
-                        base);
+                    send_size -= PACKET_DATA;                                
                 }
-            }
 
-            /* Write packet data */
+                /* Get packet data */
 
-            if (error == 0) {
-                end = buffer + (send_size >> 1);
-                while (buffer < end)
-                    dm9k_write_w (unit->io_base, MWCMD, ntohw (*buffer++));
-
-                if ((send_size & 0x1) != 0)
-                    dm9k_write_w (unit->io_base, MWCMD, ntohw (*buffer));
-                
-                // Write transmitted data length to DM9000
-                dm9k_write (unit->io_base, TXPLH, packet_size >> 8);
-                dm9k_write (unit->io_base, TXPLL, packet_size);
-                
-                
-                // Start TX
-                dm9k_write (unit->io_base, TCR, TCR_TXREQ);
-
-
-            }
-
-
-            KPrintF ("\n === Data sent, replying msg back");
-
-            /* Reply packet */
-
-            request->ios2_Req.io_Error = error;
-            request->ios2_WireError = wire_error;
-            Remove ((APTR)request);
-            ReplyMsg ((APTR)request);
-
-            /* Update statistics */
-
-            if (error == 0) {
-                unit->stats.PacketsSent ++;
-
-                tracker = FindTypeStats (unit, &unit->type_trackers,
-                                        request->ios2_PacketType,
+                opener = (APTR)request->ios2_BufferManagement;
+                dma_tx_function = opener->dma_tx_function;
+                if (dma_tx_function != NULL)
+                    buffer = (UWORD *)dma_tx_function (request->ios2_Data);
+                else
+                    buffer = NULL;
+    
+                if (buffer == NULL) {
+                    buffer = (UWORD *)unit->tx_buffer;
+                    if (!opener->tx_function (buffer, request->ios2_Data, data_size)) {
+                        error = S2ERR_NO_RESOURCES;
+                        wire_error = S2WERR_BUFF_ERROR;
+                        ReportEvents (unit,
+                            S2EVENT_ERROR | S2EVENT_SOFTWARE | S2EVENT_BUFF | S2EVENT_TX,
                             base);
+                    }
+                }
+
+                /* Write packet data */
+
+                if (error == 0) {
+                    end = buffer + (send_size >> 1);
+                    while (buffer < end)
+                        dm9k_write_w (unit->io_base, MWCMD, ntohw (*buffer++));
+
+                    if ((send_size & 0x1) != 0)
+                        dm9k_write_w (unit->io_base, MWCMD, ntohw (*buffer));
+                
+                    // Write transmitted data length to DM9000
+                    dm9k_write (unit->io_base, TXPLH, packet_size >> 8);
+                    dm9k_write (unit->io_base, TXPLL, packet_size);
+                
+                
+                    // Start TX
+                    dm9k_write (unit->io_base, TCR, TCR_TXREQ);
+
+
+                }
+
+
+                KPrintF ("\n === Data sent, replying msg back");
+
+                /* Reply packet */
+
+                request->ios2_Req.io_Error = error;
+                request->ios2_WireError = wire_error;
+                Remove ((APTR)request);
+                ReplyMsg ((APTR)request);
+
+                /* Update statistics */
+
+                if (error == 0) {
+                    unit->stats.PacketsSent ++;
+
+                    tracker = FindTypeStats (unit, &unit->type_trackers,
+                                            request->ios2_PacketType,
+                                base);
                         
-                if (tracker != NULL) {
-                    tracker->stats.PacketsSent ++;
-                    tracker->stats.BytesSent += packet_size;
+                    if (tracker != NULL) {
+                        tracker->stats.PacketsSent ++;
+                        tracker->stats.BytesSent += packet_size;
+                    }
                 }
             }
+            else
+                proceed = FALSE;
         }
-        else
-            proceed = FALSE;
-    }
+        else {
+            KPrintF ("\n === Empty MsgPort ?");
+        }
 
-    if (proceed)
-        unit->request_ports [WRITE_QUEUE]->mp_Flags = PA_SOFTINT;
-    else {
+/*
+    
+        if (proceed)
+            unit->request_ports [WRITE_QUEUE]->mp_Flags = PA_SOFTINT;
+        else {
    //   LEWordOut(io_base+EL3REG_COMMAND,EL3CMD_SETTXTHRESH
 //         |(PREAMBLE_SIZE+packet_size));
         unit->request_ports [WRITE_QUEUE]->mp_Flags = PA_IGNORE;
+        }
+*/        
     }
-
 
     KPrintF ("\n =============\n");
 
@@ -1285,16 +1303,15 @@ UBYTE index;
 
     r = dm9k_read (unit->io_base, ISR);
 
-    if (r & 0x01 /* 0x3f */) {
-
-
-        KPrintF ("(*** InterruptServer: %lx ***)", r);
+    if (r & 0x03 /* 0x3f */) {
 
         // Disable all interrupts
         dm9k_write (unit->io_base, IMR, IMR_PAR);
 
         // Acknowledge all interrupts
         dm9k_write (unit->io_base, ISR, 0x3f);      // you MUST do this
+
+        KPrintF ("(*** INT2 *** ISR: %lx)", r);
 
         // Save ISR for later inspection
         unit->isr = r;
@@ -1305,7 +1322,12 @@ UBYTE index;
     
 
         if (r & ISR_PT) {       // Packet transmitted
-//            Cause (&unit->tx_int);
+            if (unit->tx_busy)
+                unit->tx_busy = 0;
+            else {
+                KPrintF (" ?tx_busy? ");
+            }
+            Cause (&unit->tx_int);
         }
 
 
