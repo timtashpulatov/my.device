@@ -748,7 +748,7 @@ UWORD SRAMaddr;
                 *p++ =  ntohw (dm9k_read_w (unit->io_base, MRCMD)); 
 
 
-            KPrintF ("\n   Src: %8lx Dst: %8lx", *((ULONG *)buffer), *((ULONG *)(buffer + 6)));
+            KPrintF ("\n   Src: %8lx Dst: %8lx", *((ULONG *)(buffer + 6)), *((ULONG *)buffer));
 
 
 //            if (1) {
