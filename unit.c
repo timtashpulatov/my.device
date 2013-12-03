@@ -415,7 +415,7 @@ VOID GoOnline (struct DevUnit *unit, struct MyBase *base) {
                                   RCR_DIS_CRC       // Discard CRC error packet
                                 | RCR_DIS_LONG      // Discard long packets (over 1522 bytes)
                                 | RCR_PRMSC         // Promiscuous mode
-                              //  | RCR_ALL           // Pass all multicast
+                               // | RCR_ALL           // Pass all multicast
                                 | RCR_RXEN          // RX Enable
                                 );
 
@@ -510,6 +510,7 @@ UBYTE rcr;
             if (unit->range_count ++ == 0) {
 //                unit->rx_filter_cmd |= EL3CMD_SETRXFILTERF_MCAST;
 //                LEWordOut (unit->io_base + EL3REG_COMMAND, unit->rx_filter_cmd);
+
                 rcr = dm9k_read (unit->io_base, RCR) | RCR_ALL;
                 dm9k_write (unit->io_base, RCR, rcr);
             }
@@ -550,6 +551,7 @@ UBYTE rcr;
             if (--unit->range_count == 0) {
 //            unit->rx_filter_cmd&=~EL3CMD_SETRXFILTERF_MCAST;
 //            LEWordOut(unit->io_base+EL3REG_COMMAND,unit->rx_filter_cmd);
+
                 rcr = dm9k_read (unit->io_base, RCR) & ~RCR_ALL;
                 dm9k_write (unit->io_base, RCR, rcr);
             }
@@ -747,12 +749,12 @@ UWORD SRAMaddr;
             KPrintF ("\n   Src: %8lx Dst: %8lx", *((ULONG *)(buffer + 6)), *((ULONG *)buffer));
 
 
-            if (1) {
-//            if (AddressFilter (unit, buffer + PACKET_DEST, base)) {
+//            if (1) {
+            if (AddressFilter (unit, buffer + PACKET_DEST, base)) {
                 
                 packet_type = BEWord (*((UWORD *)(buffer + PACKET_TYPE)));
 
-                KPrintF (" type: %lx", packet_type);
+       //         KPrintF (" type: %lx", packet_type);
 
                 opener = (APTR)unit->openers.mlh_Head;
                 opener_tail = (APTR)&unit->openers.mlh_Tail;
@@ -813,7 +815,7 @@ UWORD SRAMaddr;
                 }                                              
             }
             else
-                KPrintF ("\n   packet filtered out");
+                KPrintF ("\n   - packet filtered out -");
         }
         else {
             unit->stats.BadData ++;
