@@ -415,8 +415,8 @@ VOID GoOnline (struct DevUnit *unit, struct MyBase *base) {
     dm9k_write (base->io_base, RCR, 
                                   RCR_DIS_CRC       // Discard CRC error packet
                                 | RCR_DIS_LONG      // Discard long packets (over 1522 bytes)
-                             // | RCR_PRMSC         // Promiscuous mode
-                             //   | RCR_ALL           // Pass all multicast
+                                | RCR_PRMSC         // Promiscuous mode
+                                | RCR_ALL           // Pass all multicast
                                 | RCR_RXEN          // RX Enable
                                 );
 
@@ -751,8 +751,8 @@ UWORD SRAMaddr;
             KPrintF ("\n   Src: %8lx Dst: %8lx", *((ULONG *)(buffer + 6)), *((ULONG *)buffer));
 
 
-//            if (1) {
-            if (AddressFilter (unit, buffer + PACKET_DEST, base)) {
+            if (1) {
+//            if (AddressFilter (unit, buffer + PACKET_DEST, base)) {
                 
                 packet_type = BEWord (*((UWORD *)(buffer + PACKET_TYPE)));
 
