@@ -478,11 +478,11 @@ VOID GoOffline (struct DevUnit *unit, struct MyBase *base) {
  * AddMulticastRange
  *
  *****************************************************************************/
-BOOL AddMulticastRange (struct DevUnit *unit, UBYTE *lower_bound,
-                        UBYTE *upper_bound, struct MyBase *base) {
+BOOL AddMulticastRange (struct DevUnit *unit, UBYTE *lower_bound, UBYTE *upper_bound, struct MyBase *base) {
 struct AddressRange *range;
 ULONG lower_bound_left, upper_bound_left;
 UWORD lower_bound_right, upper_bound_right;
+UBYTE rcr;
 
     lower_bound_left = BELong (*((ULONG *)lower_bound));
     lower_bound_right = BEWord (*((UWORD *)(lower_bound + 4)));
@@ -510,6 +510,8 @@ UWORD lower_bound_right, upper_bound_right;
             if (unit->range_count ++ == 0) {
 //                unit->rx_filter_cmd |= EL3CMD_SETRXFILTERF_MCAST;
 //                LEWordOut (unit->io_base + EL3REG_COMMAND, unit->rx_filter_cmd);
+                rcr = dm9k_read (unit->io_base, RCR) | RCR_ALL;
+                dm9k_write (unit->io_base, RCR, rcr);
             }
         }
     }
@@ -528,6 +530,7 @@ BOOL RemMulticastRange (struct DevUnit *unit, UBYTE *lower_bound, UBYTE *upper_b
 struct AddressRange *range;
 ULONG lower_bound_left, upper_bound_left;
 UWORD lower_bound_right, upper_bound_right;
+UBYTE rcr;
 
     lower_bound_left = BELong(*((ULONG *)lower_bound));
     lower_bound_right = BEWord(*((UWORD *)(lower_bound + 4)));
@@ -547,6 +550,8 @@ UWORD lower_bound_right, upper_bound_right;
             if (--unit->range_count == 0) {
 //            unit->rx_filter_cmd&=~EL3CMD_SETRXFILTERF_MCAST;
 //            LEWordOut(unit->io_base+EL3REG_COMMAND,unit->rx_filter_cmd);
+                rcr = dm9k_read (unit->io_base, RCR) & ~RCR_ALL;
+                dm9k_write (unit->io_base, RCR, rcr);
             }
         }
     }

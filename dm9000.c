@@ -12,10 +12,6 @@ UBYTE peek (APTR io_addr) {
 ULONG *ptr;
 ULONG value;
 
-    // Dummy read
-//    ptr = (ULONG *)0x40000000;
-//    value = *ptr;
-
     ptr = (ULONG *)io_addr;
     value = *ptr;
 
@@ -243,6 +239,35 @@ UBYTE tmp;
 void dm9k_clear_interrupts (APTR io_addr) {
     dm9k_write (io_addr, ISR, 0x3f);
 }
+
+
+/************************************************************
+ * dm9k_hash_table
+ ************************************************************/
+void dm9k_hash_table (APTR io_addr) {
+ULONG hash_val;
+UWORD i, offset, hash_table [4];
+    
+    /* clear Hash Table 4 words */
+    for (i = 0; i < 4; i++)
+        hash_table [i] = 0;
+
+    /* Broadcast Address */
+    hash_table [3] = 0x8000;
+    
+    /* HASH Table calculating for 64-bit Multicast Address */
+//    for (i = 0; i < mc_cnt; i++, mcptr = mcptr->next) {
+    //    hash_val = cal_CRC( (char *)mcptr->dmi_addr, 6, 0) & 3Fh;
+    //    hash_table[hash_val / 16] |= (u16) 1 << (hash_val % 16); 
+//    }
+    
+    /* WRITE HASH Table into 8-byte MAB0~MAB7 (Multicast Address) for MAC MD Table */   
+}
+
+
+
+
+
 
 
 UWORD ntohw (UWORD val) {
