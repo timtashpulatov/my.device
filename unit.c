@@ -129,8 +129,7 @@ UBYTE *p, i;
 
     // MAC Node Address and FILTER Hash Table
     // dm9000_hash_table(dev); /* map HASH Table (see ch.3-1 & ch.6 ) */
-    
-    
+        
     for (i = 0; i < 8; i++)
         dm9k_write (unit->io_base, MAB0 + i, 0);
     
@@ -416,7 +415,7 @@ VOID GoOnline (struct DevUnit *unit, struct MyBase *base) {
                                   RCR_DIS_CRC       // Discard CRC error packet
                                 | RCR_DIS_LONG      // Discard long packets (over 1522 bytes)
                                 | RCR_PRMSC         // Promiscuous mode
-                                | RCR_ALL           // Pass all multicast
+                              //  | RCR_ALL           // Pass all multicast
                                 | RCR_RXEN          // RX Enable
                                 );
 
@@ -557,46 +556,38 @@ UWORD lower_bound_right, upper_bound_right;
 
 
 
-/***** 3c589.device/FindMulticastRange *************************************
-*
-*   NAME
-*	FindMulticastRange -- .
-*
-*   SYNOPSIS
-*	range = FindMulticastRange(unit,lower_bound_left,
-*	    lower_bound_right,upper_bound_left,upper_bound_right)
-*
-*	struct AddressRange *FindMulticastRange(struct DevUnit *,ULONG,
-*	    UWORD,ULONG,UWORD);
-*
-****************************************************************************
-*/
-
+/*****************************************************************************
+ *
+ * FindMulticastRange
+ *
+ *****************************************************************************/
 static struct AddressRange *FindMulticastRange (struct DevUnit *unit,
         ULONG lower_bound_left, UWORD lower_bound_right, ULONG upper_bound_left,
         UWORD upper_bound_right, struct MyBase *base) {
 struct AddressRange *range,*tail;
 BOOL found;
 
-   range=(APTR)unit->multicast_ranges.mlh_Head;
-   tail=(APTR)&unit->multicast_ranges.mlh_Tail;
-   found=FALSE;
+    range = (APTR)unit->multicast_ranges.mlh_Head;
+    tail = (APTR)&unit->multicast_ranges.mlh_Tail;
+    found = FALSE;
 
-   while((range!=tail)&&!found)
-   {
-      if((lower_bound_left==range->lower_bound_left)&&
-         (lower_bound_right==range->lower_bound_right)&&
-         (upper_bound_left==range->upper_bound_left)&&
-         (upper_bound_right==range->upper_bound_right))
+    while ((range != tail) && !found) {
+        if ((lower_bound_left == range->lower_bound_left) &&
+            (lower_bound_right == range->lower_bound_right) &&
+            (upper_bound_left == range->upper_bound_left) &&
+            (upper_bound_right == range->upper_bound_right))
+            
          found=TRUE;
+         
       else
-         range=(APTR)range->node.mln_Succ;
-   }
+      
+         range = (APTR)range->node.mln_Succ;
+    }
 
-   if(!found)
-      range=NULL;
+    if (!found)
+        range = NULL;
 
-   return range;
+    return range;
 }
 
 
@@ -613,21 +604,21 @@ struct TypeStats *FindTypeStats (struct DevUnit *unit, struct MinList *list,
 struct TypeStats *stats, *tail;
 BOOL found;
 
-   stats = (APTR)list->mlh_Head;
-   tail = (APTR)&list->mlh_Tail;
-   found = FALSE;
+    stats = (APTR)list->mlh_Head;
+    tail = (APTR)&list->mlh_Tail;
+    found = FALSE;
 
-   while ((stats != tail) && !found) {
-      if(stats->packet_type == packet_type)
-         found = TRUE;
-      else
-         stats = (APTR)stats->node.mln_Succ;
-   }
+    while ((stats != tail) && !found) {
+        if(stats->packet_type == packet_type)
+            found = TRUE;
+        else
+            stats = (APTR)stats->node.mln_Succ;
+    }
 
-   if (!found)
-      stats = NULL;
+    if (!found)
+        stats = NULL;
 
-   return stats;
+    return stats;
 }
 
 

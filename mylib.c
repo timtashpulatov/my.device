@@ -77,6 +77,8 @@ __saveds void BeginIO (	__reg ("a6") struct MyBase *my,
 __saveds void AbortIO (struct IOSana2Req *iorq, __reg ("a6") struct MyBase *base);
 
 
+
+
 /* ----------------------------------------------------------------------------------------
    ! ROMTag and Library inilitalization structure:
    !
@@ -653,3 +655,9 @@ UWORD neg_size, pos_size;
    return;
 }
 
+
+
+#ifdef NODEBUG
+void KPrintF (UBYTE *fmt, ...) {
+}
+#endif
