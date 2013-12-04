@@ -1045,7 +1045,7 @@ struct TypeStats *tracker;
         // run once DEBUG
         if (!IsMsgPortEmpty (port)) {
             
-            KPrintF ("\n === Setting tx_busy flag");
+            // KPrintF ("\n === Setting tx_busy flag");
             
             unit->tx_busy = 1;
     
@@ -1102,8 +1102,10 @@ struct TypeStats *tracker;
                 if (error == 0) {                                        
                     
                     end = buffer + (send_size >> 1);
-                    while (buffer < end)
-                        dm9k_write_w (unit->io_base, MWCMD, ntohw (*buffer++));
+              //      while (buffer < end)
+              //          dm9k_write_w (unit->io_base, MWCMD, ntohw (*buffer++));
+
+                    dm9k_write_block_w (unit->io_base, MWCMD, buffer, send_size >> 1);
 
                     if ((send_size & 0x1) != 0)
                         dm9k_write_w (unit->io_base, MWCMD, ntohw (*buffer));
@@ -1316,7 +1318,7 @@ UBYTE index;
         // Acknowledge all interrupts
         dm9k_write (unit->io_base, ISR, 0x3f);      // you MUST do this
 
-        KPrintF ("(*** INT2 *** ISR: %lx)", r);
+        KPrintF ("(*** INT2 *** ISR: %02dx)", r);
 
         // Save ISR for later inspection
         unit->isr = r;
