@@ -81,7 +81,7 @@ void dm9k_read_block (APTR io_addr, UBYTE reg, UBYTE *dst, UWORD len) {
  * dm9k_read_block_w
  ************************************************************/
 void dm9k_read_block_w (APTR io_addr, UBYTE reg, UWORD *dst, UWORD len) {
-    poke (io_addr, reg);
+    poke ((UBYTE *)io_addr, reg);
     while (len --)
         *dst ++ = ntohw (peek_w ((UBYTE *)io_addr + 4));
 }

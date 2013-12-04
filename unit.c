@@ -742,8 +742,10 @@ UWORD SRAMaddr;
             p = (UWORD *)(buffer);
             end = (UWORD *)(buffer + packet_size);
                   
-            while (p < end)
-                *p++ =  ntohw (dm9k_read_w (unit->io_base, MRCMD)); 
+    //        while (p < end)
+    //            *p++ =  ntohw (dm9k_read_w (unit->io_base, MRCMD)); 
+    
+            dm9k_read_block_w (unit->io_base, MRCMD, buffer, (packet_size + 1) >> 1);
 
 
             KPrintF ("\n   Src: %8lx Dst: %8lx", *((ULONG *)(buffer + 6)), *((ULONG *)buffer));
@@ -1318,7 +1320,7 @@ UBYTE index;
         // Acknowledge all interrupts
         dm9k_write (unit->io_base, ISR, 0x3f);      // you MUST do this
 
-        KPrintF ("(*** INT2 *** ISR: %02dx)", r);
+        KPrintF ("(*** INT2 *** ISR: %02lx)", r);
 
         // Save ISR for later inspection
         unit->isr = r;
