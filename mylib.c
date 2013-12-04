@@ -161,6 +161,7 @@ const APTR InitTable [] = {
 static const ULONG rx_tags [] = {
    S2_CopyToBuff,
    S2_CopyToBuff16
+//   S2_CopyToBuff32
 };
 
 

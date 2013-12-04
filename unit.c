@@ -85,7 +85,7 @@ struct ConfigDev *myCD;
 
         for (i = 0; i < ADDRESS_SIZE; i ++) {
             *p++ = fakeMAC [i];
-        }   
+        }
 
     }
     else {
@@ -130,6 +130,10 @@ UBYTE *p, i;
     // MAC Node Address and FILTER Hash Table
     // dm9000_hash_table(dev); /* map HASH Table (see ch.3-1 & ch.6 ) */
         
+    for (i = 0; i < 6; i++)
+        dm9k_write (unit->io_base, PAR1 + i, fakeMAC [i]);
+
+
     for (i = 0; i < 8; i++)
         dm9k_write (unit->io_base, MAB0 + i, 0);
     
@@ -414,7 +418,7 @@ VOID GoOnline (struct DevUnit *unit, struct MyBase *base) {
     dm9k_write (base->io_base, RCR, 
                                   RCR_DIS_CRC       // Discard CRC error packet
                                 | RCR_DIS_LONG      // Discard long packets (over 1522 bytes)
-                                | RCR_PRMSC         // Promiscuous mode
+                                //| RCR_PRMSC         // Promiscuous mode
                                // | RCR_ALL           // Pass all multicast
                                 | RCR_RXEN          // RX Enable
                                 );
@@ -1320,7 +1324,7 @@ UBYTE index;
         // Acknowledge all interrupts
         dm9k_write (unit->io_base, ISR, 0x3f);      // you MUST do this
 
-        KPrintF ("(*** INT2 *** ISR: %02lx)", r);
+        KPrintF ("(*** INT2 *** ISR: %0.2lx)", r);
 
         // Save ISR for later inspection
         unit->isr = r;
