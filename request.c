@@ -154,10 +154,10 @@ BOOL complete;
       complete = CmdConfigInterface ((APTR)request, base);
       break;     
    case S2_ADDMULTICASTADDRESS:
-      complete = CmdAddMulticastAddresses ((APTR)request, base);
+      complete = FALSE; // CmdAddMulticastAddresses ((APTR)request, base);
       break;
    case S2_DELMULTICASTADDRESS:
-      complete = CmdDelMulticastAddresses ((APTR)request, base);
+      complete = FALSE; // CmdDelMulticastAddresses ((APTR)request, base);
       break;
    case S2_MULTICAST:
       complete = CmdWrite ((APTR)request, base);

@@ -57,14 +57,13 @@ __saveds struct MyBase *DevInit (__reg("d0") struct MyBase *dev_base,
 
 
 
-__saveds BYTE DevOpenNew (	__reg ("d0") ULONG unit_num,
+__saveds BYTE DevOpen   (	__reg ("d0") ULONG unit_num,
                      		__reg ("a1") struct IOSana2Req *request,
                      		__reg ("d1") ULONG flags,
                      		__reg ("a6") struct MyBase *base);
 
 
 
-//__saveds BYTE DevOpenNew ( __reg ("a6") struct MyBase *my, __reg ("a1") struct IOSana2Req *iorq, __reg ("d1") ULONG flags, __reg ("d0") ULONG unit_num);
 __saveds APTR DevExpunge (__reg ("a6") struct MyBase *base);
 __saveds APTR DevClose (__reg ("a1") struct IOSana2Req *request, __reg ("a6") struct MyBase *base);
 __saveds void DeleteDevice (struct MyBase *base);
@@ -174,7 +173,7 @@ static const ULONG tx_tags [] = {
 
 
 const APTR FuncTab [] = {
-	(APTR) DevOpenNew, 
+	(APTR) DevOpen, 
  	(APTR) DevClose, 	//(APTR) CloseLib,
  	(APTR) DevExpunge,	// (APTR) ExpungeLib,
 	(APTR) ExtFuncLib,
@@ -301,10 +300,10 @@ BOOL success = TRUE;
 
 /*****************************************************************************
  *
- * DevOpenNew
+ * DevOpen
  *
  *****************************************************************************/
-__saveds BYTE DevOpenNew (	__reg ("d0") ULONG unit_num,
+__saveds BYTE DevOpen (	__reg ("d0") ULONG unit_num,
                      		__reg ("a1") struct IOSana2Req *request,
                      		__reg ("d1") ULONG flags,
                      		__reg ("a6") struct MyBase *base) {
@@ -318,7 +317,7 @@ UWORD i;
    base->device.dd_Library.lib_Flags &= ~LIBF_DELEXP;
 
 
-    KPrintF ("\nDevOpenNew\n");
+    KPrintF ("\nDevOpen\n");
 
 
    	request->ios2_Req.io_Unit = NULL;
@@ -365,17 +364,25 @@ UWORD i;
    	}
 
    	if (error == 0) {
+        
+        KPrintF ("\nBuffer management:\n");
+        
       	NewList (&opener->read_port.mp_MsgList);
       	opener->read_port.mp_Flags = PA_IGNORE;
       	NewList ((APTR)&opener->initial_stats);
 
-      	for (i = 0; i < 2; i ++)
+      	for (i = 0; i < 2; i ++) {
          	opener->rx_function = (APTR)GetTagData (rx_tags [i],
             	 (ULONG)opener->rx_function, tag_list);
+            	 
+            KPrintF ("rx hook %lx: %lx\n", i, GetTagData (rx_tags [i], 0, tag_list));
+        }
     
-		for (i = 0; i < 3; i ++)
+		for (i = 0; i < 3; i ++) {
          	opener->tx_function = (APTR)GetTagData (tx_tags [i],
             	(ULONG)opener->tx_function, tag_list);
+            KPrintF ("tx hook %lx: %lx\n", i, GetTagData (tx_tags [i], 0, tag_list));
+        }
 
       	opener->filter_hook = (APTR)GetTagData (S2_PacketFilter, NULL, tag_list);
       	opener->dma_tx_function = NULL; // (APTR)GetTagData (S2_DMACopyFromBuff32, NULL, tag_list);

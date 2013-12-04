@@ -708,7 +708,7 @@ struct Opener *opener, *opener_tail;
 struct TypeStats *tracker;
 
 volatile UBYTE r;
-UWORD SRAMaddr;
+UWORD SRAMaddr, SRAMaddrNext;
 
 
     KPrintF ("\n === RxInt ===");
@@ -728,7 +728,7 @@ UWORD SRAMaddr;
 
         if (r == 0x01) {                        
     
-        //    SRAMaddr = (dm9k_read (unit->io_base, MDRAH) << 8) | dm9k_read (unit->io_base, MDRAL);
+            SRAMaddr = (dm9k_read (unit->io_base, MDRAH) << 8) | dm9k_read (unit->io_base, MDRAL);
 
             is_orphan = TRUE;
      
@@ -737,8 +737,10 @@ UWORD SRAMaddr;
             rx_status = dm9k_read_w (unit->io_base, MRCMD);
             packet_size = dm9k_read_w (unit->io_base, MRCMD);
 
+            SRAMaddrNext = SRAMaddr + ((packet_size + 1) & ~1) + 4;
+            if (SRAMaddrNext > 0x3fff) SRAMaddrNext -= 0x3400;
 
-            KPrintF ("\n   Status: $%lx length: $%lx", rx_status, packet_size);
+            KPrintF ("\n   Status: $%lx length: $%lx SRAM addr before: %lx next: %lx", rx_status, packet_size, SRAMaddr, SRAMaddrNext);
 
 
             // Read whole packet    TODO read only header, skip the rest if not needed
@@ -746,11 +748,11 @@ UWORD SRAMaddr;
             p = (UWORD *)(buffer);
             end = (UWORD *)(buffer + packet_size);
                   
-    //        while (p < end)
-    //            *p++ =  ntohw (dm9k_read_w (unit->io_base, MRCMD)); 
     
             dm9k_read_block_w (unit->io_base, MRCMD, buffer, (packet_size + 1) >> 1);
 
+            SRAMaddr = (dm9k_read (unit->io_base, MDRAH) << 8) | dm9k_read (unit->io_base, MDRAL);
+            KPrintF ("   Actual: %lx", SRAMaddr);
 
             KPrintF ("\n   Src: %8lx Dst: %8lx", *((ULONG *)(buffer + 6)), *((ULONG *)buffer));
 
@@ -1108,8 +1110,6 @@ struct TypeStats *tracker;
                 if (error == 0) {                                        
                     
                     end = buffer + (send_size >> 1);
-              //      while (buffer < end)
-              //          dm9k_write_w (unit->io_base, MWCMD, ntohw (*buffer++));
 
                     dm9k_write_block_w (unit->io_base, MWCMD, buffer, send_size >> 1);
 
