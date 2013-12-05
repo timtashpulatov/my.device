@@ -75,6 +75,7 @@ struct DevUnit {
    struct MinList multicast_ranges;
    struct Interrupt rx_int;
    struct Interrupt tx_int;
+   struct Interrupt linkchg_int;
    struct Sana2DeviceStats stats;
    ULONG special_stats [STAT_COUNT];
    struct SignalSemaphore access_lock;

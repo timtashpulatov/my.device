@@ -31,6 +31,7 @@ __saveds static VOID RxInt (__reg("a1") struct DevUnit *unit);
 static VOID CopyPacket (struct DevUnit *unit, struct IOSana2Req *request, UWORD packet_size, UWORD packet_type, BOOL all_read, struct MyBase *base);
 static BOOL AddressFilter (struct DevUnit *unit, UBYTE *address, struct MyBase *base);
 __saveds static VOID TxInt (__reg("a1") struct DevUnit *unit);
+__saveds static VOID LinkChangeInt (__reg("a1") struct DevUnit *unit);
 static VOID TxError (struct DevUnit *unit, struct MyBase *base);
 static VOID ReportEvents (struct DevUnit *unit, ULONG events, struct MyBase *base);
 static VOID UnitTask ();
@@ -281,6 +282,14 @@ APTR stack;
         unit->tx_int.is_Data = unit;
 
         unit->request_ports [WRITE_QUEUE]->mp_Flags = PA_SOFTINT;
+        
+        
+        // Link change int
+        unit->linkchg_int.is_Node.ln_Name = (TEXT *)device_name;
+        unit->linkchg_int.is_Code = LinkChangeInt;
+        unit->linkchg_int.is_Data = unit;
+
+        
     }
 
 
@@ -401,7 +410,7 @@ VOID GoOnline (struct DevUnit *unit, struct MyBase *base) {
 
 
     /* Choose interrupts */
-    unit->flags |= UNITF_ONLINE;
+//    unit->flags |= UNITF_ONLINE;      // Wait for LINK CHANGE interrupt perhaps?
 
 
     // Clear TX Busy flag
@@ -411,9 +420,10 @@ VOID GoOnline (struct DevUnit *unit, struct MyBase *base) {
 
     dm9k_write (base->io_base, IMR, 
                                   IMR_PAR 
+                                | IMR_LNKCHGI       // Link change interrupt
                                 | IMR_PTI           // TX interrupt
                                 | IMR_PRI           // RX interrupt
-                                );                  // IMR.7 PAR bit ON and TX & RX INT MASK ON        
+                                );                  
     
     dm9k_write (base->io_base, RCR, 
                                   RCR_DIS_CRC       // Discard CRC error packet
@@ -426,7 +436,8 @@ VOID GoOnline (struct DevUnit *unit, struct MyBase *base) {
     /* Record start time and report Online event */
 
     // GetSysTime (&unit->stats.LastStart);
-    ReportEvents (unit, S2EVENT_ONLINE, base);
+    
+//    ReportEvents (unit, S2EVENT_ONLINE, base);
 
    return;
 }
@@ -643,6 +654,8 @@ struct IORequest *request;
 UBYTE i;
 struct Opener *opener, *tail;
 
+    KPrintF ("\nFlushUnit\n");
+
     /* Abort queued requests */
 
     for (i = 0; i <= last_queue; i++) {
@@ -774,10 +787,14 @@ UWORD SRAMaddr, SRAMaddrNext;
                     request = (APTR)opener->read_port.mp_MsgList.lh_Head;
                     request_tail = (APTR)&opener->read_port.mp_MsgList.lh_Tail;
                     accepted = FALSE;
+                    
+                    KPrintF ("\n Openers: ");
 
                     // Offer packet to each request until it's accepted 
 
                     while ((request != request_tail) && !accepted) {
+                    
+                        KPrintF (". ");
                     
                         if (request->ios2_PacketType == packet_type
                             || request->ios2_PacketType <= MTU
@@ -1298,6 +1315,24 @@ UBYTE i;
 
 
 
+/*****************************************************************************
+ *
+ * LinkChangeInt
+ *
+ *****************************************************************************/
+__saveds static VOID LinkChangeInt (__reg("a1") struct DevUnit *unit) {
+struct MyBase *base;
+
+    KPrintF ("\n === LinkChangeInt ===");
+
+    base = unit->device;
+    
+    ReportEvents (unit, S2EVENT_ONLINE, base);
+}
+
+
+
+
 
 
 
@@ -1319,7 +1354,7 @@ UBYTE index;
 
     r = dm9k_read (unit->io_base, ISR);
 
-    if (r & 0x03 /* 0x3f */) {
+    if (r & 0x3f ) {
 
         // Disable all interrupts
         dm9k_write (unit->io_base, IMR, IMR_PAR);
@@ -1334,6 +1369,17 @@ UBYTE index;
 
 
         if (r & ISR_LNKCHG) {   // Link changed
+            if (dm9k_read (unit->io_base, NSR) & NSR_LINKST) {
+                KPrintF ("\n--- Link UP ---\n");
+                unit->flags |= UNITF_ONLINE;                
+            }
+            else {
+                KPrintF ("\n --- Link DOWN ---\n");
+                unit->flags &= ~UNITF_ONLINE;
+            }
+            
+            Cause (&unit->linkchg_int);
+            
         }
     
 

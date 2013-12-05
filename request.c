@@ -258,15 +258,16 @@ BOOL complete = FALSE;
 
 DebugS2Request (request);
 
-   if ((unit->flags & UNITF_ONLINE) != 0) {
-      opener = request->ios2_BufferManagement;
-      PutRequest (&opener->read_port, (APTR)request, base);
-   }
-   else {
-      request->ios2_Req.io_Error = S2ERR_OUTOFSERVICE;
-      request->ios2_WireError = S2WERR_UNIT_OFFLINE;
-      complete = TRUE;
-   }
+    if ((unit->flags & UNITF_ONLINE) != 0) {
+        opener = request->ios2_BufferManagement;
+        PutRequest (&opener->read_port, (APTR)request, base);
+    }
+    else {
+        KPrintF (" S2WERR_UNIT_OFFLINE!");
+        request->ios2_Req.io_Error = S2ERR_OUTOFSERVICE;
+        request->ios2_WireError = S2WERR_UNIT_OFFLINE;
+        complete = TRUE;
+    }
 
    /* Return */
 
