@@ -720,13 +720,14 @@ UWORD SRAMaddr, SRAMaddrNext;
 
 
     do {
+    //while (1) {
 
         r = dm9k_read (unit->io_base, MRCMDX);      // dummy read
         r = dm9k_read (unit->io_base, MRCMDX);
 
         KPrintF ("\n   MRCMDX: %lx", r);
 
-        if (r == 0x01) {                        
+        if (r == 0x01) {
     
             SRAMaddr = (dm9k_read (unit->io_base, MDRAH) << 8) | dm9k_read (unit->io_base, MDRAL);
 
@@ -826,8 +827,13 @@ UWORD SRAMaddr, SRAMaddrNext;
                 KPrintF ("\n   - packet filtered out -");
         }
         else {
-            unit->stats.BadData ++;
-            ReportEvents (unit, S2EVENT_ERROR | S2EVENT_HARDWARE | S2EVENT_RX, base);            
+
+            KPrintF ("\n   ? false call ?");
+            
+            // Need to move this code inside packet reception block; check for errors
+            //
+            // unit->stats.BadData ++;
+            // ReportEvents (unit, S2EVENT_ERROR | S2EVENT_HARDWARE | S2EVENT_RX, base);            
 
         }
 
@@ -848,12 +854,9 @@ UWORD SRAMaddr, SRAMaddrNext;
         dm9k_write (unit->io_base, MDRAL, SRAMaddr);
 */
         
-        r = dm9k_read (unit->io_base, MRCMDX);      // dummy read
-        r = dm9k_read (unit->io_base, MRCMDX);
-
+//        r = dm9k_read (unit->io_base, MRCMDX);      // dummy read
+//        r = dm9k_read (unit->io_base, MRCMDX);
     
-
-//    } while (0);  //    
     } while (r == 0x01);
 
 
