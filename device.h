@@ -10,7 +10,7 @@
 #define PACKET_TYPE 12
 #define PACKET_DATA 14
 #define MTU 1500
-#define MAX_PACKET_SIZE ((HEADER_SIZE)+(MTU))
+#define MAX_PACKET_SIZE 1536    //  ((HEADER_SIZE)+(MTU))
 
 #define STAT_COUNT 3
 

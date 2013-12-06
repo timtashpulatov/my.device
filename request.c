@@ -241,6 +241,7 @@ static BOOL CmdInvalid (struct IOSana2Req *request, struct MyBase *base) {
    return TRUE;
 }
 
+
 /*****************************************************************************
  *
  * CmdRead
@@ -260,10 +261,11 @@ DebugS2Request (request);
 
     if ((unit->flags & UNITF_ONLINE) != 0) {
         opener = request->ios2_BufferManagement;
+//        KPrintF (" opener: %lx ", opener);
         PutRequest (&opener->read_port, (APTR)request, base);
     }
     else {
-        KPrintF (" S2WERR_UNIT_OFFLINE!");
+//        KPrintF (" S2WERR_UNIT_OFFLINE!");
         request->ios2_Req.io_Error = S2ERR_OUTOFSERVICE;
         request->ios2_WireError = S2WERR_UNIT_OFFLINE;
         complete = TRUE;

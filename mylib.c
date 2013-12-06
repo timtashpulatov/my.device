@@ -375,17 +375,20 @@ UWORD i;
          	opener->rx_function = (APTR)GetTagData (rx_tags [i],
             	 (ULONG)opener->rx_function, tag_list);
             	 
-            KPrintF ("rx hook %lx: %lx\n", i, GetTagData (rx_tags [i], 0, tag_list));
+            KPrintF (" rx hook %lx: %lx\n", i, GetTagData (rx_tags [i], 0, tag_list));
         }
     
 		for (i = 0; i < 3; i ++) {
          	opener->tx_function = (APTR)GetTagData (tx_tags [i],
             	(ULONG)opener->tx_function, tag_list);
-            KPrintF ("tx hook %lx: %lx\n", i, GetTagData (tx_tags [i], 0, tag_list));
+            KPrintF (" tx hook %lx: %lx\n", i, GetTagData (tx_tags [i], 0, tag_list));
         }
 
       	opener->filter_hook = (APTR)GetTagData (S2_PacketFilter, NULL, tag_list);
-      	opener->dma_tx_function = NULL; // (APTR)GetTagData (S2_DMACopyFromBuff32, NULL, tag_list);
+      	KPrintF ("filter hook: %lx\n", opener->filter_hook);
+      	
+      	opener->dma_tx_function = (APTR)GetTagData (S2_DMACopyFromBuff32, NULL, tag_list);      	
+      	KPrintF ("dma tx hook: %lx\n", opener->dma_tx_function);
 
       	Disable ();
       	AddTail ((APTR)&unit->openers, (APTR)opener);
@@ -616,20 +619,27 @@ struct DevUnit *unit;
 __saveds void AbortIO (struct IOSana2Req *iorq, __reg ("a6") struct MyBase *base) {
 struct DevUnit *unit;
 
-	KPrintF ("\nAbortIO");
+	KPrintF ("\nAbortIO ");
 
 
-   unit = (APTR)iorq->ios2_Req.io_Unit;
+    unit = (APTR)iorq->ios2_Req.io_Unit;
 
-   Disable();
-   if ((iorq->ios2_Req.io_Message.mn_Node.ln_Type == NT_MESSAGE) &&
+    Disable();
+    
+    if ((iorq->ios2_Req.io_Message.mn_Node.ln_Type == NT_MESSAGE) &&
         ((iorq->ios2_Req.io_Flags & IOF_QUICK) == 0)) {
-      Remove ((APTR)iorq);
-      iorq->ios2_Req.io_Error = IOERR_ABORTED;
-      iorq->ios2_WireError = S2WERR_GENERIC_ERROR;
-      ReplyMsg ((APTR)iorq);
-   }
-   Enable();
+        
+        KPrintF ("# ");
+        
+        Remove ((APTR)iorq);
+        iorq->ios2_Req.io_Error = IOERR_ABORTED;
+        iorq->ios2_WireError = S2WERR_GENERIC_ERROR;
+        ReplyMsg ((APTR)iorq);
+    }
+    
+    Enable();
+    
+    KPrintF ("done.\n");
 
    return;
 }

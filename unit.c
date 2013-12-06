@@ -20,8 +20,6 @@
 
 #define TASK_PRIORITY 0
 #define STACK_SIZE 4096
-//#define MAX_TUPLE_SIZE 0xff
-//#define TUPLE_BUFFER_SIZE (MAX_TUPLE_SIZE+8)
 
 
 IMPORT struct ExecBase *AbsExecBase;
@@ -260,7 +258,7 @@ APTR stack;
         }
 
         unit->rx_buffer = (APTR) AllocVec ((MAX_PACKET_SIZE + 3) &~ 3, MEMF_PUBLIC);
-        unit->tx_buffer = (APTR) AllocVec (MAX_PACKET_SIZE, MEMF_PUBLIC);
+        unit->tx_buffer = (APTR) AllocVec ((MAX_PACKET_SIZE + 3) & ~3, MEMF_PUBLIC);
         if ((unit->rx_buffer == NULL) || (unit->tx_buffer == NULL))
             success = FALSE;
     }
@@ -778,7 +776,7 @@ UWORD SRAMaddr, SRAMaddrNext;
                 
                 packet_type = BEWord (*((UWORD *)(buffer + PACKET_TYPE)));
 
-       //         KPrintF (" type: %lx", packet_type);
+                KPrintF (" type: %lx", packet_type);
 
                 opener = (APTR)unit->openers.mlh_Head;
                 opener_tail = (APTR)&unit->openers.mlh_Tail;
@@ -786,28 +784,34 @@ UWORD SRAMaddr, SRAMaddrNext;
                 /* Offer packet to every opener */
 
                 while (opener != opener_tail) {
-                    request = (APTR)opener->read_port.mp_MsgList.lh_Head;
-                    request_tail = (APTR)&opener->read_port.mp_MsgList.lh_Tail;
+                    request = (APTR)opener->read_port.mp_MsgList.lh_Head;                                        
+                    request_tail = (APTR)&opener->read_port.mp_MsgList.lh_Tail;                    
                     accepted = FALSE;
                     
-                    KPrintF ("\n Openers: ");
+                    KPrintF ("\n Requests: ");
 
                     // Offer packet to each request until it's accepted 
 
-                    while ((request != request_tail) && !accepted) {
+                    while ((request != request_tail) && !accepted) {                                            
                     
-                        KPrintF (". ");
+                        KPrintF ("\n  MTU %lx, type: %lx", MTU, request->ios2_PacketType);
                     
                         if (request->ios2_PacketType == packet_type
                             || request->ios2_PacketType <= MTU
                             && packet_type <= MTU) {
+
+                            KPrintF ("! ");
 
                             CopyPacket (unit, request, packet_size, packet_type,
                                 !is_orphan, base);
                                 
                             accepted = TRUE;
                         }
-                        request = (APTR)request->ios2_Req.io_Message.mn_Node.ln_Succ;
+                        else {
+                            KPrintF (". ");
+                        }
+                                                
+                        request = (APTR)request->ios2_Req.io_Message.mn_Node.ln_Succ;                        
                     }
 
                     if (accepted)
@@ -819,15 +823,19 @@ UWORD SRAMaddr, SRAMaddrNext;
                 /* If packet was unwanted, give it to S2_READORPHAN request */
 
                 if (is_orphan) {
+                    KPrintF ("\nOrphan");
                     unit->stats.UnknownTypesReceived ++;
                     if (!IsMsgPortEmpty (unit->request_ports [ADOPT_QUEUE])) {                        
                         
-                     //   KPrintF (" ORPHAN!");
+                        KPrintF (" adopted :)");
                         
                         CopyPacket (unit, (APTR)unit->request_ports [ADOPT_QUEUE]->mp_MsgList.lh_Head, 
                                 packet_size, packet_type,
                                 FALSE, base);
 
+                    }
+                    else {
+                        KPrintF (" dropped :(");
                     }
                 }
 
@@ -1110,13 +1118,17 @@ struct TypeStats *tracker;
                 /* Get packet data */
 
                 opener = (APTR)request->ios2_BufferManagement;
-                dma_tx_function = opener->dma_tx_function;
-                if (dma_tx_function != NULL)
+                dma_tx_function = NULL; // opener->dma_tx_function;
+                
+                if (dma_tx_function != NULL) {
+                    KPrintF ("\n === Calling DMA hook");
                     buffer = (UWORD *)dma_tx_function (request->ios2_Data);
+                }
                 else
                     buffer = NULL;
     
                 if (buffer == NULL) {
+                    KPrintF ("\n === Using tx hook");
                     buffer = (UWORD *)unit->tx_buffer;
                     if (!opener->tx_function (buffer, request->ios2_Data, data_size)) {
                         error = S2ERR_NO_RESOURCES;
@@ -1129,7 +1141,7 @@ struct TypeStats *tracker;
 
                 /* Write packet data */
 
-                if (error == 0) {                                        
+                if (error == 0) {
                     
                     end = buffer + (send_size >> 1);
 
