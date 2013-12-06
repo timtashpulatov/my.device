@@ -751,11 +751,12 @@ UWORD SRAMaddr, SRAMaddrNext;
             rx_status = dm9k_read_w (unit->io_base, MRCMD);
             packet_size = dm9k_read_w (unit->io_base, MRCMD);
 
+/*
             SRAMaddrNext = SRAMaddr + ((packet_size + 1) & ~1) + 4;
             if (SRAMaddrNext > 0x3fff) SRAMaddrNext -= 0x3400;
 
             KPrintF ("\n   Status: $%lx length: $%lx SRAM addr before: %lx next: %lx", rx_status, packet_size, SRAMaddr, SRAMaddrNext);
-
+*/
 
             // Read whole packet    TODO read only header, skip the rest if not needed
 
@@ -765,9 +766,10 @@ UWORD SRAMaddr, SRAMaddrNext;
     
             dm9k_read_block_w (unit->io_base, MRCMD, buffer, (packet_size + 1) >> 1);
 
+/*
             SRAMaddr = (dm9k_read (unit->io_base, MDRAH) << 8) | dm9k_read (unit->io_base, MDRAL);
             KPrintF ("   Actual: %lx", SRAMaddr);
-
+*/
             KPrintF ("\n   Src: %8lx Dst: %8lx", *((ULONG *)(buffer + 6)), *((ULONG *)buffer));
 
 

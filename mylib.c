@@ -235,7 +235,7 @@ __saveds struct MyBase * InitLib (__reg ("a6") struct ExecBase  *base,
  
 
     // set serial speed 115200 for debug
-    ((struct Custom*) 0xdff000)->serper = 30;
+    ((struct Custom*) 0xdff000)->serper = 15; // 30;
 
  	NewList ((APTR)(&MyBase->units));
 
