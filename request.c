@@ -104,6 +104,7 @@ UBYTE *data;
     KPrintF ("\n  ios2_PacketType: %8lx", request->ios2_PacketType);
     KPrintF ("\n  ios2_SrcAddr: %8lx", *((ULONG *)request->ios2_SrcAddr));
     KPrintF ("\n  ios2_DstAddr: %8lx", *((ULONG *)request->ios2_DstAddr));
+//    KPrintF ("\n  ios2_BufferManagement: %8lx", *((ULONG *)request->ios2_BufferManagement));
 //    KPrintF ("\n  ios2_WireError:  %8lx", request->ios2_WireError);
 
 /*
@@ -123,6 +124,32 @@ UBYTE *data;
 */
   //  KPrintF (" ...\n");
 }
+
+
+
+
+void DebugRxQueue (struct DevUnit *unit) {
+struct Opener *opener;
+struct IOSana2Req *request, *request_tail;
+    
+    opener = (APTR)unit->openers.mlh_Head;
+    
+    request = (APTR)opener->read_port.mp_MsgList.lh_Head;
+    request_tail = (APTR)&opener->read_port.mp_MsgList.lh_Tail;
+
+    KPrintF ("\n--- read_port queue ---");
+
+    while (request != request_tail) {
+
+        KPrintF ("\n    Src %8lx Dst %8lx Type: %8lx", *((ULONG *)request->ios2_SrcAddr), *((ULONG *)request->ios2_DstAddr), request->ios2_PacketType);
+
+        request = (APTR)request->ios2_Req.io_Message.mn_Node.ln_Succ;
+    }
+    KPrintF ("\n-----------------------\n");
+}
+
+
+
 
 
 /*****************************************************************************
@@ -261,13 +288,17 @@ BOOL complete = FALSE;
 
 DebugS2Request (request);
 
+DebugRxQueue (unit);
+
+
     if ((unit->flags & UNITF_ONLINE) != 0) {
+
         opener = request->ios2_BufferManagement;
 //        KPrintF (" opener: %lx ", opener);
         PutRequest (&opener->read_port, (APTR)request, base);
+
     }
     else {
-//        KPrintF (" S2WERR_UNIT_OFFLINE!");
         request->ios2_Req.io_Error = S2ERR_OUTOFSERVICE;
         request->ios2_WireError = S2WERR_UNIT_OFFLINE;
         complete = TRUE;
