@@ -98,10 +98,12 @@ struct Sana2DeviceQuery sana2_info = {
 void DebugS2Request (struct IOSana2Req *request) {
 UBYTE *data;
 
-//    KPrintF ("\n  --- IOSana2Req ---");
-//    KPrintF ("\n  ios2_Command: %8lx", request->ios2_Req.io_Command);
-//    KPrintF ("\n  ios2_Flags: %8lx", request->ios2_Req.io_Flags);
-//    KPrintF ("\n  ios2_PacketType: %8lx", request->ios2_PacketType);
+    KPrintF ("\n  --- IOSana2Req ---");
+    KPrintF ("\n  ios2_Command: %8lx",  request->ios2_Req.io_Command);
+    KPrintF ("\n  ios2_Flags: %8lx",    request->ios2_Req.io_Flags);
+    KPrintF ("\n  ios2_PacketType: %8lx", request->ios2_PacketType);
+    KPrintF ("\n  ios2_SrcAddr: %8lx", *((ULONG *)request->ios2_SrcAddr));
+    KPrintF ("\n  ios2_DstAddr: %8lx", *((ULONG *)request->ios2_DstAddr));
 //    KPrintF ("\n  ios2_WireError:  %8lx", request->ios2_WireError);
 
 /*
@@ -154,10 +156,10 @@ BOOL complete;
       complete = CmdConfigInterface ((APTR)request, base);
       break;     
    case S2_ADDMULTICASTADDRESS:
-      complete = FALSE; // CmdAddMulticastAddresses ((APTR)request, base);
+      complete = CmdAddMulticastAddresses ((APTR)request, base);
       break;
    case S2_DELMULTICASTADDRESS:
-      complete = FALSE; // CmdDelMulticastAddresses ((APTR)request, base);
+      complete = CmdDelMulticastAddresses ((APTR)request, base);
       break;
    case S2_MULTICAST:
       complete = CmdWrite ((APTR)request, base);
@@ -978,7 +980,7 @@ VOID PutRequest (struct MsgPort *port, struct IORequest *request, struct MyBase 
     request->io_Flags &= ~IOF_QUICK;
     PutMsg (port, (APTR)request);
 
-   return;
+    return;
 }
 
 

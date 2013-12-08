@@ -768,7 +768,7 @@ UWORD SRAMaddr, SRAMaddrNext;
             SRAMaddr = (dm9k_read (unit->io_base, MDRAH) << 8) | dm9k_read (unit->io_base, MDRAL);
             KPrintF ("   Actual: %lx", SRAMaddr);
 */
-            KPrintF ("\n   Src: %8lx Dst: %8lx", *((ULONG *)(buffer + 6)), *((ULONG *)buffer));
+            KPrintF ("\n   Src: %8lx Dst: %8lx size: %8lx", *((ULONG *)(buffer + 6)), *((ULONG *)buffer), packet_size);
 
 
 //            if (1) {
@@ -788,19 +788,19 @@ UWORD SRAMaddr, SRAMaddrNext;
                     request_tail = (APTR)&opener->read_port.mp_MsgList.lh_Tail;                    
                     accepted = FALSE;
                     
-                    KPrintF ("\n Requests: ");
+                    KPrintF ("\n    Requests: ");
 
                     // Offer packet to each request until it's accepted 
 
-                    while ((request != request_tail) && !accepted) {                                            
+                    while ((request != request_tail) && !accepted ) {
                     
-                        KPrintF ("\n  MTU %lx, type: %lx", MTU, request->ios2_PacketType);
+                        KPrintF ("\n    Src %8lx Dst %8lx Type: %8lx", *((ULONG *)request->ios2_SrcAddr), *((ULONG *)request->ios2_DstAddr), request->ios2_PacketType);
                     
                         if (request->ios2_PacketType == packet_type
                             || request->ios2_PacketType <= MTU
                             && packet_type <= MTU) {
 
-                            KPrintF ("! ");
+                            KPrintF (" ! ");
 
                             CopyPacket (unit, request, packet_size, packet_type,
                                 !is_orphan, base);
@@ -808,10 +808,10 @@ UWORD SRAMaddr, SRAMaddrNext;
                             accepted = TRUE;
                         }
                         else {
-                            KPrintF (". ");
+                            KPrintF (" . ");
                         }
                                                 
-                        request = (APTR)request->ios2_Req.io_Message.mn_Node.ln_Succ;                        
+                        request = (APTR)request->ios2_Req.io_Message.mn_Node.ln_Succ;
                     }
 
                     if (accepted)
@@ -896,8 +896,9 @@ UWORD SRAMaddr, SRAMaddrNext;
     // Enable ints back
     dm9k_write (base->io_base, IMR,
                                   IMR_PAR
+                                | IMR_LNKCHGI       // Link change interrupt                                  
                                 | IMR_PRI           // RX interrupt
-                                | IMR_PTI             // TX interrupt
+                                | IMR_PTI           // TX interrupt
                                 );                  
 
 
@@ -959,10 +960,10 @@ UWORD *p, *end;
     }
 
 
-#ifdef USE_HACKS
+//#ifdef USE_HACKS
    else
       packet_size += 4;   /* Needed for Shapeshifter & Fusion */        // ??? WTF ???
-#endif
+//#endif
 
    request->ios2_DataLength = packet_size;
 
@@ -991,7 +992,10 @@ UWORD *p, *end;
       Remove ((APTR)request);
       ReplyMsg ((APTR)request);
 
-   }
+    }
+    else {
+        KPrintF (" !FILTERED! ");
+    }
 
    return;
 }
@@ -1210,8 +1214,9 @@ struct TypeStats *tracker;
     // Enable ints back
     dm9k_write (base->io_base, IMR,
                                 IMR_PAR
+                                | IMR_LNKCHGI       // Link change interrupt
                                 | IMR_PRI           // RX interrupt
-                                | IMR_PTI             // TX interrupt
+                                | IMR_PTI           // TX interrupt
                                 );
 
 
@@ -1266,14 +1271,14 @@ static VOID ReportEvents (struct DevUnit *unit, ULONG events, struct MyBase *bas
 struct IOSana2Req *request, *tail, *next_request;
 struct List *list;
 
-   list = &unit->request_ports [EVENT_QUEUE]->mp_MsgList;
-   next_request = (APTR)list->lh_Head;
-   tail = (APTR)&list->lh_Tail;
+    list = &unit->request_ports [EVENT_QUEUE]->mp_MsgList;
+    next_request = (APTR)list->lh_Head;
+    tail = (APTR)&list->lh_Tail;
 
-   Disable ();
-   while (next_request != tail) {
-      request = next_request;
-      next_request = (APTR)request->ios2_Req.io_Message.mn_Node.ln_Succ;
+    Disable ();
+    while (next_request != tail) {
+        request = next_request;
+        next_request = (APTR)request->ios2_Req.io_Message.mn_Node.ln_Succ;
 
         if ((request->ios2_WireError & events) != 0) {
             request->ios2_WireError = events;
@@ -1329,6 +1334,9 @@ UBYTE i;
 
 
 
+
+
+
 /*****************************************************************************
  *
  * LinkChangeInt
@@ -1336,12 +1344,33 @@ UBYTE i;
  *****************************************************************************/
 __saveds static VOID LinkChangeInt (__reg("a1") struct DevUnit *unit) {
 struct MyBase *base;
+ULONG events = S2EVENT_OFFLINE;
 
-    KPrintF ("\n === LinkChangeInt ===");
+    KPrintF ("\n === LinkChangeInt:");
 
     base = unit->device;
+
+    if (dm9k_read (unit->io_base, NSR) & NSR_LINKST) {
+        KPrintF (" Link UP\n");
+        unit->flags |= UNITF_ONLINE;
+        events = S2EVENT_ONLINE;
+    }
+    else {
+        KPrintF (" Link DOWN\n");
+        unit->flags &= ~UNITF_ONLINE;
+        events = S2EVENT_OFFLINE;
+    }
     
     ReportEvents (unit, S2EVENT_ONLINE, base);
+
+    // Enable ints back
+    dm9k_write (base->io_base, IMR,
+                                IMR_PAR
+                                | IMR_LNKCHGI       // Link change interrupt
+                                | IMR_PRI           // RX interrupt
+                                | IMR_PTI           // TX interrupt
+                                );
+
 }
 
 
@@ -1383,6 +1412,7 @@ UBYTE index;
 
 
         if (r & ISR_LNKCHG) {   // Link changed
+        /*
             if (dm9k_read (unit->io_base, NSR) & NSR_LINKST) {
                 KPrintF ("\n--- Link UP ---\n");
                 unit->flags |= UNITF_ONLINE;                
@@ -1391,7 +1421,7 @@ UBYTE index;
                 KPrintF ("\n --- Link DOWN ---\n");
                 unit->flags &= ~UNITF_ONLINE;
             }
-            
+         */   
             Cause (&unit->linkchg_int);
             
         }
@@ -1519,8 +1549,6 @@ ULONG signals,
                 ServiceRequest ((APTR)request, base);
             }
         }
-
-
    }
 }
 
