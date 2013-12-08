@@ -264,4 +264,10 @@ struct Sana2DeviceStats
 #define S2EVENT_SOFTWARE        (1L<<7) /* software error catch all     */
 
 
+
+
+
+
+
+
 #endif  /* SANA2_SANA2DEVICE_H */

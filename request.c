@@ -12,7 +12,7 @@
 #include <libraries/dos.h>
 #include <devices/timer.h>
 
-//#include <devices/newstyle.h>
+#include "devices/newstyle.h"
 
 #include "devices/sana2.h"
 #include "devices/sana2specialstats.h"
@@ -133,18 +133,26 @@ struct Opener *opener;
 struct IOSana2Req *request, *request_tail;
     
     opener = (APTR)unit->openers.mlh_Head;
+
+    Disable ();
     
     request = (APTR)opener->read_port.mp_MsgList.lh_Head;
     request_tail = (APTR)&opener->read_port.mp_MsgList.lh_Tail;
 
     KPrintF ("\n--- read_port queue ---");
 
-    while (request != request_tail) {
+    if (request) {
 
-        KPrintF ("\n    Src %8lx Dst %8lx Type: %8lx", *((ULONG *)request->ios2_SrcAddr), *((ULONG *)request->ios2_DstAddr), request->ios2_PacketType);
+        while (request != request_tail) {
 
-        request = (APTR)request->ios2_Req.io_Message.mn_Node.ln_Succ;
+            KPrintF ("\n    Src %8lx Dst %8lx Type: %8lx", *((ULONG *)request->ios2_SrcAddr), *((ULONG *)request->ios2_DstAddr), request->ios2_PacketType);
+
+            request = (APTR)request->ios2_Req.io_Message.mn_Node.ln_Succ;
+        }
     }
+    
+    Enable ();
+
     KPrintF ("\n-----------------------\n");
 }
 
@@ -286,9 +294,9 @@ BOOL complete = FALSE;
 
     unit = (APTR)request->ios2_Req.io_Unit;
 
-DebugS2Request (request);
+//DebugS2Request (request);
 
-DebugRxQueue (unit);
+//DebugRxQueue (unit);
 
 
     if ((unit->flags & UNITF_ONLINE) != 0) {
@@ -912,17 +920,17 @@ struct DevUnit *unit;
 */
 
 static BOOL CmdDeviceQuery (struct IOStdReq *request, struct MyBase *base) {
+struct NSDeviceQueryResult *info;
     
    KPrintF ("CmdDeviceQuery");
     
-/*
-   struct NSDeviceQueryResult *info;
+
+   
 
   
-
    info = request->io_Data;
    request->io_Actual = info->SizeAvailable = 
-      (ULONG)OFFSET(NSDeviceQueryResult,SupportedCommands) + sizeof(APTR);
+      (ULONG)OFFSET(NSDeviceQueryResult, SupportedCommands) + sizeof (APTR);
 
   
 
@@ -932,10 +940,9 @@ static BOOL CmdDeviceQuery (struct IOStdReq *request, struct MyBase *base) {
    info->SupportedCommands = (APTR)supported_commands;
 
   
-*/
-//   return TRUE;
 
-    return FALSE;
+   return TRUE;
+
 }
 
 

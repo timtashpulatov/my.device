@@ -714,7 +714,7 @@ ULONG packet_type;
 //UWORD status;
 UWORD *p, *end;
 UBYTE *buffer;
-struct IOSana2Req *request, *request_tail;
+struct IOSana2Req *request, *request_tail, *next;
 struct Opener *opener, *opener_tail;
 struct TypeStats *tracker;
 
@@ -787,20 +787,25 @@ UWORD SRAMaddr, SRAMaddrNext;
                     request = (APTR)opener->read_port.mp_MsgList.lh_Head;                                        
                     request_tail = (APTR)&opener->read_port.mp_MsgList.lh_Tail;                    
                     accepted = FALSE;
+
+
+//            DebugRxQueue (unit);
+
                     
                     KPrintF ("\n    Requests: ");
 
                     // Offer packet to each request until it's accepted 
 
-                    while ((request != request_tail) && !accepted ) {
+                    while ((request != request_tail) && !accepted) {
                     
-                        KPrintF ("\n    Src %8lx Dst %8lx Type: %8lx", *((ULONG *)request->ios2_SrcAddr), *((ULONG *)request->ios2_DstAddr), request->ios2_PacketType);
+        //                KPrintF ("\n    Src %8lx Dst %8lx Type: %8lx", *((ULONG *)request->ios2_SrcAddr), *((ULONG *)request->ios2_DstAddr), request->ios2_PacketType);
                     
-                        if (request->ios2_PacketType == packet_type
-                            || request->ios2_PacketType <= MTU
-                            && packet_type <= MTU) {
+                   //     next = (APTR)request->ios2_Req.io_Message.mn_Node.ln_Succ;
+                    
+                        if ((request->ios2_PacketType == packet_type) || 
+                            ((request->ios2_PacketType <= MTU) && (packet_type <= MTU))) {
 
-                            KPrintF (" ! ");
+                            KPrintF ("!");
 
                             CopyPacket (unit, request, packet_size, packet_type,
                                 !is_orphan, base);
@@ -808,9 +813,10 @@ UWORD SRAMaddr, SRAMaddrNext;
                             accepted = TRUE;
                         }
                         else {
-                            KPrintF (" . ");
+                            KPrintF (".");
                         }
                                                 
+                        //request = next;
                         request = (APTR)request->ios2_Req.io_Message.mn_Node.ln_Succ;
                     }
 
@@ -883,8 +889,10 @@ UWORD SRAMaddr, SRAMaddrNext;
         
 //        r = dm9k_read (unit->io_base, MRCMDX);      // dummy read
 //        r = dm9k_read (unit->io_base, MRCMDX);
+
     
     } while (r == 0x01);
+
 
 
     // Just in case, clear whatever RX Packet int could occur while processing
@@ -918,7 +926,7 @@ UBYTE *buffer;
 BOOL filtered = FALSE;
 UWORD *p, *end;
 
-    KPrintF ("\n   CopyPacket");
+//    KPrintF ("\n     CopyPacket");
 
    /* Set multicast and broadcast flags */
 
@@ -936,7 +944,7 @@ UWORD *p, *end;
    CopyMem (buffer + PACKET_DEST, request->ios2_DstAddr, ADDRESS_SIZE);
    request->ios2_PacketType = packet_type;
 
-    KPrintF (" type: %lx", packet_type);
+//    KPrintF (" type: %lx", packet_type);
 
    /* Read rest of packet */
 /*
@@ -967,6 +975,8 @@ UWORD *p, *end;
 
    request->ios2_DataLength = packet_size;
 
+
+
    /* Filter packet */
 
    opener = request->ios2_BufferManagement;
@@ -991,6 +1001,8 @@ UWORD *p, *end;
       
       Remove ((APTR)request);
       ReplyMsg ((APTR)request);
+      
+//      KPrintF (" rem'd rpld");
 
     }
     else {
