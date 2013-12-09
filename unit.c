@@ -722,7 +722,7 @@ volatile UBYTE r;
 UWORD SRAMaddr, SRAMaddrNext;
 
 
-    KPrintF ("\n === RxInt ===");
+//    KPrintF ("\n === RxInt ===");
 
     base = unit->device;
 
@@ -736,7 +736,7 @@ UWORD SRAMaddr, SRAMaddrNext;
         r = dm9k_read (unit->io_base, MRCMDX);      // dummy read
         r = dm9k_read (unit->io_base, MRCMDX);
 
-        KPrintF ("\n   MRCMDX: %lx", r);
+//        KPrintF ("\n   MRCMDX: %lx", r);
 
         if (r == 0x01) {
     
@@ -768,7 +768,7 @@ UWORD SRAMaddr, SRAMaddrNext;
             SRAMaddr = (dm9k_read (unit->io_base, MDRAH) << 8) | dm9k_read (unit->io_base, MDRAL);
             KPrintF ("   Actual: %lx", SRAMaddr);
 */
-            KPrintF ("\n   Src: %8lx Dst: %8lx size: %8lx", *((ULONG *)(buffer + 6)), *((ULONG *)buffer), packet_size);
+      //      KPrintF ("\n   Src: %8lx Dst: %8lx size: %8lx", *((ULONG *)(buffer + 6)), *((ULONG *)buffer), packet_size);
 
 
 //            if (1) {
@@ -776,7 +776,7 @@ UWORD SRAMaddr, SRAMaddrNext;
                 
                 packet_type = BEWord (*((UWORD *)(buffer + PACKET_TYPE)));
 
-                KPrintF (" type: %lx", packet_type);
+        //        KPrintF (" type: %lx", packet_type);
 
                 opener = (APTR)unit->openers.mlh_Head;
                 opener_tail = (APTR)&unit->openers.mlh_Tail;
@@ -792,7 +792,7 @@ UWORD SRAMaddr, SRAMaddrNext;
 //            DebugRxQueue (unit);
 
                     
-                    KPrintF ("\n    Requests: ");
+                //    KPrintF ("\n    Requests: ");
 
                     // Offer packet to each request until it's accepted 
 
@@ -805,7 +805,7 @@ UWORD SRAMaddr, SRAMaddrNext;
                         if ((request->ios2_PacketType == packet_type) || 
                             ((request->ios2_PacketType <= MTU) && (packet_type <= MTU))) {
 
-                            KPrintF ("!");
+ //                           KPrintF ("!");
 
                             CopyPacket (unit, request, packet_size, packet_type,
                                 !is_orphan, base);
@@ -813,7 +813,7 @@ UWORD SRAMaddr, SRAMaddrNext;
                             accepted = TRUE;
                         }
                         else {
-                            KPrintF (".");
+  //                          KPrintF (".");
                         }
                                                 
                         //request = next;
@@ -829,11 +829,11 @@ UWORD SRAMaddr, SRAMaddrNext;
                 /* If packet was unwanted, give it to S2_READORPHAN request */
 
                 if (is_orphan) {
-                    KPrintF ("\nOrphan");
+//                    KPrintF ("\nOrphan");
                     unit->stats.UnknownTypesReceived ++;
                     if (!IsMsgPortEmpty (unit->request_ports [ADOPT_QUEUE])) {                        
                         
-                        KPrintF (" adopted :)");
+//                        KPrintF (" adopted :)");
                         
                         CopyPacket (unit, (APTR)unit->request_ports [ADOPT_QUEUE]->mp_MsgList.lh_Head, 
                                 packet_size, packet_type,
@@ -841,7 +841,7 @@ UWORD SRAMaddr, SRAMaddrNext;
 
                     }
                     else {
-                        KPrintF (" dropped :(");
+//                        KPrintF (" dropped :(");
                     }
                 }
 
@@ -856,12 +856,13 @@ UWORD SRAMaddr, SRAMaddrNext;
                     tracker->stats.BytesReceived += packet_size;
                 }                                              
             }
-            else
-                KPrintF ("\n   - packet filtered out -");
+            else {
+//                KPrintF (" F ");
+            }
         }
         else {
 
-            KPrintF ("\n   ? false call ?");
+ //           KPrintF ("\n   no packets ");
             
             // Need to move this code inside packet reception block; check for errors
             //
@@ -896,10 +897,10 @@ UWORD SRAMaddr, SRAMaddrNext;
 
 
     // Just in case, clear whatever RX Packet int could occur while processing
-    dm9k_write (base->io_base, ISR, ISR_PR);
+//    dm9k_write (base->io_base, ISR, ISR_PR);
     
     
-    KPrintF ("\n =============\n");
+//    KPrintF ("\n =============\n");
 
     // Enable ints back
     dm9k_write (base->io_base, IMR,
@@ -1006,7 +1007,7 @@ UWORD *p, *end;
 
     }
     else {
-        KPrintF (" !FILTERED! ");
+//        KPrintF (" !FILTERED! ");
     }
 
    return;
@@ -1121,7 +1122,7 @@ struct TypeStats *tracker;
 
                 if ((request->ios2_Req.io_Flags & SANA2IOF_RAW) == 0) {
                     
-                    KPrintF ("\n === Src: %08lx.. Dst: %08lx..", *((ULONG *)unit->address), *((ULONG *)request->ios2_DstAddr));
+   //                 KPrintF ("\n === Src: %08lx.. Dst: %08lx..", *((ULONG *)unit->address), *((ULONG *)request->ios2_DstAddr));
                     
                     dm9k_write_block_w (unit->io_base, MWCMD, request->ios2_DstAddr, 3);
                     dm9k_write_block_w (unit->io_base, MWCMD, unit->address, 3);
@@ -1137,14 +1138,14 @@ struct TypeStats *tracker;
                 dma_tx_function = NULL; // opener->dma_tx_function;
                 
                 if (dma_tx_function != NULL) {
-                    KPrintF ("\n === Calling DMA hook");
+     //               KPrintF ("\n === Calling DMA hook");
                     buffer = (UWORD *)dma_tx_function (request->ios2_Data);
                 }
                 else
                     buffer = NULL;
     
                 if (buffer == NULL) {
-                    KPrintF ("\n === Using tx hook");
+       //             KPrintF ("\n === Using tx hook");
                     buffer = (UWORD *)unit->tx_buffer;
                     if (!opener->tx_function (buffer, request->ios2_Data, data_size)) {
                         error = S2ERR_NO_RESOURCES;
@@ -1178,7 +1179,7 @@ struct TypeStats *tracker;
                 }
 
 
-                KPrintF ("\n === Data sent, replying msg back");
+         //       KPrintF ("\n === Data sent, replying msg back");
 
                 /* Reply packet */
 
@@ -1206,7 +1207,7 @@ struct TypeStats *tracker;
                 proceed = FALSE;
         }
         else {
-            KPrintF ("\n === Empty MsgPort ?");
+//            KPrintF ("\n === Empty MsgPort ?");
         }
 
 /*
@@ -1221,7 +1222,7 @@ struct TypeStats *tracker;
 */        
     }
 
-    KPrintF ("\n =============\n");
+//    KPrintF ("\n =============\n");
 
     // Enable ints back
     dm9k_write (base->io_base, IMR,

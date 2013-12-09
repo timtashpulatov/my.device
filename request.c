@@ -70,7 +70,7 @@ static const UWORD supported_commands [] = {
    S2_READORPHAN,
    S2_ONLINE,
    S2_OFFLINE,
-   NSCMD_DEVICEQUERY,
+//   NSCMD_DEVICEQUERY,
 //   S2_ADDMULTICASTADDRESSES,
 //   S2_DELMULTICASTADDRESSES,
    0
@@ -290,7 +290,7 @@ struct Opener *opener;
 BOOL complete = FALSE;
 
 
-    KPrintF ("CmdRead");
+//    KPrintF ("CmdRead");
 
     unit = (APTR)request->ios2_Req.io_Unit;
 
@@ -334,18 +334,18 @@ BOOL complete = FALSE;
 
    unit = (APTR)request->ios2_Req.io_Unit;
    
-DebugS2Request (request);   
+//DebugS2Request (request);   
    
    
-   if ((unit->flags & UNITF_ONLINE) == 0) {
-      error = S2ERR_OUTOFSERVICE;
-      wire_error = S2WERR_UNIT_OFFLINE;
-   }
-   else if ((request->ios2_Req.io_Command == S2_MULTICAST) &&
+    if ((unit->flags & UNITF_ONLINE) == 0) {        
+        error = S2ERR_OUTOFSERVICE;
+        wire_error = S2WERR_UNIT_OFFLINE;
+    }
+    else if ((request->ios2_Req.io_Command == S2_MULTICAST) &&
       ((request->ios2_DstAddr [0] & 0x1) == 0)) {
             error = S2ERR_BAD_ADDRESS;
             wire_error = S2WERR_BAD_MULTICAST;
-   }
+    }
 
    /* Queue request for sending */
 
@@ -938,8 +938,6 @@ struct NSDeviceQueryResult *info;
    info->DeviceSubType = 0;
 
    info->SupportedCommands = (APTR)supported_commands;
-
-  
 
    return TRUE;
 
