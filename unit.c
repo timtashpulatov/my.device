@@ -722,7 +722,7 @@ volatile UBYTE r;
 UWORD SRAMaddr, SRAMaddrNext;
 
 
-//    KPrintF ("\n === RxInt ===");
+    KPrintF ("\n === RxInt ===");
 
     base = unit->device;
 
@@ -902,6 +902,8 @@ UWORD SRAMaddr, SRAMaddrNext;
     
 //    KPrintF ("\n =============\n");
 
+/*
+
     // Enable ints back
     dm9k_write (base->io_base, IMR,
                                   IMR_PAR
@@ -909,7 +911,7 @@ UWORD SRAMaddr, SRAMaddrNext;
                                 | IMR_PRI           // RX interrupt
                                 | IMR_PTI           // TX interrupt
                                 );                  
-
+*/
 
     return;
 }
@@ -1090,20 +1092,14 @@ struct TypeStats *tracker;
     base = unit->device;
     port = unit->request_ports [WRITE_QUEUE];
 
-    if (unit->tx_busy) {
-        KPrintF ("\n === TX Busy");
-    }
-    else {
 
-        //while (proceed && (!IsMsgPortEmpty (port))) {
+     //while (proceed && (!IsMsgPortEmpty (port))) {
     
         // run once DEBUG
-        if (!IsMsgPortEmpty (port)) {
-            
-            // KPrintF ("\n === Setting tx_busy flag");
-            
-            unit->tx_busy = 1;
+        //if (!IsMsgPortEmpty (port)) {
     
+    while (proceed && (!IsMsgPortEmpty (port))) {
+                
             error = 0;
 
             request = (APTR)port->mp_MsgList.lh_Head;
@@ -1113,7 +1109,7 @@ struct TypeStats *tracker;
                 packet_size += PACKET_DATA;
 
              
-            if (1) {
+            if (!unit->tx_busy) {
 
 
                 /* Write packet header */
@@ -1175,6 +1171,11 @@ struct TypeStats *tracker;
                     // Start TX
                     dm9k_write (unit->io_base, TCR, TCR_TXREQ);
 
+                    // KPrintF ("\n === Setting tx_busy flag");
+
+                    unit->tx_busy = 1;
+
+
 
                 }
 
@@ -1205,24 +1206,21 @@ struct TypeStats *tracker;
             }
             else
                 proceed = FALSE;
-        }
-        else {
-//            KPrintF ("\n === Empty MsgPort ?");
-        }
-
-/*
     
         if (proceed)
             unit->request_ports [WRITE_QUEUE]->mp_Flags = PA_SOFTINT;
         else {
    //   LEWordOut(io_base+EL3REG_COMMAND,EL3CMD_SETTXTHRESH
 //         |(PREAMBLE_SIZE+packet_size));
-        unit->request_ports [WRITE_QUEUE]->mp_Flags = PA_IGNORE;
+            KPrintF ("\ntx_busy NSR: %lx", dm9k_read (unit->io_base, NSR));
+    //        unit->request_ports [WRITE_QUEUE]->mp_Flags = PA_IGNORE;
         }
-*/        
+
     }
 
 //    KPrintF ("\n =============\n");
+
+/*
 
     // Enable ints back
     dm9k_write (base->io_base, IMR,
@@ -1232,7 +1230,7 @@ struct TypeStats *tracker;
                                 | IMR_PTI           // TX interrupt
                                 );
 
-
+*/
 
     return;
 }
@@ -1412,31 +1410,21 @@ UBYTE index;
 
     if (r & 0x3f ) {
 
-        // Disable all interrupts
-        dm9k_write (unit->io_base, IMR, IMR_PAR);
+//        // Disable all interrupts
+//        dm9k_write (unit->io_base, IMR, IMR_PAR);
 
         // Acknowledge all interrupts
-        dm9k_write (unit->io_base, ISR, 0x3f);      // you MUST do this
+        //dm9k_write (unit->io_base, ISR, 0x3f);      // you MUST do this
 
-        KPrintF ("(*** INT2 *** ISR: %0.2lx)", r);
+        KPrintF ("[INT: %0.2lx]", r);
 
         // Save ISR for later inspection
         unit->isr = r;
 
 
-        if (r & ISR_LNKCHG) {   // Link changed
-        /*
-            if (dm9k_read (unit->io_base, NSR) & NSR_LINKST) {
-                KPrintF ("\n--- Link UP ---\n");
-                unit->flags |= UNITF_ONLINE;                
-            }
-            else {
-                KPrintF ("\n --- Link DOWN ---\n");
-                unit->flags &= ~UNITF_ONLINE;
-            }
-         */   
+        if (r & ISR_LNKCHG) {   // Link changed         
+            dm9k_write (unit->io_base, ISR, ISR_LNKCHG);
             Cause (&unit->linkchg_int);
-            
         }
     
 
@@ -1445,15 +1433,23 @@ UBYTE index;
             if (unit->tx_busy)
                 unit->tx_busy = 0;
             else {
-                KPrintF (" ?tx_busy? ");
+              //  KPrintF (" ?tx_busy? ");
             }
+            
+            dm9k_write (unit->io_base, ISR, ISR_PT);
             
             Cause (&unit->tx_int);
         }
 
 
         if (r & ISR_PR) {       // Packet received
+            dm9k_write (unit->io_base, ISR, ISR_PR);
             Cause (&unit->rx_int);
+        }
+
+
+        if (r & ISR_ROS) {      // Receive overflow
+            dm9k_write (unit->io_base, ISR, ISR_ROS);
         }
 
     }
