@@ -722,6 +722,7 @@ volatile UBYTE r;
 UWORD SRAMaddr, SRAMaddrNext;
 
 
+
     KPrintF ("\n === RxInt ===");
 
     base = unit->device;
@@ -915,6 +916,8 @@ UWORD SRAMaddr, SRAMaddrNext;
                                 );                  
 */
 
+
+
     return;
 }
 
@@ -1084,11 +1087,6 @@ struct MsgPort *port;
 struct TypeStats *tracker;
 
 
-
-//    // Disable all interrupts
-//    dm9k_write (unit->io_base, IMR, IMR_PAR);
-
-
     KPrintF ("\n === TxInt ===");
 
     base = unit->device;
@@ -1233,6 +1231,8 @@ struct TypeStats *tracker;
                                 );
 
 */
+
+
 
     return;
 }
