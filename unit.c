@@ -1110,6 +1110,7 @@ struct TypeStats *tracker;
 
              
             if (!unit->tx_busy) {
+//                if (1) {
 
 
                 /* Write packet header */
@@ -1213,7 +1214,7 @@ struct TypeStats *tracker;
    //   LEWordOut(io_base+EL3REG_COMMAND,EL3CMD_SETTXTHRESH
 //         |(PREAMBLE_SIZE+packet_size));
             KPrintF ("\ntx_busy NSR: %lx", dm9k_read (unit->io_base, NSR));
-    //        unit->request_ports [WRITE_QUEUE]->mp_Flags = PA_IGNORE;
+            unit->request_ports [WRITE_QUEUE]->mp_Flags = PA_IGNORE;
         }
 
     }
@@ -1430,15 +1431,9 @@ UBYTE index;
         }
     
 
-        if (r & ISR_PT) {       // Packet transmitted
-
-            if (unit->tx_busy)
-                unit->tx_busy = 0;
-            else {
-              //  KPrintF (" ?tx_busy? ");
-            }
-            
+        if (r & ISR_PT) {       // Packet transmitted          
             dm9k_write (unit->io_base, ISR, ISR_PT);
+            unit->tx_busy = 0;
             
             Cause (&unit->tx_int);
         }
