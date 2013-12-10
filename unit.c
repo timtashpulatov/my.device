@@ -723,7 +723,7 @@ UWORD SRAMaddr, SRAMaddrNext;
 
 
 
-    KPrintF ("\n === RxInt ===");
+    KPrintF ("\n === RxInt === ");
 
     base = unit->device;
 
@@ -1087,7 +1087,7 @@ struct MsgPort *port;
 struct TypeStats *tracker;
 
 
-    KPrintF ("\n === TxInt ===");
+    KPrintF ("\n === TxInt === ");
 
     base = unit->device;
     port = unit->request_ports [WRITE_QUEUE];
@@ -1108,9 +1108,13 @@ struct TypeStats *tracker;
             if ((request->ios2_Req.io_Flags & SANA2IOF_RAW) == 0)
                 packet_size += PACKET_DATA;
 
-             
-            if (!unit->tx_busy) {
-//                if (1) {
+
+            
+
+            
+               
+//            if (!unit->tx_busy) {
+                if (1) {
 
 
                 /* Write packet header */
@@ -1433,7 +1437,7 @@ UBYTE index;
 
         if (r & ISR_PT) {       // Packet transmitted          
             dm9k_write (unit->io_base, ISR, ISR_PT);
-            unit->tx_busy = 0;
+            //unit->tx_busy = 0;
             
             Cause (&unit->tx_int);
         }
