@@ -711,7 +711,6 @@ UWORD rx_status, packet_size;
 struct MyBase *base;
 BOOL is_orphan, accepted;
 ULONG packet_type;
-//UWORD status;
 UWORD *p, *end;
 UBYTE *buffer;
 struct IOSana2Req *request, *request_tail, *next;
@@ -860,7 +859,7 @@ UWORD SRAMaddr, SRAMaddrNext;
                 }                                              
             }
             else {
-//                KPrintF (" F ");
+                KPrintF ("*");
             }
         }
         else {
@@ -977,9 +976,12 @@ UWORD *p, *end;
 
 
 //#ifdef USE_HACKS
-   else
-      packet_size += 4;   /* Needed for Shapeshifter & Fusion */        // ??? WTF ???
+//   else
+//      packet_size += 4;   /* Needed for Shapeshifter & Fusion */        // ??? WTF ???
 //#endif
+
+    packet_size -= 4;
+
 
    request->ios2_DataLength = packet_size;
 

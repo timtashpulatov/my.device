@@ -595,7 +595,7 @@ struct DevUnit *unit;
     unit = (APTR)iorq->ios2_Req.io_Unit;
 
       
-	KPrintF ("\n\nBeginIO cmd: %lx, flags: %lx", iorq->ios2_Req.io_Command, iorq->ios2_Req.io_Flags);
+//	KPrintF ("\n\nBeginIO cmd: %lx, flags: %lx", iorq->ios2_Req.io_Command, iorq->ios2_Req.io_Flags);
 	
                     
     if (AttemptSemaphore (&unit->access_lock)) {
@@ -603,7 +603,7 @@ struct DevUnit *unit;
         ServiceRequest (iorq, base);
     }
     else {
-        KPrintF ("\nSemaphore locked, queueing request");
+    //    KPrintF ("\nSemaphore locked, queueing request");
         PutRequest (unit->request_ports [GENERAL_QUEUE], (APTR)iorq, base);
     }
 
