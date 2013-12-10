@@ -980,7 +980,7 @@ UWORD *p, *end;
 //      packet_size += 4;   /* Needed for Shapeshifter & Fusion */        // ??? WTF ???
 //#endif
 
-    packet_size -= 4;
+    packet_size -= 4;       // fixes passive FTP, netio RX speed etc
 
 
    request->ios2_DataLength = packet_size;
