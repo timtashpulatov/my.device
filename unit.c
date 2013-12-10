@@ -140,6 +140,15 @@ UBYTE *p, i;
     dm9k_write (unit->io_base, MAB7, 0x80);
     
 
+    dm9k_write (base->io_base, IMR,
+                                  IMR_PAR
+                                | IMR_LNKCHGI       // Link change interrupt
+//                                | IMR_PTI           // TX interrupt
+                                | IMR_PRI           // RX interrupt
+                                );
+
+
+
     // Activate DM9000
 //        dm9k_set_bits (base->io_base, RCR, RCR_RXEN | RCR_PRMSC | RCR_ALL);    // RXCR.0 RXEN bit ON Enable
 //        dm9k_write (base->io_base, IMR, IMR_PAR | IMR_PTI | IMR_PRI);          // IMR.7 PAR bit ON and TX & RX INT MASK ON
@@ -419,7 +428,7 @@ VOID GoOnline (struct DevUnit *unit, struct MyBase *base) {
     dm9k_write (base->io_base, IMR, 
                                   IMR_PAR 
                                 | IMR_LNKCHGI       // Link change interrupt
-                                | IMR_PTI           // TX interrupt
+//                                | IMR_PTI           // TX interrupt
                                 | IMR_PRI           // RX interrupt
                                 );                  
     
@@ -729,7 +738,6 @@ UWORD SRAMaddr, SRAMaddrNext;
     buffer = unit->rx_buffer;
     end = (UWORD *)(buffer + HEADER_SIZE);
 
-
     do {
     //while (1) {
 
@@ -914,6 +922,9 @@ UWORD SRAMaddr, SRAMaddrNext;
                                 | IMR_PTI           // TX interrupt
                                 );                  
 */
+
+
+    dm9k_write (unit->io_base, IMR, dm9k_read (unit->io_base, IMR) | ISR_PR);  // enable Rx int
 
 
 
@@ -1407,8 +1418,8 @@ ULONG events = S2EVENT_OFFLINE;
  ************************************************************/
 __saveds void InterruptServer (__reg("a1") struct Task *task) {
 struct DevUnit *unit;
-UBYTE r;
-UBYTE index;
+volatile UBYTE r;
+volatile UBYTE index;
 
     unit = task->tc_UserData;
 
@@ -1438,15 +1449,17 @@ UBYTE index;
     
 
         if (r & ISR_PT) {       // Packet transmitted          
-            dm9k_write (unit->io_base, ISR, ISR_PT);
+            dm9k_write (unit->io_base, ISR, ISR_PT);                                    // clear Tx int
+            dm9k_write (unit->io_base, IMR, dm9k_read (unit->io_base, IMR) & ~ISR_PT);  // disable Tx int
             //unit->tx_busy = 0;
             
-            Cause (&unit->tx_int);
+//            Cause (&unit->tx_int);
         }
 
 
         if (r & ISR_PR) {       // Packet received
-            dm9k_write (unit->io_base, ISR, ISR_PR);
+            dm9k_write (unit->io_base, IMR, dm9k_read (unit->io_base, IMR) & ~ISR_PR);  // disable Rx int
+            dm9k_write (unit->io_base, ISR, ISR_PR);                                    // clear Rx int
             Cause (&unit->rx_int);
         }
 
