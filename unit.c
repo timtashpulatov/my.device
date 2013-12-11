@@ -1110,8 +1110,9 @@ UBYTE nsr;
     // run once DEBUG
 //    if (!IsMsgPortEmpty (port)) {
     
-    
-    if (unit->tx_busy) {
+  
+    if (0) {  
+//    if (unit->tx_busy) {
         KPrintF (" . ");
     }
     else {
@@ -1127,9 +1128,9 @@ UBYTE nsr;
             if ((request->ios2_Req.io_Flags & SANA2IOF_RAW) == 0)
                 packet_size += PACKET_DATA;
                
-                if (1) {
+            if (1) {
 
-                unit->tx_busy = 1;
+//                unit->tx_busy = 1;
 
                 /* Write packet header */
             
@@ -1185,11 +1186,15 @@ UBYTE nsr;
                     // Write transmitted data length to DM9000
                     dm9k_write (unit->io_base, TXPLH, packet_size >> 8);
                     dm9k_write (unit->io_base, TXPLL, packet_size);                
-    
-                    KPrintF (" $ ");
+                
                 
                     // Start TX
                     dm9k_write (unit->io_base, TCR, TCR_TXREQ);
+
+                    // Wait for TX completion
+                    while (dm9k_read (unit->io_base, TCR) & TCR_TXREQ);
+
+                    //KPrintF ("   $   ");
 
                 }
 
