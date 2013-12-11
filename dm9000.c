@@ -40,13 +40,13 @@ ULONG value;
 /************************************************************
  * poke
  ************************************************************/
-void poke (APTR io_addr, UBYTE value) {
+/* void poke (APTR io_addr, UBYTE value) {
 UBYTE *ptr;
 
     ptr = (BYTE *) io_addr + 16;        // anti caching hack
     *ptr = value;
 }
-
+*/
 
 
 /************************************************************
