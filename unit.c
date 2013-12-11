@@ -1191,8 +1191,10 @@ UBYTE nsr;
                     // Start TX
                     dm9k_write (unit->io_base, TCR, TCR_TXREQ);
 
-                    // Wait for TX completion
-                    while (dm9k_read (unit->io_base, TCR) & TCR_TXREQ);
+
+                  // Wait for TX completion
+                  while (dm9k_read (unit->io_base, TCR) & TCR_TXREQ);
+
 
                     //KPrintF ("   $   ");
 
