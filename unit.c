@@ -143,7 +143,7 @@ UBYTE *p, i;
     dm9k_write (base->io_base, IMR,
                                   IMR_PAR
                                 | IMR_LNKCHGI       // Link change interrupt
-//                                | IMR_PTI           // TX interrupt
+                                | IMR_PTI           // TX interrupt
                                 | IMR_PRI           // RX interrupt
                                 );
 
@@ -428,7 +428,7 @@ VOID GoOnline (struct DevUnit *unit, struct MyBase *base) {
     dm9k_write (base->io_base, IMR, 
                                   IMR_PAR 
                                 | IMR_LNKCHGI       // Link change interrupt
-//                                | IMR_PTI           // TX interrupt
+                                | IMR_PTI           // TX interrupt
                                 | IMR_PRI           // RX interrupt
                                 );                  
     
@@ -1099,19 +1099,18 @@ BYTE error;
 struct MsgPort *port;
 struct TypeStats *tracker;
 
+UBYTE nsr;
+
 
     KPrintF ("\n === TxInt === ");
 
     base = unit->device;
     port = unit->request_ports [WRITE_QUEUE];
-
-
-     //while (proceed && (!IsMsgPortEmpty (port))) {
     
-        // run once DEBUG
-        //if (!IsMsgPortEmpty (port)) {
+    // run once DEBUG
+    if (!IsMsgPortEmpty (port)) {
     
-    while (proceed && (!IsMsgPortEmpty (port))) {
+    //while (proceed && (!IsMsgPortEmpty (port))) {
                 
             error = 0;
 
@@ -1120,14 +1119,9 @@ struct TypeStats *tracker;
 
             if ((request->ios2_Req.io_Flags & SANA2IOF_RAW) == 0)
                 packet_size += PACKET_DATA;
-
-
-            
-
-            
                
-//            if (!unit->tx_busy) {
-                if (1) {
+            if (!unit->tx_busy) {
+                //if (1) {
 
 
                 /* Write packet header */
@@ -1197,9 +1191,6 @@ struct TypeStats *tracker;
 
                 }
 
-
-         //       KPrintF ("\n === Data sent, replying msg back");
-
                 /* Reply packet */
 
                 request->ios2_Req.io_Error = error;
@@ -1222,15 +1213,17 @@ struct TypeStats *tracker;
                     }
                 }
             }
-            else
+            else {
                 proceed = FALSE;
+                
+                KPrintF ("\n Tx busy! \n");
+            }
     
         if (proceed)
             unit->request_ports [WRITE_QUEUE]->mp_Flags = PA_SOFTINT;
         else {
    //   LEWordOut(io_base+EL3REG_COMMAND,EL3CMD_SETTXTHRESH
 //         |(PREAMBLE_SIZE+packet_size));
-            KPrintF ("\ntx_busy NSR: %lx", dm9k_read (unit->io_base, NSR));
             unit->request_ports [WRITE_QUEUE]->mp_Flags = PA_IGNORE;
         }
 
@@ -1436,7 +1429,7 @@ volatile UBYTE index;
         // Acknowledge all interrupts
         //dm9k_write (unit->io_base, ISR, 0x3f);      // you MUST do this
 
-        KPrintF ("[INT: %0.2lx]", r);
+        KPrintF ("[INT: %lx]", r);
 
         // Save ISR for later inspection
         unit->isr = r;
@@ -1450,16 +1443,16 @@ volatile UBYTE index;
 
         if (r & ISR_PT) {       // Packet transmitted          
             dm9k_write (unit->io_base, ISR, ISR_PT);                                    // clear Tx int
-            dm9k_write (unit->io_base, IMR, dm9k_read (unit->io_base, IMR) & ~ISR_PT);  // disable Tx int
-            //unit->tx_busy = 0;
+            //dm9k_write (unit->io_base, IMR, dm9k_read (unit->io_base, IMR) & ~ISR_PT);  // disable Tx int
+            unit->tx_busy = 0;
             
 //            Cause (&unit->tx_int);
         }
 
 
         if (r & ISR_PR) {       // Packet received
-            dm9k_write (unit->io_base, IMR, dm9k_read (unit->io_base, IMR) & ~ISR_PR);  // disable Rx int
             dm9k_write (unit->io_base, ISR, ISR_PR);                                    // clear Rx int
+            dm9k_write (unit->io_base, IMR, dm9k_read (unit->io_base, IMR) & ~ISR_PR);  // disable Rx int
             Cause (&unit->rx_int);
         }
 
@@ -1544,6 +1537,7 @@ ULONG signals,
         myInt->is_Data = task;
 
         AddIntServer (INTB_PORTS, myInt);
+        //AddIntServer (INTB_EXTER, myInt);
     }
 
 

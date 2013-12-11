@@ -157,6 +157,7 @@ extern char device_name [];
 #endif
 
 
+
 extern struct TypeStats *FindTypeStats (struct DevUnit *unit, struct MinList *list, ULONG packet_type, struct MyBase *base);
 struct DevUnit *GetUnit (ULONG unit_num, struct MyBase *base);
 

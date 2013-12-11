@@ -8,6 +8,7 @@ UWORD ntohw (UWORD val);
 /************************************************************
  * peek
  ************************************************************/
+/*
 UBYTE peek (APTR io_addr) {
 ULONG *ptr;
 ULONG value;
@@ -15,12 +16,15 @@ ULONG value;
     ptr = (ULONG *)io_addr;
     value = *ptr;
 
-    return value & 0xff;
+    return *ptr & 0xff;
 }
+*/
+
 
 /************************************************************
  * peek_w
  ************************************************************/
+/*
 UWORD peek_w (APTR io_addr) {
 ULONG *ptr;
 ULONG value;
@@ -30,26 +34,33 @@ ULONG value;
 
     return value & 0xffff;
 }
+*/
+
 
 /************************************************************
  * poke
  ************************************************************/
+/*
 void poke (APTR io_addr, UBYTE value) {
 UBYTE *ptr;
 
     ptr = (BYTE *) io_addr + 16;        // anti caching hack
     *ptr = value;
 }
+*/
+
 
 /************************************************************
  * poke_w
  ************************************************************/
+
 void poke_w (APTR io_addr, UWORD value) {
 UWORD *ptr;
 
     ptr = (UWORD *)((UBYTE *)io_addr + 16);        // anti caching hack
     *ptr = value;
 }
+
 
 
 /************************************************************

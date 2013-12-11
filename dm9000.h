@@ -133,6 +133,21 @@
 #define PHY_ID1     0x02
 #define PHY_ID2     0x03
 
+
+#define peek(address)\
+    (*((volatile ULONG *)(address))&0xff)
+
+#define peek_w(address)\
+   (*((volatile ULONG *)(address))&0xffff)
+
+#define poke(address,value)\
+   *((volatile ULONG *)((UBYTE *)address))=(value)
+
+//#define poke_w(address,value)\
+//   *((volatile ULONG *)((UBYTE *)address+16))=(value&0xffff)
+
+
+
 UBYTE dm9k_read (APTR io_addr, UBYTE reg);
 UWORD dm9k_read_w (APTR io_addr, UBYTE reg);
 void dm9k_write (APTR io_addr, UBYTE reg, UBYTE value);

@@ -19,6 +19,7 @@
 #include "devices/sana2specialstats.h"
 
 #include "device.h"
+#include "dm9000.h"
 
 
 #define VERSION  37
