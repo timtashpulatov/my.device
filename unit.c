@@ -731,7 +731,7 @@ UWORD SRAMaddr, SRAMaddrNext;
 
 
 
-    KPrintF ("\n === RxInt === ");
+    KPrintF ("\nRx ");
 
     base = unit->device;
 
@@ -924,7 +924,7 @@ UWORD SRAMaddr, SRAMaddrNext;
 */
 
 
-    dm9k_write (unit->io_base, IMR, dm9k_read (unit->io_base, IMR) | ISR_PR);  // enable Rx int
+ //   dm9k_write (unit->io_base, IMR, dm9k_read (unit->io_base, IMR) | ISR_PR);  // enable Rx int
 
 
 
@@ -1102,15 +1102,22 @@ struct TypeStats *tracker;
 UBYTE nsr;
 
 
-    KPrintF ("\n === TxInt === ");
+    KPrintF ("\nTx ");
 
     base = unit->device;
     port = unit->request_ports [WRITE_QUEUE];
     
     // run once DEBUG
-    if (!IsMsgPortEmpty (port)) {
+//    if (!IsMsgPortEmpty (port)) {
     
-    //while (proceed && (!IsMsgPortEmpty (port))) {
+    
+    if (unit->tx_busy) {
+        KPrintF (" . ");
+    }
+    else {
+    
+    
+    while (proceed && (!IsMsgPortEmpty (port))) {
                 
             error = 0;
 
@@ -1120,9 +1127,9 @@ UBYTE nsr;
             if ((request->ios2_Req.io_Flags & SANA2IOF_RAW) == 0)
                 packet_size += PACKET_DATA;
                
-            if (!unit->tx_busy) {
-                //if (1) {
+                if (1) {
 
+                unit->tx_busy = 1;
 
                 /* Write packet header */
             
@@ -1177,17 +1184,12 @@ UBYTE nsr;
                 
                     // Write transmitted data length to DM9000
                     dm9k_write (unit->io_base, TXPLH, packet_size >> 8);
-                    dm9k_write (unit->io_base, TXPLL, packet_size);
-                
+                    dm9k_write (unit->io_base, TXPLL, packet_size);                
+    
+                    KPrintF (" $ ");
                 
                     // Start TX
                     dm9k_write (unit->io_base, TCR, TCR_TXREQ);
-
-                    // KPrintF ("\n === Setting tx_busy flag");
-
-                    unit->tx_busy = 1;
-
-
 
                 }
 
@@ -1217,7 +1219,10 @@ UBYTE nsr;
                 proceed = FALSE;
                 
                 KPrintF ("\n Tx busy! \n");
+                
             }
+
+/*
     
         if (proceed)
             unit->request_ports [WRITE_QUEUE]->mp_Flags = PA_SOFTINT;
@@ -1226,6 +1231,7 @@ UBYTE nsr;
 //         |(PREAMBLE_SIZE+packet_size));
             unit->request_ports [WRITE_QUEUE]->mp_Flags = PA_IGNORE;
         }
+*/
 
     }
 
@@ -1243,7 +1249,7 @@ UBYTE nsr;
 
 */
 
-
+}
 
     return;
 }
@@ -1391,8 +1397,6 @@ ULONG events = S2EVENT_OFFLINE;
     dm9k_write (base->io_base, IMR,
                                 IMR_PAR
                                 | IMR_LNKCHGI       // Link change interrupt
-                                | IMR_PRI           // RX interrupt
-                                | IMR_PTI           // TX interrupt
                                 );
 
 }
@@ -1429,7 +1433,7 @@ volatile UBYTE index;
         // Acknowledge all interrupts
         //dm9k_write (unit->io_base, ISR, 0x3f);      // you MUST do this
 
-        KPrintF ("[INT: %lx]", r);
+        KPrintF ("[%lx]", r);
 
         // Save ISR for later inspection
         unit->isr = r;
@@ -1446,13 +1450,14 @@ volatile UBYTE index;
             //dm9k_write (unit->io_base, IMR, dm9k_read (unit->io_base, IMR) & ~ISR_PT);  // disable Tx int
             unit->tx_busy = 0;
             
-//            Cause (&unit->tx_int);
+            Cause (&unit->tx_int);
         }
 
 
         if (r & ISR_PR) {       // Packet received
             dm9k_write (unit->io_base, ISR, ISR_PR);                                    // clear Rx int
-            dm9k_write (unit->io_base, IMR, dm9k_read (unit->io_base, IMR) & ~ISR_PR);  // disable Rx int
+            //dm9k_write (unit->io_base, IMR, dm9k_read (unit->io_base, IMR) & ~ISR_PR);  // disable Rx int            
+
             Cause (&unit->rx_int);
         }
 

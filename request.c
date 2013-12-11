@@ -291,7 +291,7 @@ struct Opener *opener;
 BOOL complete = FALSE;
 
 
-    KPrintF (" CmdRead ");
+    KPrintF (" R ");
 
     unit = (APTR)request->ios2_Req.io_Unit;
 
@@ -329,7 +329,7 @@ BYTE error = 0;
 ULONG wire_error;
 BOOL complete = FALSE;
 
-    KPrintF (" CmdWrite ");
+    KPrintF (" W ");
 
    /* Check request is valid */
 
