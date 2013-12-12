@@ -1165,6 +1165,17 @@ UBYTE nsr;
                     }
                 }
 
+
+                /* Reply packet */
+
+                request->ios2_Req.io_Error = error;
+                request->ios2_WireError = wire_error;
+                Remove ((APTR)request);
+                ReplyMsg ((APTR)request);
+
+
+
+
                 /* Write packet data */
 
                 if (error == 0) {
@@ -1192,12 +1203,7 @@ UBYTE nsr;
 
                 }
 
-                /* Reply packet */
 
-                request->ios2_Req.io_Error = error;
-                request->ios2_WireError = wire_error;
-                Remove ((APTR)request);
-                ReplyMsg ((APTR)request);
 
                 /* Update statistics */
 
