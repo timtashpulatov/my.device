@@ -748,7 +748,7 @@ UWORD SRAMaddr, SRAMaddrNext;
 
         if (r == 0x01) {
   
-            KPrintF ("#");
+            
     
 //            SRAMaddr = (dm9k_read (unit->io_base, MDRAH) << 8) | dm9k_read (unit->io_base, MDRAL);
 
@@ -865,10 +865,14 @@ UWORD SRAMaddr, SRAMaddrNext;
                     tracker->stats.PacketsReceived ++;
                     tracker->stats.BytesReceived += packet_size;
                 }                                              
+                
+                KPrintF ("#");
+                
             }
             else {
                 KPrintF ("f");
-            }
+            }            
+            
         }
         else {
 
