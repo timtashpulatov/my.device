@@ -353,7 +353,7 @@ BOOL complete = FALSE;
    if (error == 0) {
       PutRequest (unit->request_ports [WRITE_QUEUE], (APTR)request, base);
       
-//      Cause (&unit->tx_int);      // HACK
+      Cause (&unit->tx_int);      // HACK
       
       
       
@@ -363,10 +363,6 @@ BOOL complete = FALSE;
       request->ios2_WireError = wire_error;
       complete = TRUE;
    }
-
-
-
-
 
 
    /* Return */
