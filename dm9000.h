@@ -151,4 +151,5 @@
 UBYTE dm9k_read (APTR io_addr, UBYTE reg);
 UWORD dm9k_read_w (APTR io_addr, UBYTE reg);
 void dm9k_write (APTR io_addr, UBYTE reg, UBYTE value);
+void dm9k_write_w (APTR io_addr, UBYTE reg, UWORD value);
 void dm9k_set_bits (APTR io_addr, UBYTE reg, UBYTE value);

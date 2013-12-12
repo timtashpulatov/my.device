@@ -107,18 +107,35 @@ void dm9k_write (APTR io_addr, UBYTE reg, UBYTE value) {
  * dm9k_write_w
  ************************************************************/
 void dm9k_write_w (APTR io_addr, UBYTE reg, UWORD value) {
+UWORD *ptr;
+
     poke ((UBYTE *)io_addr, reg);
-    poke_w ((UBYTE *)io_addr + 4, value);
+
+    // replace w/direct code
+    // poke_w ((UBYTE *)io_addr + 4, value);
+   
+
+
+    ptr = (UWORD *)((UBYTE *)io_addr + 16 + 4);        // anti caching hack
+    *ptr = value;
+   
 }
 
 /************************************************************
  * dm9k_write_block_w
  ************************************************************/
 void dm9k_write_block_w (APTR io_addr, UBYTE reg, UWORD *src, UWORD len) {
+UWORD *ptr;
+
     poke ((UBYTE *)io_addr, reg);
+    ptr = (UWORD *)((UBYTE *)io_addr + 16 + 4);        // anti caching hack
     
-    while (len--)
-        poke_w ((UBYTE *)io_addr + 4, ntohw (*src++));
+    while (len--) {
+        // poke_w ((UBYTE *)io_addr + 4, ntohw (*src++));
+    
+        *ptr = ntohw (*src++);
+        
+    }
 }
 
 
