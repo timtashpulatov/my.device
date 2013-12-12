@@ -748,7 +748,7 @@ UWORD SRAMaddr, SRAMaddrNext;
 
         if (r == 0x01) {
   
-            KPrintF ("#");
+//            KPrintF ("#");
     
 //            SRAMaddr = (dm9k_read (unit->io_base, MDRAH) << 8) | dm9k_read (unit->io_base, MDRAL);
 
@@ -867,7 +867,7 @@ UWORD SRAMaddr, SRAMaddrNext;
                 }                                              
             }
             else {
-                KPrintF ("*");
+//                KPrintF ("*");
             }
         }
         else {
