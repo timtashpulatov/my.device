@@ -911,24 +911,10 @@ UWORD SRAMaddr, SRAMaddrNext;
 
 
     // Just in case, clear whatever RX Packet int could occur while processing
-//    dm9k_write (base->io_base, ISR, ISR_PR);
+    dm9k_write (base->io_base, ISR, ISR_PR);
     
-    
-//    KPrintF ("\n =============\n");
-
-/*
-
-    // Enable ints back
-    dm9k_write (base->io_base, IMR,
-                                  IMR_PAR
-                                | IMR_LNKCHGI       // Link change interrupt                                  
-                                | IMR_PRI           // RX interrupt
-                                | IMR_PTI           // TX interrupt
-                                );                  
-*/
-
-
-    dm9k_write (unit->io_base, IMR, dm9k_read (unit->io_base, IMR) | ISR_PR);  // enable Rx int
+    // Enable Rx int back
+    dm9k_write (unit->io_base, IMR, dm9k_read (unit->io_base, IMR) | IMR_PRI);
 
 
 
@@ -1417,7 +1403,9 @@ volatile UBYTE index;
     // Save dm9000 INDEX register
     index = peek (unit->io_base);
 
-    r = dm9k_read (unit->io_base, ISR);
+
+    // Check if the source of interrupt belongs to us
+    r = dm9k_read (unit->io_base, ISR) & dm9k_read (unit->io_base, IMR);
 
     if (r & 0x3f ) {
 
@@ -1434,8 +1422,8 @@ volatile UBYTE index;
             
 
         if (r & ISR_PR) {       // Packet(s) received
+            dm9k_write (unit->io_base, IMR, dm9k_read (unit->io_base, IMR) & ~IMR_PRI);  // disable Rx int
             dm9k_write (unit->io_base, ISR, ISR_PR);                                    // clear Rx int
-            dm9k_write (unit->io_base, IMR, dm9k_read (unit->io_base, IMR) & ~ISR_PR);  // disable Rx int
 
             Cause (&unit->rx_int);
         }
@@ -1443,7 +1431,6 @@ volatile UBYTE index;
 
         if (r & ISR_PT) {       // Packet transmitted          
             dm9k_write (unit->io_base, ISR, ISR_PT);                                    // clear Tx int
-            //dm9k_write (unit->io_base, IMR, dm9k_read (unit->io_base, IMR) & ~ISR_PT);  // disable Tx int
             //unit->tx_busy = 0;
             
             Cause (&unit->tx_int);
