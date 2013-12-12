@@ -1111,14 +1111,9 @@ UBYTE nsr;
 //    if (!IsMsgPortEmpty (port)) {
     
   
-    if (0) {  
-//    if (unit->tx_busy) {
-        KPrintF (" . ");
-    }
-    else {
+    if (1) {    
     
-    
-    while (proceed && (!IsMsgPortEmpty (port))) {
+        while (proceed && (!IsMsgPortEmpty (port))) {
                 
             error = 0;
 
@@ -1128,9 +1123,7 @@ UBYTE nsr;
             if ((request->ios2_Req.io_Flags & SANA2IOF_RAW) == 0)
                 packet_size += PACKET_DATA;
                
-            if (1) {
-
-//                unit->tx_busy = 1;
+            if ((dm9k_read (unit->io_base, TCR) & TCR_TXREQ) == 0) {
 
                 /* Write packet header */
             
@@ -1192,9 +1185,8 @@ UBYTE nsr;
                     dm9k_write (unit->io_base, TCR, TCR_TXREQ);
 
 
-                  // Wait for TX completion
-                  while (dm9k_read (unit->io_base, TCR) & TCR_TXREQ);
-
+                    // Wait for TX completion
+                    while (dm9k_read (unit->io_base, TCR) & TCR_TXREQ);
 
                     //KPrintF ("   $   ");
 
@@ -1225,12 +1217,11 @@ UBYTE nsr;
             else {
                 proceed = FALSE;
                 
-                KPrintF ("\n Tx busy! \n");
+                KPrintF (" . ");
                 
             }
 
 /*
-    
         if (proceed)
             unit->request_ports [WRITE_QUEUE]->mp_Flags = PA_SOFTINT;
         else {
@@ -1240,23 +1231,9 @@ UBYTE nsr;
         }
 */
 
+        }
+
     }
-
-//    KPrintF ("\n =============\n");
-
-/*
-
-    // Enable ints back
-    dm9k_write (base->io_base, IMR,
-                                IMR_PAR
-                                | IMR_LNKCHGI       // Link change interrupt
-                                | IMR_PRI           // RX interrupt
-                                | IMR_PTI           // TX interrupt
-                                );
-
-*/
-
-}
 
     return;
 }
@@ -1432,13 +1409,14 @@ volatile UBYTE index;
 
     r = dm9k_read (unit->io_base, ISR);
 
+    // Acknowledge all interrupts
+    dm9k_write (unit->io_base, ISR, 0x3f);      // you MUST do this
+
+
     if (r & 0x3f ) {
 
 //        // Disable all interrupts
 //        dm9k_write (unit->io_base, IMR, IMR_PAR);
-
-        // Acknowledge all interrupts
-        //dm9k_write (unit->io_base, ISR, 0x3f);      // you MUST do this
 
         KPrintF ("[%lx]", r);
 
@@ -1447,22 +1425,22 @@ volatile UBYTE index;
 
 
         if (r & ISR_LNKCHG) {   // Link changed         
-            dm9k_write (unit->io_base, ISR, ISR_LNKCHG);
+            //dm9k_write (unit->io_base, ISR, ISR_LNKCHG);
             Cause (&unit->linkchg_int);
         }
     
 
         if (r & ISR_PT) {       // Packet transmitted          
-            dm9k_write (unit->io_base, ISR, ISR_PT);                                    // clear Tx int
+            //dm9k_write (unit->io_base, ISR, ISR_PT);                                    // clear Tx int
             //dm9k_write (unit->io_base, IMR, dm9k_read (unit->io_base, IMR) & ~ISR_PT);  // disable Tx int
-            unit->tx_busy = 0;
+            //unit->tx_busy = 0;
             
             Cause (&unit->tx_int);
         }
 
 
         if (r & ISR_PR) {       // Packet received
-            dm9k_write (unit->io_base, ISR, ISR_PR);                                    // clear Rx int
+            //dm9k_write (unit->io_base, ISR, ISR_PR);                                    // clear Rx int
             //dm9k_write (unit->io_base, IMR, dm9k_read (unit->io_base, IMR) & ~ISR_PR);  // disable Rx int            
 
             Cause (&unit->rx_int);
@@ -1470,7 +1448,7 @@ volatile UBYTE index;
 
 
         if (r & ISR_ROS) {      // Receive overflow
-            dm9k_write (unit->io_base, ISR, ISR_ROS);
+            //dm9k_write (unit->io_base, ISR, ISR_ROS);
         }
 
     }
