@@ -1383,11 +1383,11 @@ ULONG events = S2EVENT_OFFLINE;
     
     ReportEvents (unit, S2EVENT_ONLINE, base);
 
-    // Enable ints back
-    dm9k_write (base->io_base, IMR,
-                                IMR_PAR
-                                | IMR_LNKCHGI       // Link change interrupt
-                                );
+//    // Enable ints back
+//    dm9k_write (base->io_base, IMR,
+//                                IMR_PAR
+//                                | IMR_LNKCHGI       // Link change interrupt
+//                                );
 
 }
 
