@@ -748,7 +748,7 @@ UWORD SRAMaddr, SRAMaddrNext;
 
         if (r == 0x01) {
   
-//            KPrintF ("#");
+            KPrintF ("#");
     
 //            SRAMaddr = (dm9k_read (unit->io_base, MDRAH) << 8) | dm9k_read (unit->io_base, MDRAL);
 
@@ -867,7 +867,7 @@ UWORD SRAMaddr, SRAMaddrNext;
                 }                                              
             }
             else {
-//                KPrintF ("*");
+                KPrintF ("f");
             }
         }
         else {
@@ -1415,29 +1415,30 @@ volatile UBYTE index;
 
     r = dm9k_read (unit->io_base, ISR);
 
-    // Acknowledge all interrupts
-    dm9k_write (unit->io_base, ISR, 0x3f);      // you MUST do this
-
-
     if (r & 0x3f ) {
+
+        // Acknowledge all interrupts
+        //dm9k_write (unit->io_base, ISR, 0x3f);      // you MUST do this
+
 
 //        // Disable all interrupts
 //        dm9k_write (unit->io_base, IMR, IMR_PAR);
-
-        KPrintF ("[%lx]", r);
+        
 
         // Save ISR for later inspection
         unit->isr = r;
+            
 
+        if (r & ISR_PR) {       // Packet received
+            dm9k_write (unit->io_base, ISR, ISR_PR);                                    // clear Rx int
+            //dm9k_write (unit->io_base, IMR, dm9k_read (unit->io_base, IMR) & ~ISR_PR);  // disable Rx int
 
-        if (r & ISR_LNKCHG) {   // Link changed         
-            //dm9k_write (unit->io_base, ISR, ISR_LNKCHG);
-            Cause (&unit->linkchg_int);
+            Cause (&unit->rx_int);
         }
-    
+
 
         if (r & ISR_PT) {       // Packet transmitted          
-            //dm9k_write (unit->io_base, ISR, ISR_PT);                                    // clear Tx int
+            dm9k_write (unit->io_base, ISR, ISR_PT);                                    // clear Tx int
             //dm9k_write (unit->io_base, IMR, dm9k_read (unit->io_base, IMR) & ~ISR_PT);  // disable Tx int
             //unit->tx_busy = 0;
             
@@ -1445,17 +1446,18 @@ volatile UBYTE index;
         }
 
 
-        if (r & ISR_PR) {       // Packet received
-            //dm9k_write (unit->io_base, ISR, ISR_PR);                                    // clear Rx int
-            //dm9k_write (unit->io_base, IMR, dm9k_read (unit->io_base, IMR) & ~ISR_PR);  // disable Rx int            
-
-            Cause (&unit->rx_int);
-        }
-
-
         if (r & ISR_ROS) {      // Receive overflow
-            //dm9k_write (unit->io_base, ISR, ISR_ROS);
+            dm9k_write (unit->io_base, ISR, ISR_ROS);
         }
+
+        if (r & ISR_LNKCHG) {   // Link changed
+            dm9k_write (unit->io_base, ISR, ISR_LNKCHG);
+            Cause (&unit->linkchg_int);
+        }
+
+
+        KPrintF ("[%lx]", r);
+
 
     }
     

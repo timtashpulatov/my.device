@@ -144,7 +144,7 @@
    *((volatile UBYTE *)address)=(value)
 
 //#define poke_w(address,value)\
-//   *((volatile UWORD *)address)=(value)
+//   *((volatile ULONG *)address)=(value)
 
 
 
