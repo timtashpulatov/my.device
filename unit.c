@@ -928,7 +928,7 @@ UWORD SRAMaddr, SRAMaddrNext;
 */
 
 
- //   dm9k_write (unit->io_base, IMR, dm9k_read (unit->io_base, IMR) | ISR_PR);  // enable Rx int
+    dm9k_write (unit->io_base, IMR, dm9k_read (unit->io_base, IMR) | ISR_PR);  // enable Rx int
 
 
 
@@ -1433,9 +1433,9 @@ volatile UBYTE index;
         unit->isr = r;
             
 
-        if (r & ISR_PR) {       // Packet received
+        if (r & ISR_PR) {       // Packet(s) received
             dm9k_write (unit->io_base, ISR, ISR_PR);                                    // clear Rx int
-            //dm9k_write (unit->io_base, IMR, dm9k_read (unit->io_base, IMR) & ~ISR_PR);  // disable Rx int
+            dm9k_write (unit->io_base, IMR, dm9k_read (unit->io_base, IMR) & ~ISR_PR);  // disable Rx int
 
             Cause (&unit->rx_int);
         }
