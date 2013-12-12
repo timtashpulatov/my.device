@@ -262,7 +262,7 @@ APTR stack;
             if (success) {
                 NewList (&port->mp_MsgList);
                 port->mp_Flags = PA_IGNORE;
-                port->mp_SigTask = &unit->tx_int;
+                port->mp_SigTask = &unit->tx_int;   // ?
             }
         }
 
@@ -288,7 +288,7 @@ APTR stack;
         unit->tx_int.is_Code = TxInt;
         unit->tx_int.is_Data = unit;
 
-        unit->request_ports [WRITE_QUEUE]->mp_Flags = PA_SOFTINT;
+//        unit->request_ports [WRITE_QUEUE]->mp_Flags = PA_SOFTINT;
         
         
         // Link change int
