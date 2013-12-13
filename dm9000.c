@@ -1,8 +1,30 @@
+#include <exec/memory.h>
+#include <exec/execbase.h>
+#include <exec/errors.h>
 #include <exec/types.h>
+#include <exec/io.h>
+#include <exec/devices.h>
+#include <exec/interrupts.h>
+#include <exec/semaphores.h>
+#include <dos/dos.h>
+#include <libraries/dos.h>
+#include <libraries/expansion.h>
+#include <libraries/expansionbase.h>
+#include <devices/timer.h>
+#include <hardware/intbits.h>
 
+#include "devices/sana2.h"
+#include "devices/sana2specialstats.h"
+
+
+#include "device.h"
 #include "dm9000.h"
 
-UWORD ntohw (UWORD val);
+
+UWORD ntohw (UWORD val) {
+    return ((val >> 8) & 0x00ff) | ((val << 8) & 0xff00);
+}
+
 
 
 /************************************************************
@@ -91,8 +113,13 @@ void dm9k_read_block (APTR io_addr, UBYTE reg, UBYTE *dst, UWORD len) {
  ************************************************************/
 void dm9k_read_block_w (APTR io_addr, UBYTE reg, UWORD *dst, UWORD len) {
     poke ((UBYTE *)io_addr, reg);
-    while (len --)
-        *dst ++ = ntohw (peek_w ((UBYTE *)io_addr + 4));
+    while (len --) {
+        UWORD val;
+        val = peek_w ((UBYTE *)io_addr + 4);
+        *dst ++ = ((val >> 8) & 0x00ff) | ((val << 8) & 0xff00);       // ntohw
+    }
+
+
 }
 
 /************************************************************
@@ -131,9 +158,11 @@ UWORD *ptr;
     ptr = (UWORD *)((UBYTE *)io_addr + 16 + 4);        // anti caching hack
     
     while (len--) {
+        UWORD val;
+        val = *src++;
         // poke_w ((UBYTE *)io_addr + 4, ntohw (*src++));
     
-        *ptr = ntohw (*src++);
+        *ptr = ((val >> 8) & 0x00ff) | ((val << 8) & 0xff00);   // ntohw
         
     }
 }
@@ -296,7 +325,4 @@ UWORD i, offset, hash_table [4];
 
 
 
-UWORD ntohw (UWORD val) {
-    return ((val >> 8) & 0x00ff) | ((val << 8) & 0xff00);
-}
 

@@ -1128,6 +1128,7 @@ UBYTE nsr;
                     dm9k_write_block_w (unit->io_base, MWCMD, unit->address, 3);
                 
                     dm9k_write_w (unit->io_base, MWCMD, ntohw (request->ios2_PacketType));
+
                      
                     send_size -= PACKET_DATA;                                
                 }
