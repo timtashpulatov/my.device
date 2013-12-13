@@ -1,2 +1,3 @@
+;vc -vv -nostdlib -lamiga -ldebug -o dm9000.device mylib.o
 vc -vv -nostdlib -lamiga -ldebug -o dm9000.device mylib.o unit.o request.o dm9000.o
 

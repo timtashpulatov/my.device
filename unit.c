@@ -736,7 +736,7 @@ UWORD SRAMaddr, SRAMaddrNext;
     base = unit->device;
 
     buffer = unit->rx_buffer;
-    end = (UWORD *)(buffer + HEADER_SIZE);
+//    end = (UWORD *)(buffer + HEADER_SIZE);
 
     do {
     //while (1) {
@@ -768,8 +768,8 @@ UWORD SRAMaddr, SRAMaddrNext;
 
             // Read whole packet    TODO read only header, skip the rest if not needed
 
-            p = (UWORD *)(buffer);
-            end = (UWORD *)(buffer + packet_size);
+//            p = (UWORD *)(buffer);
+//            end = (UWORD *)(buffer + packet_size);
                   
     
             dm9k_read_block_w (unit->io_base, MRCMD, buffer, (packet_size + 1) >> 1);
@@ -1527,8 +1527,8 @@ ULONG signals,
         myInt->is_Code = InterruptServer;
         myInt->is_Data = task;
 
-        AddIntServer (INTB_PORTS, myInt);
-        //AddIntServer (INTB_EXTER, myInt);
+        //AddIntServer (INTB_PORTS, myInt);
+        AddIntServer (INTB_EXTER, myInt);
     }
 
 

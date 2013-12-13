@@ -154,7 +154,7 @@ extern char device_name [];
    LELong(A)
 
 
-#endif
+
 
 
 
@@ -163,12 +163,12 @@ struct DevUnit *GetUnit (ULONG unit_num, struct MyBase *base);
 
 
 
-#define NODEBUG
+//#define NODEBUG
 
 void KPrintF (UBYTE *fmt, ...);
 
 
-
+#endif
 
 
 

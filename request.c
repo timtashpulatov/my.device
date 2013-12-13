@@ -47,7 +47,24 @@ static BOOL CmdDeviceQuery (struct IOStdReq *request, struct MyBase *base);
 static BOOL CmdAddMulticastAddresses (struct IOSana2Req *request, struct MyBase *base);
 static BOOL CmdDelMulticastAddresses (struct IOSana2Req *request, struct MyBase *base);
 
-VOID PutRequest (struct MsgPort *port, struct IORequest *request, struct MyBase *base);
+//VOID PutRequest (struct MsgPort *port, struct IORequest *request, struct MyBase *base);
+
+/*****************************************************************************
+ *
+ * PutRequest
+ *
+ *****************************************************************************/
+VOID PutRequest (struct MsgPort *port, struct IORequest *request, struct MyBase *base) {
+
+  //  KPrintF ("\n= PutRequest =\n");
+
+    request->io_Flags &= ~IOF_QUICK;
+    PutMsg (port, (APTR)request);
+
+    return;
+}
+
+
 
 
 
@@ -997,22 +1014,6 @@ UBYTE *lower_bound, *upper_bound;
     /* Return */
 
     return TRUE;
-}
-
-
-/*****************************************************************************
- *
- * PutRequest
- *
- *****************************************************************************/
-VOID PutRequest (struct MsgPort *port, struct IORequest *request, struct MyBase *base) {
-    
-  //  KPrintF ("\n= PutRequest =\n");
-    
-    request->io_Flags &= ~IOF_QUICK;
-    PutMsg (port, (APTR)request);
-
-    return;
 }
 
 
