@@ -1395,7 +1395,8 @@ ULONG events = S2EVENT_OFFLINE;
  * InterruptServer
  *
  ************************************************************/
-__saveds void InterruptServer (__reg("a1") struct Task *task) {
+//__saveds void InterruptServer (__reg("a1") struct Task *task) {
+__amigainterrupt void InterruptServer (__reg("a1") struct Task *task) {
 struct DevUnit *unit;
 volatile UBYTE r;
 volatile UBYTE index;
