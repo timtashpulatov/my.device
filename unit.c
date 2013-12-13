@@ -1125,7 +1125,14 @@ UBYTE nsr;
    //                 KPrintF ("\n === Src: %08lx.. Dst: %08lx..", *((ULONG *)unit->address), *((ULONG *)request->ios2_DstAddr));
                     
                     dm9k_write_block_w (unit->io_base, MWCMD, request->ios2_DstAddr, 3);
+                    //dm9k_write_w (unit->io_base, MWCMD, ntohw (*request->ios2_DstAddr));
+                    //dm9k_write_w (unit->io_base, MWCMD, ntohw (*(UWORD *)request->ios2_DstAddr + 1));
+                    //dm9k_write_w (unit->io_base, MWCMD, ntohw (*(UWORD *)request->ios2_DstAddr + 2));
+                    
                     dm9k_write_block_w (unit->io_base, MWCMD, unit->address, 3);
+                    //dm9k_write_w (unit->io_base, MWCMD, ntohw (*unit->address));
+                    //dm9k_write_w (unit->io_base, MWCMD, ntohw (*(UWORD *)unit->address + 1));
+                    //dm9k_write_w (unit->io_base, MWCMD, ntohw (*(UWORD *)unit->address + 2));
                 
                     dm9k_write_w (unit->io_base, MWCMD, ntohw (request->ios2_PacketType));
 
