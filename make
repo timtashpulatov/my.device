@@ -1,8 +1,8 @@
-vc -k -O2 -+ -sc -c -I/ mylib.c
+vc -k -O2 -+ -sc -c -cpu=68030 -I/ mylib.c
 
-vc -k -O2 -+ -sc -c -I/ request.c
+vc -k -O2 -+ -sc -c -cpu=68030 -I/ request.c
 
-vc -k -O2 -+ -sc -c -I/ dm9000.c
+vc -k -O2 -+ -sc -c -cpu=68030 -I/ dm9000.c
 
-vc -k -O2 -+ -sc -c -I/ unit.c
+vc -k -O2 -+ -sc -c -cpu=68030 -I/ unit.c
 

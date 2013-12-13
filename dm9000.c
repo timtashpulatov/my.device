@@ -74,13 +74,14 @@ UBYTE *ptr;
 /************************************************************
  * poke_w
  ************************************************************/
+/*
 void poke_w (APTR io_addr, UWORD value) {
 UWORD *ptr;
 
     ptr = (UWORD *)((UBYTE *)io_addr + 16);        // anti caching hack
     *ptr = value;
 }
-
+*/
 
 
 /************************************************************
@@ -114,7 +115,7 @@ void dm9k_read_block (APTR io_addr, UBYTE reg, UBYTE *dst, UWORD len) {
 void dm9k_read_block_w (APTR io_addr, UBYTE reg, UWORD *dst, UWORD len) {
     poke ((UBYTE *)io_addr, reg);
     while (len --) {
-        UWORD val;
+        register UWORD val;
         val = peek_w ((UBYTE *)io_addr + 4);
         *dst ++ = ((val >> 8) & 0x00ff) | ((val << 8) & 0xff00);       // ntohw
     }
@@ -158,7 +159,7 @@ UWORD *ptr;
     ptr = (UWORD *)((UBYTE *)io_addr + 16 + 4);        // anti caching hack
     
     while (len--) {
-        UWORD val;
+        register UWORD val;
         val = *src++;
         // poke_w ((UBYTE *)io_addr + 4, ntohw (*src++));
     
