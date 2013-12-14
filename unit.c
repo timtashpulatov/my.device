@@ -1117,8 +1117,8 @@ UBYTE nsr;
 //    if (!IsMsgPortEmpty (port)) {
     
   
-    if ((dm9k_read (unit->io_base, TCR) & TCR_TXREQ) == 0) {
-//    if (1) {
+//    if ((dm9k_read (unit->io_base, TCR) & TCR_TXREQ) == 0) {
+    if (1) {
     
         while (proceed && (!IsMsgPortEmpty (port))) {
                 
@@ -1130,8 +1130,8 @@ UBYTE nsr;
             if ((request->ios2_Req.io_Flags & SANA2IOF_RAW) == 0)
                 packet_size += PACKET_DATA;
                
-            if (1) {
-            // if ((dm9k_read (unit->io_base, TCR) & TCR_TXREQ) == 0) {
+            //if (1) {
+             if ((dm9k_read (unit->io_base, TCR) & TCR_TXREQ) == 0) {
 
                 /* Write packet header */
             
