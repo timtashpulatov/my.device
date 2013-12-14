@@ -102,6 +102,9 @@ struct ConfigDev *myCD;
 void InitialiseCard (struct DevUnit *unit, struct MyBase *base) {
 UBYTE *p, i;
 
+
+    KPrintF ("\nInitialiseCard... ");
+
     // Set drive current strength
     //dm9k_write (base->io_base, BUSCR, 0x40);
 
@@ -160,7 +163,7 @@ UBYTE *p, i;
         dm9k_write (base->io_base, GPR, 0x06);         // GP2..GP1 set to 1
 */
 
-
+    KPrintF ("done.\n");
 
 }
 
@@ -730,8 +733,12 @@ volatile UBYTE r;
 UWORD SRAMaddr, SRAMaddrNext;
 
 
+    // Set test register
+    poke (unit->io_base + 0x4000, peek (unit->io_base + 0x4000) | TESTREG_RX);
 
-    KPrintF ("\nRx ");
+
+
+//    KPrintF ("\nRx ");
 
     base = unit->device;
 
@@ -866,11 +873,11 @@ UWORD SRAMaddr, SRAMaddrNext;
                     tracker->stats.BytesReceived += packet_size;
                 }                                              
                 
-                KPrintF ("#");
+  //              KPrintF ("#");
                 
             }
             else {
-                KPrintF ("f");
+  //              KPrintF ("f");
             }            
             
         }
@@ -916,6 +923,10 @@ UWORD SRAMaddr, SRAMaddrNext;
     // Enable Rx int back
     dm9k_write (unit->io_base, IMR, dm9k_read (unit->io_base, IMR) | IMR_PRI);
 
+
+
+    // Clear test register
+    poke (unit->io_base + 0x4000, peek (unit->io_base + 0x4000) & ~TESTREG_RX);
 
 
     return;
@@ -1092,10 +1103,15 @@ struct TypeStats *tracker;
 UBYTE nsr;
 
 
-    KPrintF ("\nTx ");
+//    KPrintF ("\nTx ");
 
     base = unit->device;
     port = unit->request_ports [WRITE_QUEUE];
+
+    // Set test register
+    poke (unit->io_base + 0x4000, peek (unit->io_base + 0x4000) | TESTREG_TX);
+
+
     
     // run once DEBUG
 //    if (!IsMsgPortEmpty (port)) {
@@ -1239,6 +1255,10 @@ UBYTE nsr;
         }
 
     }
+
+    // Clear test register
+    poke (unit->io_base + 0x4000, peek (unit->io_base + 0x4000) & ~TESTREG_TX);
+
 
     return;
 }
@@ -1410,6 +1430,11 @@ volatile UBYTE index;
 
     unit = task->tc_UserData;
 
+
+
+
+
+
     // Save dm9000 INDEX register
     index = peek (unit->io_base);
 
@@ -1418,6 +1443,11 @@ volatile UBYTE index;
     r = dm9k_read (unit->io_base, ISR) & dm9k_read (unit->io_base, IMR);
 
     if (r & 0x3f ) {
+
+        // Set test register
+        poke (unit->io_base + 0x4000, peek (unit->io_base + 0x4000) | TESTREG_IRQ);
+
+
 
         // Acknowledge all interrupts
         //dm9k_write (unit->io_base, ISR, 0x3f);      // you MUST do this
@@ -1457,13 +1487,17 @@ volatile UBYTE index;
         }
 
 
-        KPrintF ("[%lx]", r);
+//        KPrintF ("[%lx]", r);
 
 
     }
     
     // Restore dm9000 INDEX register
     poke (unit->io_base, index);
+    
+    // clear test register
+    poke (unit->io_base + 0x4000, peek (unit->io_base + 0x4000) & ~TESTREG_IRQ);
+
 
     
 }

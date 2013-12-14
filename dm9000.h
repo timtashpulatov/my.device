@@ -158,4 +158,19 @@ void dm9k_write (APTR io_addr, UBYTE reg, UBYTE value);
 void dm9k_write_w (APTR io_addr, UBYTE reg, UWORD value);
 void dm9k_set_bits (APTR io_addr, UBYTE reg, UBYTE value);
 
+
+// Test register at 0x4000
+
+#define TESTREG 0x4000
+
+// Test register bits
+#define TESTREG_RX          0x01
+#define TESTREG_TX          0x02
+
+#define TESTREG_BLOCK_RD    0x10
+#define TESTREG_BLOCK_WR    0x20
+
+#define TESTREG_IRQ     0x80
+
 #endif
+

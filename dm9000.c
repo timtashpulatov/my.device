@@ -113,12 +113,19 @@ void dm9k_read_block (APTR io_addr, UBYTE reg, UBYTE *dst, UWORD len) {
  * dm9k_read_block_w
  ************************************************************/
 void dm9k_read_block_w (APTR io_addr, UBYTE reg, UWORD *dst, UWORD len) {
+
+    // Set test register
+    poke ((UBYTE *)io_addr + 0x4000, peek ((UBYTE *)io_addr + 0x4000) | TESTREG_BLOCK_RD);
+    
     poke ((UBYTE *)io_addr, reg);
     while (len --) {
         register UWORD val;
         val = peek_w ((UBYTE *)io_addr + 4);
         *dst ++ = ((val >> 8) & 0x00ff) | ((val << 8) & 0xff00);       // ntohw
     }
+
+    // Clear test register
+    poke ((UBYTE *)io_addr + 0x4000, peek ((UBYTE *)io_addr + 0x4000) & ~TESTREG_BLOCK_RD);
 
 
 }
@@ -155,6 +162,10 @@ UWORD *ptr;
 void dm9k_write_block_w (APTR io_addr, UBYTE reg, UWORD *src, UWORD len) {
 UWORD *ptr;
 
+    // Set test register
+    poke ((UBYTE *)io_addr + 0x4000, peek ((UBYTE *)io_addr + 0x4000) | TESTREG_BLOCK_WR);
+
+
     poke ((UBYTE *)io_addr, reg);
     ptr = (UWORD *)((UBYTE *)io_addr + 16 + 4);        // anti caching hack
     
@@ -166,6 +177,11 @@ UWORD *ptr;
         *ptr = ((val >> 8) & 0x00ff) | ((val << 8) & 0xff00);   // ntohw
         
     }
+
+    // Clear test register
+    poke ((UBYTE *)io_addr + 0x4000, peek ((UBYTE *)io_addr + 0x4000) & ~TESTREG_BLOCK_WR);
+
+
 }
 
 
