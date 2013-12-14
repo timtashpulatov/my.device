@@ -1117,7 +1117,8 @@ UBYTE nsr;
 //    if (!IsMsgPortEmpty (port)) {
     
   
-    if (1) {
+    if ((dm9k_read (unit->io_base, TCR) & TCR_TXREQ) == 0) {
+//    if (1) {
     
         while (proceed && (!IsMsgPortEmpty (port))) {
                 
