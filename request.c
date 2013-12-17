@@ -353,7 +353,8 @@ BOOL complete = FALSE;
    unit = (APTR)request->ios2_Req.io_Unit;
    
 //DebugS2Request (request);   
-   
+
+    SetTestRegister (unit->io_base, 0x08);
    
     if ((unit->flags & UNITF_ONLINE) == 0) {        
         error = S2ERR_OUTOFSERVICE;
@@ -368,19 +369,17 @@ BOOL complete = FALSE;
    /* Queue request for sending */
 
    if (error == 0) {
-      PutRequest (unit->request_ports [WRITE_QUEUE], (APTR)request, base);
+        PutRequest (unit->request_ports [WRITE_QUEUE], (APTR)request, base);
       
-      Cause (&unit->tx_int);      // HACK
-      
-      
-      
+//        Cause (&unit->tx_int);      // HACK 
     }
-   else {
-      request->ios2_Req.io_Error = error;
-      request->ios2_WireError = wire_error;
-      complete = TRUE;
-   }
+    else {
+        request->ios2_Req.io_Error = error;
+        request->ios2_WireError = wire_error;
+        complete = TRUE;
+    }
 
+    ClearTestRegister (unit->io_base, 0x08);
 
    /* Return */
 

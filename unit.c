@@ -163,6 +163,11 @@ UBYTE *p, i;
         dm9k_write (base->io_base, GPR, 0x06);         // GP2..GP1 set to 1
 */
 
+
+    // Clear test register
+//    ClearTestRegister (unit->io_base, 0xff);
+
+
     KPrintF ("done.\n");
 
 }
@@ -291,7 +296,7 @@ APTR stack;
         unit->tx_int.is_Code = TxInt;
         unit->tx_int.is_Data = unit;
 
-//        unit->request_ports [WRITE_QUEUE]->mp_Flags = PA_SOFTINT;
+        unit->request_ports [WRITE_QUEUE]->mp_Flags = PA_SOFTINT;
         
         
         // Link change int
@@ -424,7 +429,9 @@ VOID GoOnline (struct DevUnit *unit, struct MyBase *base) {
 
 
     // Clear TX Busy flag
-    unit->tx_busy = 0;
+//    unit->tx_busy = 0;
+
+//    unit->txcount = 0;
 
     // Enable RX and TX
 
@@ -734,7 +741,8 @@ UWORD SRAMaddr, SRAMaddrNext;
 
 
     // Set test register
-    poke (unit->io_base + 0x4000, peek (unit->io_base + 0x4000) | TESTREG_RX);
+//    poke (unit->io_base + 0x4000, peek (unit->io_base + 0x4000) | TESTREG_RX);
+    SetTestRegister (unit->io_base, TESTREG_RX);
 
 
 
@@ -926,7 +934,8 @@ UWORD SRAMaddr, SRAMaddrNext;
 
 
     // Clear test register
-    poke (unit->io_base + 0x4000, peek (unit->io_base + 0x4000) & ~TESTREG_RX);
+    ClearTestRegister (unit->io_base, TESTREG_RX);
+//    poke (unit->io_base + 0x4000, peek (unit->io_base + 0x4000) & ~TESTREG_RX);
 
 
     return;
@@ -1109,18 +1118,21 @@ UBYTE nsr;
     port = unit->request_ports [WRITE_QUEUE];
 
     // Set test register
-    poke (unit->io_base + 0x4000, peek (unit->io_base + 0x4000) | TESTREG_TX);
-
+    SetTestRegister (unit->io_base, TESTREG_TX);
+//    poke (unit->io_base + 0x4000, peek (unit->io_base + 0x4000) & ~TESTREG_TX);
 
     
-    // run once DEBUG
-//    if (!IsMsgPortEmpty (port)) {
     
   
 //    if ((dm9k_read (unit->io_base, TCR) & TCR_TXREQ) == 0) {
+//    if (unit->txcount < 2) {
     if (1) {
     
         while (proceed && (!IsMsgPortEmpty (port))) {
+        // run once DEBUG
+//        if (!IsMsgPortEmpty (port)) {
+                
+            SetTestRegister (unit->io_base, 0x04);    
                 
             error = 0;
 
@@ -1130,8 +1142,8 @@ UBYTE nsr;
             if ((request->ios2_Req.io_Flags & SANA2IOF_RAW) == 0)
                 packet_size += PACKET_DATA;
                
-            //if (1) {
-             if ((dm9k_read (unit->io_base, TCR) & TCR_TXREQ) == 0) {
+            if (1) {
+            // if ((dm9k_read (unit->io_base, TCR) & TCR_TXREQ) == 0) {
 
                 /* Write packet header */
             
@@ -1141,15 +1153,15 @@ UBYTE nsr;
                     
    //                 KPrintF ("\n === Src: %08lx.. Dst: %08lx..", *((ULONG *)unit->address), *((ULONG *)request->ios2_DstAddr));
                     
-                    dm9k_write_block_w (unit->io_base, MWCMD, request->ios2_DstAddr, 3);
-                    //dm9k_write_w (unit->io_base, MWCMD, ntohw (*request->ios2_DstAddr));
-                    //dm9k_write_w (unit->io_base, MWCMD, ntohw (*(UWORD *)request->ios2_DstAddr + 1));
-                    //dm9k_write_w (unit->io_base, MWCMD, ntohw (*(UWORD *)request->ios2_DstAddr + 2));
+                    //dm9k_write_block_w (unit->io_base, MWCMD, request->ios2_DstAddr, 3);
+                    dm9k_write_w (unit->io_base, MWCMD, ntohw (*((UWORD *)request->ios2_DstAddr)));
+                    dm9k_write_w (unit->io_base, MWCMD, ntohw (*((UWORD *)request->ios2_DstAddr + 1)));
+                    dm9k_write_w (unit->io_base, MWCMD, ntohw (*((UWORD *)request->ios2_DstAddr + 2)));
                     
-                    dm9k_write_block_w (unit->io_base, MWCMD, unit->address, 3);
-                    //dm9k_write_w (unit->io_base, MWCMD, ntohw (*unit->address));
-                    //dm9k_write_w (unit->io_base, MWCMD, ntohw (*(UWORD *)unit->address + 1));
-                    //dm9k_write_w (unit->io_base, MWCMD, ntohw (*(UWORD *)unit->address + 2));
+                    //dm9k_write_block_w (unit->io_base, MWCMD, unit->address, 3);
+                    dm9k_write_w (unit->io_base, MWCMD, ntohw (*((UWORD *)unit->address)));
+                    dm9k_write_w (unit->io_base, MWCMD, ntohw (*((UWORD *)unit->address + 1)));
+                    dm9k_write_w (unit->io_base, MWCMD, ntohw (*((UWORD *)unit->address + 2)));
                 
                     dm9k_write_w (unit->io_base, MWCMD, ntohw (request->ios2_PacketType));
 
@@ -1216,6 +1228,8 @@ UBYTE nsr;
                     //while (dm9k_read (unit->io_base, TCR) & TCR_TXREQ);
 
                     //KPrintF ("   $   ");
+                    
+
 
                 }
 
@@ -1239,7 +1253,7 @@ UBYTE nsr;
             else {
                 proceed = FALSE;
                 
-                KPrintF (" . ");
+                //KPrintF (" . ");
                 
             }
 
@@ -1254,12 +1268,14 @@ UBYTE nsr;
 */
 
         }
+        
+        ClearTestRegister (unit->io_base, 0x04);    
 
     }
 
     // Clear test register
-    poke (unit->io_base + 0x4000, peek (unit->io_base + 0x4000) & ~TESTREG_TX);
-
+    ClearTestRegister (unit->io_base, TESTREG_TX);
+//    poke (unit->io_base + 0x4000, peek (unit->io_base + 0x4000) & ~TESTREG_TX);
 
     return;
 }
@@ -1446,7 +1462,10 @@ volatile UBYTE index;
     if (r & 0x3f ) {
 
         // Set test register
-        poke (unit->io_base + 0x4000, peek (unit->io_base + 0x4000) | TESTREG_IRQ);
+//        poke (unit->io_base + 0x4000, peek (unit->io_base + 0x4000) | TESTREG_IRQ);
+//        SetTestRegister (unit->io_base, TESTREG_IRQ);
+//        ClearTestRegister (unit->io_base, TESTREG_IRQ);
+        SetTestRegister (unit->io_base, TESTREG_IRQ);
 
 
 
@@ -1497,7 +1516,8 @@ volatile UBYTE index;
     poke (unit->io_base, index);
     
     // clear test register
-    poke (unit->io_base + 0x4000, peek (unit->io_base + 0x4000) & ~TESTREG_IRQ);
+//    poke (unit->io_base + 0x4000, peek (unit->io_base + 0x4000) & ~TESTREG_IRQ);
+    ClearTestRegister (unit->io_base, TESTREG_IRQ);
 
 
     

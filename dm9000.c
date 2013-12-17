@@ -26,6 +26,18 @@ UWORD ntohw (UWORD val) {
 }
 
 
+//         //poke (unit->io_base + 0x4000, peek (unit->io_base + 0x4000) | TESTREG_IRQ);
+
+void SetTestRegister (UBYTE *addr, UBYTE val) {
+    poke (addr + 0x4000, peek (addr + 0x4000) | val);
+}
+
+
+void ClearTestRegister (UBYTE *addr, UBYTE val) {
+    poke (addr + 0x4000, (peek (addr + 0x4000)) & ~val);
+}
+
+
 
 /************************************************************
  * peek
@@ -114,8 +126,8 @@ void dm9k_read_block (APTR io_addr, UBYTE reg, UBYTE *dst, UWORD len) {
  ************************************************************/
 void dm9k_read_block_w (APTR io_addr, UBYTE reg, UWORD *dst, UWORD len) {
 
-    // Set test register
-    poke ((UBYTE *)io_addr + 0x4000, peek ((UBYTE *)io_addr + 0x4000) | TESTREG_BLOCK_RD);
+    // Set test register    
+//    SetTestRegister (io_addr, TESTREG_BLOCK_RD);
     
     poke ((UBYTE *)io_addr, reg);
     while (len --) {
@@ -125,7 +137,7 @@ void dm9k_read_block_w (APTR io_addr, UBYTE reg, UWORD *dst, UWORD len) {
     }
 
     // Clear test register
-    poke ((UBYTE *)io_addr + 0x4000, peek ((UBYTE *)io_addr + 0x4000) & ~TESTREG_BLOCK_RD);
+//    ClearTestRegister (io_addr, TESTREG_BLOCK_RD);
 
 
 }
@@ -163,14 +175,15 @@ void dm9k_write_block_w (APTR io_addr, UBYTE reg, UWORD *src, UWORD len) {
 UWORD *ptr;
 
     // Set test register
-    poke ((UBYTE *)io_addr + 0x4000, peek ((UBYTE *)io_addr + 0x4000) | TESTREG_BLOCK_WR);
+    SetTestRegister (io_addr, TESTREG_BLOCK_WR);
 
 
     poke ((UBYTE *)io_addr, reg);
     ptr = (UWORD *)((UBYTE *)io_addr + 16 + 4);        // anti caching hack
     
     while (len--) {
-        register UWORD val;
+        register UWORD val;    
+        
         val = *src++;
         // poke_w ((UBYTE *)io_addr + 4, ntohw (*src++));
     
@@ -179,7 +192,7 @@ UWORD *ptr;
     }
 
     // Clear test register
-    poke ((UBYTE *)io_addr + 0x4000, peek ((UBYTE *)io_addr + 0x4000) & ~TESTREG_BLOCK_WR);
+    ClearTestRegister (io_addr, TESTREG_BLOCK_WR);
 
 
 }
@@ -196,6 +209,18 @@ UBYTE tmp;
     poke ((UBYTE *)io_addr + 4, tmp);
     
     // dm9k_write (io_addr, reg, dm9k_read (io_addr, reg) | value);
+}
+
+/************************************************************
+ * dm9k_clear_bits
+ ************************************************************/
+void dm9k_clear_bits (APTR io_addr, UBYTE reg, UBYTE value) {
+UBYTE tmp;
+
+    poke (io_addr, reg);
+    tmp = peek ((UBYTE *)io_addr + 4) & ~value;
+    poke ((UBYTE *)io_addr + 4, tmp);
+
 }
 
 

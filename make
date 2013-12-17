@@ -1,4 +1,4 @@
-;vc -k -O3 -+ -sc -c -cpu=68030 -I/ mylib.c request.c dm9000.c unit.c
+;vc -k -O2 -+ -sc -c -cpu=68030 -I/ mylib.c request.c dm9000.c unit.c
 
 vc -k -O2 -+ -sc -c -cpu=68030 -I/ mylib.c
 vc -k -O2 -+ -sc -c -cpu=68030 -I/ request.c
