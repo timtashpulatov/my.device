@@ -1119,20 +1119,17 @@ UBYTE nsr;
 
     // Set test register
     SetTestRegister (unit->io_base, TESTREG_TX);
-//    poke (unit->io_base + 0x4000, peek (unit->io_base + 0x4000) & ~TESTREG_TX);
-
-    
     
   
 //    if ((dm9k_read (unit->io_base, TCR) & TCR_TXREQ) == 0) {
-//    if (unit->txcount < 2) {
     if (1) {
+//    if (unit->tx_busy == 0) {
     
-        while (proceed && (!IsMsgPortEmpty (port))) {
+//        while (proceed && (!IsMsgPortEmpty (port))) {
         // run once DEBUG
-//        if (!IsMsgPortEmpty (port)) {
+        if (!IsMsgPortEmpty (port)) {
                 
-            SetTestRegister (unit->io_base, 0x04);    
+            SetTestRegister (unit->io_base, 0x04);
                 
             error = 0;
 
@@ -1172,17 +1169,15 @@ UBYTE nsr;
                 /* Get packet data */
 
                 opener = (APTR)request->ios2_BufferManagement;
-                dma_tx_function = NULL; // opener->dma_tx_function;
+                dma_tx_function = NULL; //opener->dma_tx_function;  
                 
                 if (dma_tx_function != NULL) {
-     //               KPrintF ("\n === Calling DMA hook");
                     buffer = (UWORD *)dma_tx_function (request->ios2_Data);
                 }
                 else
                     buffer = NULL;
     
                 if (buffer == NULL) {
-       //             KPrintF ("\n === Using tx hook");
                     buffer = (UWORD *)unit->tx_buffer;
                     if (!opener->tx_function (buffer, request->ios2_Data, data_size)) {
                         error = S2ERR_NO_RESOURCES;
@@ -1224,12 +1219,7 @@ UBYTE nsr;
                     dm9k_write (unit->io_base, TCR, TCR_TXREQ);
 
 
-                    // Wait for TX completion
-                    //while (dm9k_read (unit->io_base, TCR) & TCR_TXREQ);
-
-                    //KPrintF ("   $   ");
-                    
-
+     //               unit->tx_busy = 1;                    
 
                 }
 
@@ -1275,7 +1265,6 @@ UBYTE nsr;
 
     // Clear test register
     ClearTestRegister (unit->io_base, TESTREG_TX);
-//    poke (unit->io_base + 0x4000, peek (unit->io_base + 0x4000) & ~TESTREG_TX);
 
     return;
 }
@@ -1445,6 +1434,7 @@ struct DevUnit *unit;
 volatile UBYTE r;
 volatile UBYTE index;
 
+
     unit = task->tc_UserData;
 
 
@@ -1454,6 +1444,8 @@ volatile UBYTE index;
 
     // Save dm9000 INDEX register
     index = peek (unit->io_base);
+
+    SetTestRegister (unit->io_base, TESTREG_IRQ);
 
 
     // Check if the source of interrupt belongs to us
@@ -1465,7 +1457,7 @@ volatile UBYTE index;
 //        poke (unit->io_base + 0x4000, peek (unit->io_base + 0x4000) | TESTREG_IRQ);
 //        SetTestRegister (unit->io_base, TESTREG_IRQ);
 //        ClearTestRegister (unit->io_base, TESTREG_IRQ);
-        SetTestRegister (unit->io_base, TESTREG_IRQ);
+//        SetTestRegister (unit->io_base, TESTREG_IRQ);
 
 
 

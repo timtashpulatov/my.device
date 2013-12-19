@@ -171,7 +171,8 @@ UWORD *ptr;
 /************************************************************
  * dm9k_write_block_w
  ************************************************************/
-void dm9k_write_block_w (APTR io_addr, UBYTE reg, UWORD *src, UWORD len) {
+void dm9k_write_block_w (APTR io_addr, UWORD reg, UWORD *src, UWORD len) {
+ULONG val;
 UWORD *ptr;
 
     // Set test register
@@ -179,11 +180,9 @@ UWORD *ptr;
 
 
     poke ((UBYTE *)io_addr, reg);
-    ptr = (UWORD *)((UBYTE *)io_addr + 16 + 4);        // anti caching hack
+    ptr = (UWORD *)((UBYTE *)io_addr + 16 + 4);        // anti caching hack 
     
-    while (len--) {
-        register UWORD val;    
-        
+    while (len--) {        
         val = *src++;
         // poke_w ((UBYTE *)io_addr + 4, ntohw (*src++));
     

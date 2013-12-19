@@ -371,7 +371,8 @@ BOOL complete = FALSE;
    if (error == 0) {
         PutRequest (unit->request_ports [WRITE_QUEUE], (APTR)request, base);
       
-//        Cause (&unit->tx_int);      // HACK 
+        //if (unit->tx_busy == 0)
+            Cause (&unit->tx_int);      // HACK 
     }
     else {
         request->ios2_Req.io_Error = error;
