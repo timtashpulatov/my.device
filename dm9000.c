@@ -237,7 +237,7 @@ UBYTE attempts = 8;
             break;
             
         Delay (1);
-        if (!attempts --)
+        if ((attempts --) == 0)
             break;            
             
     }
