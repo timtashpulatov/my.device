@@ -228,11 +228,18 @@ UBYTE tmp;
  ************************************************************/
 void dm9k_wait_eeprom (APTR io_addr) {
 UBYTE status;
+UBYTE attempts = 8;
 
     while (1) {
         status = dm9k_read (io_addr, EPCR);
+
         if ((status & EPCR_ERRE) == 0)
             break;
+            
+        Delay (1);
+        if (!attempts --)
+            break;            
+            
     }
 
 }
