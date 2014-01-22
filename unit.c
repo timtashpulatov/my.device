@@ -83,7 +83,8 @@ struct ConfigDev *myCD;
         p = unit->default_address;
 
         for (i = 0; i < ADDRESS_SIZE; i ++) {
-            *p++ = fakeMAC [i];
+            *p++ = fakeMAC [i];            
+            
         }
 
     }
@@ -425,7 +426,7 @@ VOID GoOnline (struct DevUnit *unit, struct MyBase *base) {
 
 
     /* Choose interrupts */
-//    unit->flags |= UNITF_ONLINE;      // Wait for LINK CHANGE interrupt perhaps?
+    unit->flags |= UNITF_ONLINE;      // Wait for LINK CHANGE interrupt perhaps?
 
 
     // Clear TX Busy flag
@@ -1408,12 +1409,6 @@ ULONG events = S2EVENT_OFFLINE;
     
     ReportEvents (unit, S2EVENT_ONLINE, base);
 
-//    // Enable ints back
-//    dm9k_write (base->io_base, IMR,
-//                                IMR_PAR
-//                                | IMR_LNKCHGI       // Link change interrupt
-//                                );
-
 }
 
 
@@ -1573,6 +1568,9 @@ ULONG signals,
     wait_signals = general_port_signal;
 
 
+
+
+
     // Install interrupt handler        NB perhaps we should do this when creating Unit
 
     myInt = (struct Interrupt *)AllocVec (sizeof (struct Interrupt), MEMF_PUBLIC | MEMF_CLEAR);
@@ -1588,6 +1586,9 @@ ULONG signals,
 
 
     KPrintF ("\n= UnitTask started =\n");
+
+
+
 
 
    /* Tell ourselves to check port for old messages */
