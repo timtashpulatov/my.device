@@ -82,10 +82,22 @@ struct ConfigDev *myCD;
         // Get default MAC address
         p = unit->default_address;
 
-        for (i = 0; i < ADDRESS_SIZE; i ++) {
-            *p++ = fakeMAC [i];            
-            
+        { UWORD w;
+            w = dm9k_read_eeprom (base->io_base, 0);
+            *p ++ = (w >> 8) & 0xff;
+            *p ++ = w & 0xff;
+            w = dm9k_read_eeprom (base->io_base, 2);
+            *p ++ = (w >> 8) & 0xff;
+            *p ++ = w & 0xff;
+            w = dm9k_read_eeprom (base->io_base, 4);
+            *p ++ = (w >> 8) & 0xff;
+            *p ++ = w & 0xff;
+
         }
+
+//        for (i = 0; i < ADDRESS_SIZE; i ++) {
+//            *p++ = fakeMAC [i];                        
+//        }
 
     }
     else {
@@ -134,7 +146,8 @@ UBYTE *p, i;
     // dm9000_hash_table(dev); /* map HASH Table (see ch.3-1 & ch.6 ) */
         
     for (i = 0; i < 6; i++)
-        dm9k_write (unit->io_base, PAR1 + i, fakeMAC [i]);
+        //dm9k_write (unit->io_base, PAR1 + i, fakeMAC [i]);
+        dm9k_write (unit->io_base, PAR1 + i, unit->default_address [i]);
 
 
     for (i = 0; i < 8; i++)
