@@ -130,8 +130,8 @@ UBYTE *p, i;
     dm9k_reset (unit->io_base);         // (4) Software RESET  - wait 20 us
     Delay (1);
 
-    dm9k_reset (unit->io_base);         // (4) Software RESET  - wait 20 us
-    Delay (1);
+//    dm9k_reset (unit->io_base);         // (4) Software RESET  - wait 20 us
+//    Delay (1);
 
     // Set registers
     dm9k_write (unit->io_base, NCR, 0);                                    // normal mode
