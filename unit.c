@@ -46,7 +46,6 @@ VOID ConfigureCard (struct DevUnit *unit, struct MyBase *base);
 
 
 
-
 UBYTE fakeMAC [6] = {0x00, 0x44, 0x66, 0x88, 0xaa, 0xcc};
 //UBYTE fakeMAC [6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
@@ -1428,16 +1427,13 @@ ULONG events = S2EVENT_OFFLINE;
 
 
 
-
-
-
 /************************************************************
  *
  * InterruptServer
  *
  ************************************************************/
-//__saveds void InterruptServer (__reg("a1") struct Task *task) {
 __amigainterrupt void InterruptServer (__reg("a1") struct Task *task) {
+//__amigainterrupt int InterruptServer (__reg("a1") struct Task *task) {    
 struct DevUnit *unit;
 volatile UBYTE r;
 volatile UBYTE index;
@@ -1520,6 +1516,9 @@ volatile UBYTE index;
     ClearTestRegister (unit->io_base, TESTREG_IRQ);
 
 
+    // return Z flag set (other servers shall be called, too)
+    
+    //return 0;   // does not seem to be working with vbcc at all
     
 }
 
@@ -1593,8 +1592,9 @@ ULONG signals,
         myInt->is_Code = InterruptServer;
         myInt->is_Data = task;
 
-        //AddIntServer (INTB_PORTS, myInt);
-        AddIntServer (INTB_EXTER, myInt);
+        AddIntServer (INTB_PORTS, myInt);
+        //AddIntServer (INTB_EXTER, myInt);
+
     }
 
 
