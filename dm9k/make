@@ -1,0 +1,2 @@
+vc +aos68k_app -k -O2 -+ -sc -c -I/ dm9k.c
+

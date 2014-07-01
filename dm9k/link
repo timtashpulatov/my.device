@@ -1,0 +1,2 @@
+vc +aos68k_app -vv -lamiga -o dm9k dm9k.o
+
