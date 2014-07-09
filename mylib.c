@@ -30,6 +30,8 @@
 
 #define UNIT_COUNT 1
 
+
+
 char device_name [] = "dm9000.device";
 char MyLibID   [] = "37.01 (15.11.2013)";
 
@@ -676,7 +678,10 @@ UWORD neg_size, pos_size;
 
 
 
+
+
 #ifdef NODEBUG
 void KPrintF (UBYTE *fmt, ...) {
 }
 #endif
+

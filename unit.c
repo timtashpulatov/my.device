@@ -79,7 +79,7 @@ struct ConfigDev *myCD;
         // Set drive current strength
         dm9k_write (base->io_base, BUSCR, 0x60);
 
-    
+/*    
             poke (0x44000000, 0x38);
             poke (0x44000004, 0x40);
             
@@ -97,6 +97,7 @@ struct ConfigDev *myCD;
             dm9k_read (base->io_base, MRCMDX);
 
             KPrintF ("\n 5) dm9k_read_w MRCMD: %8lx\n", dm9k_read_w (base->io_base, MRCMD));
+*/
 
         // Get default MAC address
         p = unit->default_address;
