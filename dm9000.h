@@ -143,8 +143,15 @@
 #define peek_w(address)\
    (*((volatile ULONG *)(address)))     // &0xffff
 
+    
+    //#define poke(address,value)\
+    //   *((volatile UBYTE *)address)=(value)
+
 #define poke(address,value)\
-   *((volatile UBYTE *)address)=(value)
+   *((volatile ULONG *)address)=((ULONG)value)
+
+
+
 
 //#define poke_w(address,value)\
 //   *((volatile ULONG *)address)=(value)

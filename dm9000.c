@@ -29,12 +29,12 @@ UWORD ntohw (UWORD val) {
 //         //poke (unit->io_base + 0x4000, peek (unit->io_base + 0x4000) | TESTREG_IRQ);
 
 void SetTestRegister (UBYTE *addr, UBYTE val) {
-    poke (addr + 0x4000, peek (addr + 0x4000) | val);
+//    poke (addr + 0x4000, peek (addr + 0x4000) | val);
 }
 
 
 void ClearTestRegister (UBYTE *addr, UBYTE val) {
-    poke (addr + 0x4000, (peek (addr + 0x4000)) & ~val);
+//    poke (addr + 0x4000, (peek (addr + 0x4000)) & ~val);
 }
 
 
@@ -100,7 +100,7 @@ UWORD *ptr;
  * dm9k_read
  ************************************************************/
 UBYTE dm9k_read (APTR io_addr, UBYTE reg) {
-    poke (io_addr, reg);
+    poke ((ULONG *)io_addr, (ULONG)reg);
     return peek ((UBYTE *)io_addr + 4);
 }
 
@@ -108,7 +108,7 @@ UBYTE dm9k_read (APTR io_addr, UBYTE reg) {
  * dm9k_read_w
  ************************************************************/
 UWORD dm9k_read_w (APTR io_addr, UBYTE reg) {
-    poke (io_addr, reg);
+    poke ((ULONG *)io_addr, (ULONG)reg);
     return peek_w ((UBYTE *)io_addr + 4);
 }
 
@@ -116,7 +116,7 @@ UWORD dm9k_read_w (APTR io_addr, UBYTE reg) {
  * dm9k_read_block
  ************************************************************/
 void dm9k_read_block (APTR io_addr, UBYTE reg, UBYTE *dst, UWORD len) {
-    poke (io_addr, reg);
+    poke ((ULONG *)io_addr, (ULONG)reg);
     while (len --)
         *dst ++ = peek ((UBYTE *)io_addr + 4);
 }
@@ -129,7 +129,7 @@ void dm9k_read_block_w (APTR io_addr, UBYTE reg, UWORD *dst, UWORD len) {
     // Set test register    
 //    SetTestRegister (io_addr, TESTREG_BLOCK_RD);
     
-    poke ((UBYTE *)io_addr, reg);
+    poke ((ULONG *)io_addr, (ULONG)reg);
     while (len --) {
         register UWORD val;
         val = peek_w ((UBYTE *)io_addr + 4);
@@ -146,25 +146,25 @@ void dm9k_read_block_w (APTR io_addr, UBYTE reg, UWORD *dst, UWORD len) {
  * dm9k_write
  ************************************************************/
 void dm9k_write (APTR io_addr, UBYTE reg, UBYTE value) {
-    poke ((UBYTE *)io_addr, reg);
-    poke ((UBYTE *)io_addr + 4, value);
+    poke ((ULONG *)io_addr, (ULONG)reg);
+    poke ((ULONG *)((UBYTE *)io_addr + 4), (ULONG)value);
 }
 
 /************************************************************
  * dm9k_write_w
  ************************************************************/
 void dm9k_write_w (APTR io_addr, UBYTE reg, UWORD value) {
-UWORD *ptr;
+ULONG *ptr;
 
-    poke ((UBYTE *)io_addr, reg);
+    poke ((ULONG *)io_addr, (ULONG)reg);
 
     // replace w/direct code
     // poke_w ((UBYTE *)io_addr + 4, value);
    
 
 
-    ptr = (UWORD *)((UBYTE *)io_addr + 16 + 4);        // anti caching hack
-    *ptr = value;
+    ptr = (ULONG *)((UBYTE *)io_addr + 16 + 4);        // anti caching hack
+    *ptr = (ULONG)value;
    
 }
 
@@ -173,14 +173,14 @@ UWORD *ptr;
  ************************************************************/
 void dm9k_write_block_w (APTR io_addr, UWORD reg, UWORD *src, UWORD len) {
 ULONG val;
-UWORD *ptr;
+ULONG *ptr;
 
     // Set test register
     SetTestRegister (io_addr, TESTREG_BLOCK_WR);
 
 
-    poke ((UBYTE *)io_addr, reg);
-    ptr = (UWORD *)((UBYTE *)io_addr + 16 + 4);        // anti caching hack 
+    poke ((ULONG *)io_addr, (ULONG)reg);
+    ptr = (ULONG *)((UBYTE *)io_addr + 16 + 4);        // anti caching hack 
     
     while (len--) {        
         val = *src++;
@@ -203,9 +203,9 @@ UWORD *ptr;
 void dm9k_set_bits (APTR io_addr, UBYTE reg, UBYTE value) {
 UBYTE tmp;
 
-    poke (io_addr, reg);
+    poke ((ULONG *)io_addr, (ULONG)reg);
     tmp = peek ((UBYTE *)io_addr + 4) | value;
-    poke ((UBYTE *)io_addr + 4, tmp);
+    poke ((ULONG *)((UBYTE *)io_addr + 4), (ULONG)tmp);
     
     // dm9k_write (io_addr, reg, dm9k_read (io_addr, reg) | value);
 }
@@ -216,9 +216,9 @@ UBYTE tmp;
 void dm9k_clear_bits (APTR io_addr, UBYTE reg, UBYTE value) {
 UBYTE tmp;
 
-    poke (io_addr, reg);
+    poke ((ULONG *)io_addr, (ULONG)reg);
     tmp = peek ((UBYTE *)io_addr + 4) & ~value;
-    poke ((UBYTE *)io_addr + 4, tmp);
+    poke ((ULONG *)((UBYTE *)io_addr + 4), (ULONG)tmp);
 
 }
 
@@ -324,6 +324,7 @@ void dm9k_phy_up (APTR io_addr) {
 /************************************************************
  * dm9000_packet_ready
  ************************************************************/
+ /*
 UBYTE dm9000_packet_ready (APTR io_addr) {
 UBYTE tmp;
 
@@ -335,6 +336,7 @@ UBYTE tmp;
 //    tmp = dm9k_read (io_addr, MRCMDX);
     return (tmp);
 }
+*/
 
 /************************************************************
  * dm9k_clear_interrupts

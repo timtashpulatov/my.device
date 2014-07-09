@@ -75,8 +75,28 @@ struct ConfigDev *myCD;
         
         base->io_base = (APTR)myCD->cd_BoardAddr;
         
+        
         // Set drive current strength
         dm9k_write (base->io_base, BUSCR, 0x60);
+
+    
+            poke (0x44000000, 0x38);
+            poke (0x44000004, 0x40);
+            
+            KPrintF ("\n 1) peek BUSCR: %8lx\n", peek (0x44000004));
+            
+            dm9k_write (base->io_base, BUSCR, 0x60);
+            
+            KPrintF ("\n 2) dm9k_read BUSCR: %8lx\n", dm9k_read (base->io_base, BUSCR));
+            
+            KPrintF ("\n 3) peek_w BUSCR: %8lx\n", peek_w (0x44000004));
+            
+            KPrintF ("\n 4) dm9k_read_w BUSCR: %8lx\n", dm9k_read_w (base->io_base, BUSCR));
+
+            dm9k_read (base->io_base, MRCMDX);
+            dm9k_read (base->io_base, MRCMDX);
+
+            KPrintF ("\n 5) dm9k_read_w MRCMD: %8lx\n", dm9k_read_w (base->io_base, MRCMD));
 
         // Get default MAC address
         p = unit->default_address;
