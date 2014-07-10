@@ -812,7 +812,6 @@ UWORD SRAMaddr, SRAMaddrNext;
             KPrintF ("\n   rx_status: %lx", rx_status);
             KPrintF ("\n   packet_size: %lx", packet_size);
 
-        break;
 
 
 /*

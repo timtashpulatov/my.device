@@ -157,6 +157,8 @@
 //   *((volatile ULONG *)address)=(value)
 
 
+#define DATA_REG_OFFSET     16      // workaround for 68040 doing 4 long reads in a burst
+
 
 
 UBYTE dm9k_read (APTR io_addr, UBYTE reg);
