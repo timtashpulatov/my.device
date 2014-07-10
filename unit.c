@@ -780,7 +780,7 @@ UWORD SRAMaddr, SRAMaddrNext;
 
 
 
-//    KPrintF ("\nRx ");
+    KPrintF ("\nRx ");
 
     base = unit->device;
 
@@ -793,7 +793,7 @@ UWORD SRAMaddr, SRAMaddrNext;
         r = dm9k_read (unit->io_base, MRCMDX);      // dummy read
         r = dm9k_read (unit->io_base, MRCMDX);
 
-//        KPrintF ("\n   MRCMDX: %lx", r);
+        KPrintF ("\n   MRCMDX: %lx", r);
 
         if (r == 0x01) {
   
@@ -808,6 +808,13 @@ UWORD SRAMaddr, SRAMaddrNext;
             rx_status = dm9k_read_w (unit->io_base, MRCMD);
             packet_size = dm9k_read_w (unit->io_base, MRCMD);
 
+
+            KPrintF ("\n   rx_status: %lx", rx_status);
+            KPrintF ("\n   packet_size: %lx", packet_size);
+
+        break;
+
+
 /*
             SRAMaddrNext = SRAMaddr + ((packet_size + 1) & ~1) + 4;
             if (SRAMaddrNext > 0x3fff) SRAMaddrNext -= 0x3400;
@@ -818,7 +825,7 @@ UWORD SRAMaddr, SRAMaddrNext;
             // Read whole packet    TODO read only header, skip the rest if not needed
 
 //            p = (UWORD *)(buffer);
-//            end = (UWORD *)(buffer + packet_size);
+//            end = (UWORD *)(buffer + packet_size);                                    
                   
     
             dm9k_read_block_w (unit->io_base, MRCMD, buffer, (packet_size + 1) >> 1);
@@ -827,7 +834,10 @@ UWORD SRAMaddr, SRAMaddrNext;
             SRAMaddr = (dm9k_read (unit->io_base, MDRAH) << 8) | dm9k_read (unit->io_base, MDRAL);
             KPrintF ("   Actual: %lx", SRAMaddr);
 */
-      //      KPrintF ("\n   Src: %8lx Dst: %8lx size: %8lx", *((ULONG *)(buffer + 6)), *((ULONG *)buffer), packet_size);
+            KPrintF ("\n   Src: %8lx Dst: %8lx size: %8lx", *((ULONG *)(buffer + 6)), *((ULONG *)buffer), packet_size);
+
+
+
 
 
 //            if (1) {
@@ -864,7 +874,7 @@ UWORD SRAMaddr, SRAMaddrNext;
                         if ((request->ios2_PacketType == packet_type) || 
                             ((request->ios2_PacketType <= MTU) && (packet_type <= MTU))) {
 
- //                           KPrintF ("!");
+                            KPrintF ("!");
 
                             CopyPacket (unit, request, packet_size, packet_type,
                                 !is_orphan, base);
@@ -872,7 +882,7 @@ UWORD SRAMaddr, SRAMaddrNext;
                             accepted = TRUE;
                         }
                         else {
-  //                          KPrintF (".");
+                            KPrintF (".");
                         }
                                                 
                         //request = next;
@@ -915,17 +925,17 @@ UWORD SRAMaddr, SRAMaddrNext;
                     tracker->stats.BytesReceived += packet_size;
                 }                                              
                 
-  //              KPrintF ("#");
+                KPrintF ("#");
                 
             }
             else {
-  //              KPrintF ("f");
+                KPrintF ("f");
             }            
             
         }
         else {
 
- //           KPrintF ("\n   no packets ");
+            KPrintF ("\n   no packets ");
             
             // Need to move this code inside packet reception block; check for errors
             //
@@ -972,6 +982,9 @@ UWORD SRAMaddr, SRAMaddrNext;
 //    poke (unit->io_base + 0x4000, peek (unit->io_base + 0x4000) & ~TESTREG_RX);
 
 
+    KPrintF (" done.");
+
+
     return;
 }
 
@@ -988,7 +1001,7 @@ UBYTE *buffer;
 BOOL filtered = FALSE;
 UWORD *p, *end;
 
-//    KPrintF ("\n     CopyPacket");
+    KPrintF ("\n     CopyPacket");
 
    /* Set multicast and broadcast flags */
 
@@ -1146,7 +1159,7 @@ struct TypeStats *tracker;
 UBYTE nsr;
 
 
-//    KPrintF ("\nTx ");
+    KPrintF ("\nTx ");
 
     base = unit->device;
     port = unit->request_ports [WRITE_QUEUE];

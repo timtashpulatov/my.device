@@ -138,10 +138,10 @@
 
 
 #define peek(address)\
-    (*((volatile ULONG *)(address)))   // &0xff
+    (*((volatile ULONG *)(address)))        // &0xff
 
 #define peek_w(address)\
-   (*((volatile ULONG *)(address)))     // &0xffff
+    (*((volatile ULONG *)(address)))        // &0xffff
 
     
     //#define poke(address,value)\
