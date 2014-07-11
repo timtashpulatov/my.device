@@ -163,6 +163,9 @@ extern struct TypeStats *FindTypeStats (struct DevUnit *unit, struct MinList *li
 struct DevUnit *GetUnit (ULONG unit_num, struct MyBase *base);
 
 
+//#define LOG KPrintF
+#define LOG
+
 
 //#define NODEBUG
 

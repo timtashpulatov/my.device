@@ -203,20 +203,20 @@ __saveds __stdargs void L_CloseLibs (void);
 
 /*
 void Debug (char *s) {
-    KPrintF (s);
+    LOG (s);
 }
 
 void DebugHex (UBYTE b) {
-    KPrintF ("%x ", b);
+    LOG ("%x ", b);
 }
 
 void DebugHex16 (UWORD w) {
-    KPrintF ("%x ", w);
+    LOG ("%x ", w);
 }
 
 
 void DebugHex32 (ULONG l) {
-    KPrintF ("%l ", l);
+    LOG ("%l ", l);
 }
 */
 
@@ -320,7 +320,7 @@ UWORD i;
    base->device.dd_Library.lib_Flags &= ~LIBF_DELEXP;
 
 
-    KPrintF ("\nDevOpen\n");
+    LOG ("\nDevOpen\n");
 
 
    	request->ios2_Req.io_Unit = NULL;
@@ -368,7 +368,7 @@ UWORD i;
 
    	if (error == 0) {
         
-        KPrintF ("\nBuffer management:\n");
+        LOG ("\nBuffer management:\n");
         
       	NewList (&opener->read_port.mp_MsgList);
       	opener->read_port.mp_Flags = PA_IGNORE;
@@ -378,20 +378,20 @@ UWORD i;
          	opener->rx_function = (APTR)GetTagData (rx_tags [i],
             	 (ULONG)opener->rx_function, tag_list);
             	 
-            KPrintF (" rx hook %lx: %lx\n", i, GetTagData (rx_tags [i], 0, tag_list));
+            LOG (" rx hook %lx: %lx\n", i, GetTagData (rx_tags [i], 0, tag_list));
         }
     
 		for (i = 0; i < 3; i ++) {
          	opener->tx_function = (APTR)GetTagData (tx_tags [i],
             	(ULONG)opener->tx_function, tag_list);
-            KPrintF (" tx hook %lx: %lx\n", i, GetTagData (tx_tags [i], 0, tag_list));
+            LOG (" tx hook %lx: %lx\n", i, GetTagData (tx_tags [i], 0, tag_list));
         }
 
       	opener->filter_hook = (APTR)GetTagData (S2_PacketFilter, NULL, tag_list);
-      	KPrintF ("filter hook: %lx\n", opener->filter_hook);
+      	LOG ("filter hook: %lx\n", opener->filter_hook);
       	
       	opener->dma_tx_function = (APTR)GetTagData (S2_DMACopyFromBuff32, NULL, tag_list);      	
-      	KPrintF ("dma tx hook: %lx\n", opener->dma_tx_function);
+      	LOG ("dma tx hook: %lx\n", opener->dma_tx_function);
 
       	Disable ();
       	AddTail ((APTR)&unit->openers, (APTR)opener);
@@ -423,7 +423,7 @@ APTR seg_list;
 struct Opener *opener;
 
 
-    KPrintF ("\nDevClose\n");
+    LOG ("\nDevClose\n");
 
 
    /* Free buffer-management resources */
@@ -569,7 +569,7 @@ __saveds __stdargs void L_CloseLibs (void)
 __saveds APTR DevExpunge (__reg("a6") struct MyBase *base) {
 APTR seg_list;
 
-    KPrintF ("\nDevExpunge\n");
+    LOG ("\nDevExpunge\n");
 
    if (base->device.dd_Library.lib_OpenCnt == 0) {
       seg_list = base->my_SegList;
@@ -598,15 +598,15 @@ struct DevUnit *unit;
     unit = (APTR)iorq->ios2_Req.io_Unit;
 
       
-//	KPrintF ("\n\nBeginIO cmd: %lx, flags: %lx", iorq->ios2_Req.io_Command, iorq->ios2_Req.io_Flags);
+//	LOG ("\n\nBeginIO cmd: %lx, flags: %lx", iorq->ios2_Req.io_Command, iorq->ios2_Req.io_Flags);
 	
                     
     if (AttemptSemaphore (&unit->access_lock)) {
-        //KPrintF ("\nLocking and servicing request");
+        //LOG ("\nLocking and servicing request");
         ServiceRequest (iorq, base);
     }
     else {
-    //    KPrintF ("\nSemaphore locked, queueing request");
+    //    LOG ("\nSemaphore locked, queueing request");
         PutRequest (unit->request_ports [GENERAL_QUEUE], (APTR)iorq, base);
     }
 
@@ -622,7 +622,7 @@ struct DevUnit *unit;
 __saveds void AbortIO (struct IOSana2Req *iorq, __reg ("a6") struct MyBase *base) {
 struct DevUnit *unit;
 
-	KPrintF ("\nAbortIO ");
+	LOG ("\nAbortIO ");
 
 
     unit = (APTR)iorq->ios2_Req.io_Unit;
@@ -632,7 +632,7 @@ struct DevUnit *unit;
     if ((iorq->ios2_Req.io_Message.mn_Node.ln_Type == NT_MESSAGE) &&
         ((iorq->ios2_Req.io_Flags & IOF_QUICK) == 0)) {
         
-        KPrintF ("# ");
+        LOG ("# ");
         
         Remove ((APTR)iorq);
         iorq->ios2_Req.io_Error = IOERR_ABORTED;
@@ -642,7 +642,7 @@ struct DevUnit *unit;
     
     Enable();
     
-    KPrintF ("done.\n");
+    LOG ("done.\n");
 
    return;
 }
@@ -681,7 +681,7 @@ UWORD neg_size, pos_size;
 
 
 #ifdef NODEBUG
-void KPrintF (UBYTE *fmt, ...) {
+void LOG (UBYTE *fmt, ...) {
 }
 #endif
 

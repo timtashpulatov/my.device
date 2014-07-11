@@ -56,7 +56,7 @@ static BOOL CmdDelMulticastAddresses (struct IOSana2Req *request, struct MyBase 
  *****************************************************************************/
 VOID PutRequest (struct MsgPort *port, struct IORequest *request, struct MyBase *base) {
 
-  //  KPrintF ("\n= PutRequest =\n");
+  //  LOG ("\n= PutRequest =\n");
 
     request->io_Flags &= ~IOF_QUICK;
     PutMsg (port, (APTR)request);
@@ -116,31 +116,31 @@ struct Sana2DeviceQuery sana2_info = {
 void DebugS2Request (struct IOSana2Req *request) {
 UBYTE *data;
 
-    KPrintF ("\n  --- IOSana2Req ---");
-    KPrintF ("\n  ios2_Command: %8lx",  request->ios2_Req.io_Command);
-    KPrintF ("\n  ios2_Flags: %8lx",    request->ios2_Req.io_Flags);
-    KPrintF ("\n  ios2_PacketType: %8lx", request->ios2_PacketType);
-    KPrintF ("\n  ios2_SrcAddr: %8lx", *((ULONG *)request->ios2_SrcAddr));
-    KPrintF ("\n  ios2_DstAddr: %8lx", *((ULONG *)request->ios2_DstAddr));
-//    KPrintF ("\n  ios2_BufferManagement: %8lx", *((ULONG *)request->ios2_BufferManagement));
-//    KPrintF ("\n  ios2_WireError:  %8lx", request->ios2_WireError);
+    LOG ("\n  --- IOSana2Req ---");
+    LOG ("\n  ios2_Command: %8lx",  request->ios2_Req.io_Command);
+    LOG ("\n  ios2_Flags: %8lx",    request->ios2_Req.io_Flags);
+    LOG ("\n  ios2_PacketType: %8lx", request->ios2_PacketType);
+    LOG ("\n  ios2_SrcAddr: %8lx", *((ULONG *)request->ios2_SrcAddr));
+    LOG ("\n  ios2_DstAddr: %8lx", *((ULONG *)request->ios2_DstAddr));
+//    LOG ("\n  ios2_BufferManagement: %8lx", *((ULONG *)request->ios2_BufferManagement));
+//    LOG ("\n  ios2_WireError:  %8lx", request->ios2_WireError);
 
 /*
     data = request->ios2_SrcAddr;
-    KPrintF ("\n  ios2_SrcAddr: %2x %2x %2x %2x %2x %2x %2x %2x", 
+    LOG ("\n  ios2_SrcAddr: %2x %2x %2x %2x %2x %2x %2x %2x", 
         *data ++, *data ++, *data ++, *data ++, *data ++, *data ++, *data ++, *data ++);
 
     data = request->ios2_DstAddr;
-    KPrintF ("\n  ios2_DstAddr: %2x %2x %2x %2x %2x %2x %2x %2x",
+    LOG ("\n  ios2_DstAddr: %2x %2x %2x %2x %2x %2x %2x %2x",
         *data ++, *data ++, *data ++, *data ++, *data ++, *data ++, *data ++, *data ++);
 */
-//    KPrintF ("\n  ios2_DataLength: %8lx\n", request->ios2_DataLength);
+//    LOG ("\n  ios2_DataLength: %8lx\n", request->ios2_DataLength);
 /*    
-    KPrintF ("\n  ios2_Data: ");
+    LOG ("\n  ios2_Data: ");
     data = request->ios2_Data;
     DebugHex (data [0]); DebugHex (data [1]); DebugHex (data [2]); DebugHex (data [3]); DebugHex (data [4]); DebugHex (data [5]); DebugHex (data [6]); DebugHex (data [7]);
 */
-  //  KPrintF (" ...\n");
+  //  LOG (" ...\n");
 }
 
 
@@ -157,13 +157,13 @@ struct IOSana2Req *request, *request_tail;
     request = (APTR)opener->read_port.mp_MsgList.lh_Head;
     request_tail = (APTR)&opener->read_port.mp_MsgList.lh_Tail;
 
-    KPrintF ("\n--- read_port queue ---");
+    LOG ("\n--- read_port queue ---");
 
     if (request) {
 
         while (request != request_tail) {
 
-            KPrintF ("\n    Src %8lx Dst %8lx Type: %8lx", *((ULONG *)request->ios2_SrcAddr), *((ULONG *)request->ios2_DstAddr), request->ios2_PacketType);
+            LOG ("\n    Src %8lx Dst %8lx Type: %8lx", *((ULONG *)request->ios2_SrcAddr), *((ULONG *)request->ios2_DstAddr), request->ios2_PacketType);
 
             request = (APTR)request->ios2_Req.io_Message.mn_Node.ln_Succ;
         }
@@ -171,7 +171,7 @@ struct IOSana2Req *request, *request_tail;
     
     Enable ();
 
-    KPrintF ("\n-----------------------\n");
+    LOG ("\n-----------------------\n");
 }
 
 
@@ -187,7 +187,7 @@ VOID ServiceRequest (struct IOSana2Req *request, struct MyBase *base) {
 BOOL complete;
 
 
-//    KPrintF ("\n= ServiceRequest: ");
+//    LOG ("\n= ServiceRequest: ");
 
     switch (request->ios2_Req.io_Command) {
     case CMD_READ:
@@ -271,7 +271,7 @@ BOOL complete;
    }
 
     if (complete && ((request->ios2_Req.io_Flags & IOF_QUICK) == 0)) {
-        KPrintF ("\n= Complete, calling ReplyMsg");
+        LOG ("\n= Complete, calling ReplyMsg");
         ReplyMsg ((APTR)request);
     }
 
@@ -288,7 +288,7 @@ BOOL complete;
  *****************************************************************************/
 static BOOL CmdInvalid (struct IOSana2Req *request, struct MyBase *base) {
     
-    KPrintF (" CmdInvalid ");
+    LOG (" CmdInvalid ");
     
    request->ios2_Req.io_Error = IOERR_NOCMD;
    request->ios2_WireError = S2WERR_GENERIC_ERROR;
@@ -308,7 +308,7 @@ struct Opener *opener;
 BOOL complete = FALSE;
 
 
-//    KPrintF ("R");
+//    LOG ("R");
 
     unit = (APTR)request->ios2_Req.io_Unit;
 
@@ -320,7 +320,7 @@ BOOL complete = FALSE;
     if ((unit->flags & UNITF_ONLINE) != 0) {
 
         opener = request->ios2_BufferManagement;
-//        KPrintF (" opener: %lx ", opener);
+//        LOG (" opener: %lx ", opener);
         PutRequest (&opener->read_port, (APTR)request, base);
 
     }
@@ -346,7 +346,7 @@ BYTE error = 0;
 ULONG wire_error;
 BOOL complete = FALSE;
 
-//    KPrintF ("W");
+//    LOG ("W");
 
    /* Check request is valid */
 
@@ -395,7 +395,7 @@ BOOL complete = FALSE;
  *****************************************************************************/
 static BOOL CmdFlush (struct IORequest *request,struct MyBase *base) {
     
-    KPrintF (" CmdFlush ");
+    LOG (" CmdFlush ");
     
    FlushUnit ((APTR)request->io_Unit, EVENT_QUEUE, IOERR_ABORTED, base);
    return TRUE;
@@ -412,7 +412,7 @@ struct DevUnit *unit;
 struct Sana2DeviceQuery *info;
 ULONG size_available, size;
 
-    KPrintF (" CmdS2DeviceQuery ");
+    LOG (" CmdS2DeviceQuery ");
 
    /* Copy device info */
 
@@ -443,7 +443,7 @@ ULONG size_available, size;
 static BOOL CmdGetStationAddress (struct IOSana2Req *request, struct MyBase *base) {
 struct DevUnit *unit;
 
-    KPrintF (" CmdGetStationAddress ");
+    LOG (" CmdGetStationAddress ");
         
     unit = (APTR)request->ios2_Req.io_Unit;
     CopyMem (unit->address, request->ios2_SrcAddr, ADDRESS_SIZE);
@@ -462,7 +462,7 @@ static BOOL CmdConfigInterface (struct IOSana2Req *request, struct MyBase *base)
 struct DevUnit *unit;
 
 
-    KPrintF (" CmdConfigInterface ");
+    LOG (" CmdConfigInterface ");
     
    /* Configure adapter */
 
@@ -492,7 +492,7 @@ struct DevUnit *unit;
  *****************************************************************************/
 static BOOL CmdBroadcast (struct IOSana2Req *request, struct MyBase *base) {
 
-    KPrintF (" CmdBroadcast ");
+    LOG (" CmdBroadcast ");
 
    /* Fill in the broadcast address as destination */
 
@@ -517,7 +517,7 @@ struct TypeTracker *tracker;
 struct TypeStats *initial_stats;
 BYTE error = 0;
 
-    KPrintF (" CmdTrackType ");
+    LOG (" CmdTrackType ");
     
    unit = (APTR)request->ios2_Req.io_Unit;
    packet_type = request->ios2_PacketType;
@@ -587,7 +587,7 @@ ULONG packet_type;
 struct TypeTracker *tracker;
 struct TypeStats *initial_stats;
 
-    KPrintF (" CmdUntrackType ");
+    LOG (" CmdUntrackType ");
 
    unit = (APTR)request->ios2_Req.io_Unit;
    packet_type = request->ios2_PacketType;
@@ -633,7 +633,7 @@ ULONG packet_type;
 struct TypeStats *initial_stats, *tracker;
 struct Sana2PacketTypeStats *stats;
 
-    KPrintF (" CmdGetTypeStats ");
+    LOG (" CmdGetTypeStats ");
 
    unit = (APTR)request->ios2_Req.io_Unit;
    packet_type = request->ios2_PacketType;
@@ -691,7 +691,7 @@ UWORD i, stat_count;
 struct Sana2SpecialStatHeader *header;
 struct Sana2SpecialStatRecord *record;
 
-    KPrintF (" CmdGetSpecialStats ");
+    LOG (" CmdGetSpecialStats ");
 
    /* Fill in stats */
 
@@ -728,7 +728,7 @@ struct Sana2SpecialStatRecord *record;
 static BOOL CmdGetGlobalStats (struct IOSana2Req *request, struct MyBase *base) {
 struct DevUnit *unit;
 
-    KPrintF (" CmdGetGlobalStats ");
+    LOG (" CmdGetGlobalStats ");
 
    /* Copy stats */
 
@@ -754,7 +754,7 @@ struct DevUnit *unit;
 ULONG events, wanted_events;
 BOOL complete = FALSE;
 
-    KPrintF (" CmdOnEvent ");
+    LOG (" CmdOnEvent ");
 
    /* Check if we understand the event types */
 
@@ -803,7 +803,7 @@ BYTE error = 0;
 ULONG wire_error;
 BOOL complete = FALSE;
 
-    KPrintF (" CmdReadOrphan ");
+    LOG (" CmdReadOrphan ");
 
    /* Check request is valid */
 
@@ -844,7 +844,7 @@ BYTE error = 0;
 ULONG wire_error;
 UWORD i;
 
-    KPrintF (" CmdOnline ");
+    LOG (" CmdOnline ");
 
    /* Check request is valid */
 
@@ -887,7 +887,7 @@ UWORD i;
 static BOOL CmdOffline (struct IOSana2Req *request, struct MyBase *base) {
 struct DevUnit *unit;
 
-    KPrintF (" CmdOffline ");
+    LOG (" CmdOffline ");
     
     /* Put adapter offline */
 
@@ -935,7 +935,7 @@ struct DevUnit *unit;
 static BOOL CmdDeviceQuery (struct IOStdReq *request, struct MyBase *base) {
 struct NSDeviceQueryResult *info;
     
-   KPrintF (" CmdDeviceQuery ");
+   LOG (" CmdDeviceQuery ");
     
 
    
@@ -966,7 +966,7 @@ static BOOL CmdAddMulticastAddresses (struct IOSana2Req *request, struct MyBase 
 struct DevUnit *unit;
 UBYTE *lower_bound, *upper_bound;
 
-    KPrintF (" CmdAddMulticastAddresses ");
+    LOG (" CmdAddMulticastAddresses ");
 
     unit = (APTR) request->ios2_Req.io_Unit;
 
@@ -996,7 +996,7 @@ static BOOL CmdDelMulticastAddresses (struct IOSana2Req *request, struct MyBase 
 struct DevUnit *unit;
 UBYTE *lower_bound, *upper_bound;
 
-    KPrintF (" CmdDelMulticastAddresses ");
+    LOG (" CmdDelMulticastAddresses ");
 
     unit = (APTR) request->ios2_Req.io_Unit;
 

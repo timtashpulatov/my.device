@@ -60,18 +60,18 @@ void FindCard (struct DevUnit *unit, struct MyBase *base) {
 UBYTE *p, i;
 struct ConfigDev *myCD;
 
-    KPrintF ("\n     Searching for card\n");
+    LOG ("\n     Searching for card\n");
 
     myCD = NULL;
 
     // search for all ConfigDevs
     while (myCD = (struct ConfigDev *)FindConfigDev (myCD, 5030, 24)) {     // TODO put some defines
-        KPrintF ("     FindConfigDev success\n");
+        LOG ("     FindConfigDev success\n");
         break;
     }
 
     if (myCD) {
-        KPrintF ("     Found card\n");
+        LOG ("     Found card\n");
         
         unit->io_base = (UBYTE *)myCD->cd_BoardAddr;
         
@@ -85,20 +85,20 @@ struct ConfigDev *myCD;
             poke (0x44000000, 0x38);
             poke (0x44000004, 0x40);
             
-            KPrintF ("\n 1) peek BUSCR: %8lx\n", peek (0x44000004));
+            LOG ("\n 1) peek BUSCR: %8lx\n", peek (0x44000004));
             
             dm9k_write (base->io_base, BUSCR, 0x60);
             
-            KPrintF ("\n 2) dm9k_read BUSCR: %8lx\n", dm9k_read (base->io_base, BUSCR));
+            LOG ("\n 2) dm9k_read BUSCR: %8lx\n", dm9k_read (base->io_base, BUSCR));
             
-            KPrintF ("\n 3) peek_w BUSCR: %8lx\n", peek_w (0x44000004));
+            LOG ("\n 3) peek_w BUSCR: %8lx\n", peek_w (0x44000004));
             
-            KPrintF ("\n 4) dm9k_read_w BUSCR: %8lx\n", dm9k_read_w (base->io_base, BUSCR));
+            LOG ("\n 4) dm9k_read_w BUSCR: %8lx\n", dm9k_read_w (base->io_base, BUSCR));
 
             dm9k_read (base->io_base, MRCMDX);
             dm9k_read (base->io_base, MRCMDX);
 
-            KPrintF ("\n 5) dm9k_read_w MRCMD: %8lx\n", dm9k_read_w (base->io_base, MRCMD));
+            LOG ("\n 5) dm9k_read_w MRCMD: %8lx\n", dm9k_read_w (base->io_base, MRCMD));
 */
 
         // Get default MAC address
@@ -123,7 +123,7 @@ struct ConfigDev *myCD;
 
     }
     else {
-        KPrintF ("     No card\n");
+        LOG ("     No card\n");
     }
 
 }
@@ -138,7 +138,7 @@ void InitialiseCard (struct DevUnit *unit, struct MyBase *base) {
 UBYTE *p, i;
 
 
-    KPrintF ("\nInitialiseCard... ");
+    LOG ("\nInitialiseCard... ");
 
     // Set drive current strength
     //dm9k_write (base->io_base, BUSCR, 0x40);
@@ -204,7 +204,7 @@ UBYTE *p, i;
 //    ClearTestRegister (unit->io_base, 0xff);
 
 
-    KPrintF ("done.\n");
+    LOG ("done.\n");
 
 }
 
@@ -223,11 +223,11 @@ struct DevUnit *unit;
     unit = FindUnit (unit_num, base);
 
     if (unit == NULL) {
-        KPrintF ("\n Unit not found, creating new");
+        LOG ("\n Unit not found, creating new");
         unit = CreateUnit (unit_num, base);    
     
         if (unit != NULL) {
-            KPrintF ("\n Adding unit to base->units list");
+            LOG ("\n Adding unit to base->units list");
             AddTail ((APTR)&(base->units), (APTR)unit);
         }
     }
@@ -279,7 +279,7 @@ APTR stack;
 //   struct Interrupt *card_removed_int,*card_inserted_int,*card_status_int;
 
 
-    KPrintF ("\n  CreateUnit");
+    LOG ("\n  CreateUnit");
 
     unit = (APTR) AllocMem (sizeof (struct DevUnit), MEMF_CLEAR);
     if (unit == NULL)
@@ -390,7 +390,7 @@ APTR stack;
 
    if (success) {
       task->tc_UserData = unit;
-      KPrintF ("\n  AddTask () success");
+      LOG ("\n  AddTask () success");
    }
 
    if (!success) {
@@ -412,7 +412,7 @@ VOID DeleteUnit (struct DevUnit *unit, struct MyBase *base) {
 UBYTE i;
 struct Task *task;
 
-    KPrintF ("\n  DeleteUnit");
+    LOG ("\n  DeleteUnit");
 
     if (unit != NULL) {
         task = unit->task;
@@ -707,7 +707,7 @@ struct IORequest *request;
 UBYTE i;
 struct Opener *opener, *tail;
 
-    KPrintF ("\nFlushUnit\n");
+    LOG ("\nFlushUnit\n");
 
     /* Abort queued requests */
 
@@ -782,7 +782,7 @@ UWORD SRAMaddr, SRAMaddrNext;
 
 
 
-    KPrintF ("\nRx ");
+    LOG ("\nRx ");
 
     base = unit->device;
 
@@ -795,7 +795,7 @@ UWORD SRAMaddr, SRAMaddrNext;
         r = dm9k_read (unit->io_base, MRCMDX);      // dummy read
         r = dm9k_read (unit->io_base, MRCMDX);
 
-        KPrintF ("\n   MRCMDX: %lx", r);
+        LOG ("\n   MRCMDX: %lx", r);
 
         if (r == 0x01) {
   
@@ -811,8 +811,8 @@ UWORD SRAMaddr, SRAMaddrNext;
             packet_size = dm9k_read_w (unit->io_base, MRCMD);
 
 
-            KPrintF ("\n   rx_status: %lx", rx_status);
-            KPrintF ("\n   packet_size: %lx", packet_size);
+            LOG ("\n   rx_status: %lx", rx_status);
+            LOG ("\n   packet_size: %lx", packet_size);
 
 
 
@@ -820,7 +820,7 @@ UWORD SRAMaddr, SRAMaddrNext;
             SRAMaddrNext = SRAMaddr + ((packet_size + 1) & ~1) + 4;
             if (SRAMaddrNext > 0x3fff) SRAMaddrNext -= 0x3400;
 
-            KPrintF ("\n   Status: $%lx length: $%lx SRAM addr before: %lx next: %lx", rx_status, packet_size, SRAMaddr, SRAMaddrNext);
+            LOG ("\n   Status: $%lx length: $%lx SRAM addr before: %lx next: %lx", rx_status, packet_size, SRAMaddr, SRAMaddrNext);
 */
 
             // Read whole packet    TODO read only header, skip the rest if not needed
@@ -833,9 +833,9 @@ UWORD SRAMaddr, SRAMaddrNext;
 
 /*
             SRAMaddr = (dm9k_read (unit->io_base, MDRAH) << 8) | dm9k_read (unit->io_base, MDRAL);
-            KPrintF ("   Actual: %lx", SRAMaddr);
+            LOG ("   Actual: %lx", SRAMaddr);
 */
-            KPrintF ("\n   Src: %8lx Dst: %8lx size: %8lx", *((ULONG *)(buffer + 6)), *((ULONG *)buffer), packet_size);
+            LOG ("\n   Src: %8lx Dst: %8lx size: %8lx", *((ULONG *)(buffer + 6)), *((ULONG *)buffer), packet_size);
 
 
 
@@ -846,7 +846,7 @@ UWORD SRAMaddr, SRAMaddrNext;
                 
                 packet_type = BEWord (*((UWORD *)(buffer + PACKET_TYPE)));
 
-        //        KPrintF (" type: %lx", packet_type);
+        //        LOG (" type: %lx", packet_type);
 
                 opener = (APTR)unit->openers.mlh_Head;
                 opener_tail = (APTR)&unit->openers.mlh_Tail;
@@ -862,20 +862,20 @@ UWORD SRAMaddr, SRAMaddrNext;
 //            DebugRxQueue (unit);
 
                     
-                //    KPrintF ("\n    Requests: ");
+                //    LOG ("\n    Requests: ");
 
                     // Offer packet to each request until it's accepted 
 
                     while ((request != request_tail) && !accepted) {
                     
-        //                KPrintF ("\n    Src %8lx Dst %8lx Type: %8lx", *((ULONG *)request->ios2_SrcAddr), *((ULONG *)request->ios2_DstAddr), request->ios2_PacketType);
+        //                LOG ("\n    Src %8lx Dst %8lx Type: %8lx", *((ULONG *)request->ios2_SrcAddr), *((ULONG *)request->ios2_DstAddr), request->ios2_PacketType);
                     
                    //     next = (APTR)request->ios2_Req.io_Message.mn_Node.ln_Succ;
                     
                         if ((request->ios2_PacketType == packet_type) || 
                             ((request->ios2_PacketType <= MTU) && (packet_type <= MTU))) {
 
-                            KPrintF ("!");
+                            LOG ("!");
 
                             CopyPacket (unit, request, packet_size, packet_type,
                                 !is_orphan, base);
@@ -883,7 +883,7 @@ UWORD SRAMaddr, SRAMaddrNext;
                             accepted = TRUE;
                         }
                         else {
-                            KPrintF (".");
+                            LOG (".");
                         }
                                                 
                         //request = next;
@@ -899,11 +899,11 @@ UWORD SRAMaddr, SRAMaddrNext;
                 /* If packet was unwanted, give it to S2_READORPHAN request */
 
                 if (is_orphan) {
-//                    KPrintF ("\nOrphan");
+//                    LOG ("\nOrphan");
                     unit->stats.UnknownTypesReceived ++;
                     if (!IsMsgPortEmpty (unit->request_ports [ADOPT_QUEUE])) {                        
                         
-//                        KPrintF (" adopted :)");
+//                        LOG (" adopted :)");
                         
                         CopyPacket (unit, (APTR)unit->request_ports [ADOPT_QUEUE]->mp_MsgList.lh_Head, 
                                 packet_size, packet_type,
@@ -911,7 +911,7 @@ UWORD SRAMaddr, SRAMaddrNext;
 
                     }
                     else {
-//                        KPrintF (" dropped :(");
+//                        LOG (" dropped :(");
                     }
                 }
 
@@ -926,17 +926,17 @@ UWORD SRAMaddr, SRAMaddrNext;
                     tracker->stats.BytesReceived += packet_size;
                 }                                              
                 
-                KPrintF ("#");
+                LOG ("#");
                 
             }
             else {
-                KPrintF ("f");
+                LOG ("f");
             }            
             
         }
         else {
 
-            KPrintF ("\n   no packets ");
+            LOG ("\n   no packets ");
             
             // Need to move this code inside packet reception block; check for errors
             //
@@ -983,7 +983,7 @@ UWORD SRAMaddr, SRAMaddrNext;
 //    poke (unit->io_base + 0x4000, peek (unit->io_base + 0x4000) & ~TESTREG_RX);
 
 
-    KPrintF (" done.");
+    LOG (" done.");
 
 
     return;
@@ -1002,7 +1002,7 @@ UBYTE *buffer;
 BOOL filtered = FALSE;
 UWORD *p, *end;
 
-    KPrintF ("\n     CopyPacket");
+    LOG ("\n     CopyPacket");
 
    /* Set multicast and broadcast flags */
 
@@ -1020,7 +1020,7 @@ UWORD *p, *end;
    CopyMem (buffer + PACKET_DEST, request->ios2_DstAddr, ADDRESS_SIZE);
    request->ios2_PacketType = packet_type;
 
-//    KPrintF (" type: %lx", packet_type);
+//    LOG (" type: %lx", packet_type);
 
    /* Read rest of packet */
 /*
@@ -1062,14 +1062,14 @@ UWORD *p, *end;
    
    if ((request->ios2_Req.io_Command == CMD_READ) &&
        (opener->filter_hook != NULL)) {
-//            KPrintF (" CallHookPkt ");
+//            LOG (" CallHookPkt ");
             if (!CallHookPkt (opener->filter_hook, request, buffer))
                 filtered = TRUE; 
     }
 
    if (!filtered) {
       /* Copy packet into opener's buffer and reply packet */
-//      KPrintF ("\n   Going to call opener's rx_function: %lx %lx %lx\n", request->ios2_Data, buffer, packet_size);
+//      LOG ("\n   Going to call opener's rx_function: %lx %lx %lx\n", request->ios2_Data, buffer, packet_size);
 
       if (!opener->rx_function (request->ios2_Data, buffer, packet_size)) {
          request->ios2_Req.io_Error = S2ERR_NO_RESOURCES;
@@ -1081,11 +1081,11 @@ UWORD *p, *end;
       Remove ((APTR)request);
       ReplyMsg ((APTR)request);
       
-//      KPrintF (" rem'd rpld");
+//      LOG (" rem'd rpld");
 
     }
     else {
-//        KPrintF (" !FILTERED! ");
+//        LOG (" !FILTERED! ");
     }
 
    return;
@@ -1160,7 +1160,7 @@ struct TypeStats *tracker;
 UBYTE nsr;
 
 
-    KPrintF ("\nTx ");
+    LOG ("\nTx ");
 
     base = unit->device;
     port = unit->request_ports [WRITE_QUEUE];
@@ -1196,7 +1196,7 @@ UBYTE nsr;
 
                 if ((request->ios2_Req.io_Flags & SANA2IOF_RAW) == 0) {
                     
-   //                 KPrintF ("\n === Src: %08lx.. Dst: %08lx..", *((ULONG *)unit->address), *((ULONG *)request->ios2_DstAddr));
+   //                 LOG ("\n === Src: %08lx.. Dst: %08lx..", *((ULONG *)unit->address), *((ULONG *)request->ios2_DstAddr));
                     
                     //dm9k_write_block_w (unit->io_base, MWCMD, request->ios2_DstAddr, 3);
                     dm9k_write_w (unit->io_base, MWCMD, ntohw (*((UWORD *)request->ios2_DstAddr)));
@@ -1291,7 +1291,7 @@ UBYTE nsr;
             else {
                 proceed = FALSE;
                 
-                //KPrintF (" . ");
+                //LOG (" . ");
                 
             }
 
@@ -1439,17 +1439,17 @@ __saveds static VOID LinkChangeInt (__reg("a1") struct DevUnit *unit) {
 struct MyBase *base;
 ULONG events = S2EVENT_OFFLINE;
 
-    KPrintF ("\n === LinkChangeInt:");
+    LOG ("\n === LinkChangeInt:");
 
     base = unit->device;
 
     if (dm9k_read (unit->io_base, NSR) & NSR_LINKST) {
-        KPrintF (" Link UP\n");
+        LOG (" Link UP\n");
         unit->flags |= UNITF_ONLINE;
         events = S2EVENT_ONLINE;
     }
     else {
-        KPrintF (" Link DOWN\n");
+        LOG (" Link DOWN\n");
         unit->flags &= ~UNITF_ONLINE;
         events = S2EVENT_OFFLINE;
     }
@@ -1538,7 +1538,7 @@ volatile UBYTE index;
         }
 
 
-//        KPrintF ("[%lx]", r);
+//        LOG ("[%lx]", r);
 
 
     }
@@ -1633,7 +1633,7 @@ ULONG signals,
     }
 
 
-    KPrintF ("\n= UnitTask started =\n");
+    LOG ("\n= UnitTask started =\n");
 
 
 
@@ -1650,12 +1650,12 @@ ULONG signals,
     while (TRUE) {
         signals = Wait (wait_signals);            
 
-        KPrintF ("\n= UnitTask got signal =\n");
+        LOG ("\n= UnitTask got signal =\n");
 
         if ((signals & general_port_signal) != 0) {
             while ((request = (APTR)GetMsg (general_port)) != NULL) {
 
-                KPrintF ("\n= UnitTask got req =\n");
+                LOG ("\n= UnitTask got req =\n");
                 
                 /* Service the request as soon as the unit is free */
 
