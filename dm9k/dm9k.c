@@ -54,10 +54,24 @@ UBYTE c;
 }
 
 
+#define peek(address)\
+    (*((volatile ULONG *)(address)))        // &0xff
+
+#define peek_w(address)\
+    (*((volatile ULONG *)(address)))        // &0xffff
+
+
+    //#define poke(address,value)\
+    //   *((volatile UBYTE *)address)=(value)
+
+#define poke(address,value)\
+   *((volatile ULONG *)address)=((ULONG)value)
+
+
 /************************************************************
  * peek
  ************************************************************/
-UBYTE peek (APTR addr) {
+/*UBYTE peek (APTR addr) {
 ULONG *ptr;
 ULONG value;
 
@@ -70,45 +84,38 @@ ULONG value;
 
     return value & 0xff;
 }
+*/
 
 /************************************************************
  * peek_w
  ************************************************************/
-UWORD peek_w (APTR addr) {
+/*UWORD peek_w (APTR addr) {
 ULONG *ptr;
 ULONG value;
-
-    // Dummy read
-//    ptr = (ULONG *)0x40000000;
-//    value = *ptr;
 
     ptr = (ULONG *)addr;
     value = *ptr;
 
     return value & 0xffff;
 }
-
+*/
 /************************************************************
  * poke
  ************************************************************/
-void poke (APTR addr, UBYTE value) {
-//UBYTE *ptr;
-ULONG *ptr;
+/*void poke (APTR addr, UBYTE value) {
+UBYTE *ptr;
+//ULONG *ptr;
 
-    // Dummy read
-//    ptr = (ULONG *)0x40000000;
-//    dummy = *ptr;
-
-
-    ptr = (ULONG *) addr + 16;          // anti caching hack
-    *ptr = (ULONG)value;
+    ptr = (UBYTE *) addr;
+    *ptr = value;
 }
+*/
 
 /************************************************************
  * dm9k_read
  ************************************************************/
 UBYTE dm9k_read (UBYTE reg) {
-    poke (base_index, reg);
+    poke ((ULONG *)base_index, (ULONG)reg);
     return peek (base_data);
 }
 
@@ -116,16 +123,16 @@ UBYTE dm9k_read (UBYTE reg) {
  * dm9k_read_w
  ************************************************************/
 UWORD dm9k_read_w (UBYTE reg) {
-    poke (base_index, reg);
-    return peek_w (base_data);
+    poke ((ULONG *)base_index, (ULONG)reg);
+    return  (UWORD)(peek_w (base_data));
 }
 
 /************************************************************
  * dm9k_write
  ************************************************************/
 void dm9k_write (UBYTE reg, UBYTE value) {
-    poke (base_index, reg);
-    poke (base_data, value);
+    poke ((ULONG *)base_index, (ULONG)reg);
+    poke ((ULONG *)base_data, (ULONG)value);
 }
 
 /************************************************************
@@ -279,7 +286,7 @@ UWORD mac1, mac2, mac3;
 
     if (myCD) {
         base_index = myCD->cd_BoardAddr;
-        base_data = (UBYTE *)(myCD->cd_BoardAddr) + 4;
+        base_data = (UBYTE *)(myCD->cd_BoardAddr) + 16;
         
 //        poke (base_index, 0x38);
 //        poke (base_data, 0x40);
